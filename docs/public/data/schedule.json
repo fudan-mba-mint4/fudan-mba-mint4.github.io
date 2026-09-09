@@ -1,0 +1,451 @@
+{
+  "semester": "2026秋季学期",
+  "total_courses": 3,
+  "total_sessions": 21,
+  "courses": [
+    {
+      "name": "数据、模型与决策",
+      "teacher": "黄达",
+      "location": "政立院区B403教室",
+      "sessions": [
+        {
+          "date": "2026-09-10",
+          "time_start": "18:00",
+          "time_end": "21:30",
+          "weekday": "Thursday"
+        },
+        {
+          "date": "2026-09-17",
+          "time_start": "18:00",
+          "time_end": "21:30",
+          "weekday": "Thursday"
+        },
+        {
+          "date": "2026-09-24",
+          "time_start": "18:00",
+          "time_end": "21:30",
+          "weekday": "Thursday"
+        },
+        {
+          "date": "2026-10-15",
+          "time_start": "18:00",
+          "time_end": "21:30",
+          "weekday": "Thursday"
+        },
+        {
+          "date": "2026-10-22",
+          "time_start": "18:00",
+          "time_end": "21:30",
+          "weekday": "Thursday"
+        },
+        {
+          "date": "2026-10-29",
+          "time_start": "18:00",
+          "time_end": "21:30",
+          "weekday": "Thursday"
+        },
+        {
+          "date": "2026-11-05",
+          "time_start": "18:00",
+          "time_end": "21:30",
+          "weekday": "Thursday"
+        }
+      ]
+    },
+    {
+      "name": "管理经济学",
+      "teacher": "罗云辉",
+      "location": "政立院区B403教室",
+      "sessions": [
+        {
+          "date": "2026-09-13",
+          "time_start": "08:30",
+          "time_end": "12:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-09-27",
+          "time_start": "08:30",
+          "time_end": "12:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-10-11",
+          "time_start": "08:30",
+          "time_end": "12:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-10-18",
+          "time_start": "08:30",
+          "time_end": "12:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-10-25",
+          "time_start": "08:30",
+          "time_end": "12:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-11-01",
+          "time_start": "08:30",
+          "time_end": "12:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-11-08",
+          "time_start": "08:30",
+          "time_end": "12:00",
+          "weekday": "Sunday"
+        }
+      ]
+    },
+    {
+      "name": "会计学",
+      "teacher": "钟覃琳",
+      "location": "政立院区B403教室",
+      "sessions": [
+        {
+          "date": "2026-09-13",
+          "time_start": "13:30",
+          "time_end": "17:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-09-27",
+          "time_start": "13:30",
+          "time_end": "17:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-10-11",
+          "time_start": "13:30",
+          "time_end": "17:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-10-18",
+          "time_start": "13:30",
+          "time_end": "17:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-10-25",
+          "time_start": "13:30",
+          "time_end": "17:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-11-01",
+          "time_start": "13:30",
+          "time_end": "17:00",
+          "weekday": "Sunday"
+        },
+        {
+          "date": "2026-11-08",
+          "time_start": "13:30",
+          "time_end": "17:00",
+          "weekday": "Sunday"
+        }
+      ]
+    }
+  ],
+  "schedule": [
+    {
+      "date": "2026-09-10",
+      "weekday": "Thursday",
+      "courses": [
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B403教室",
+          "start": "20260910T180000",
+          "date": "2026-09-10",
+          "time_start": "18:00",
+          "end": "20260910T213000",
+          "time_end": "21:30"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-13",
+      "weekday": "Sunday",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20260913T083000",
+          "date": "2026-09-13",
+          "time_start": "08:30",
+          "end": "20260913T120000",
+          "time_end": "12:00"
+        },
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B403教室",
+          "start": "20260913T133000",
+          "date": "2026-09-13",
+          "time_start": "13:30",
+          "end": "20260913T170000",
+          "time_end": "17:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "weekday": "Thursday",
+      "courses": [
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B403教室",
+          "start": "20260917T180000",
+          "date": "2026-09-17",
+          "time_start": "18:00",
+          "end": "20260917T213000",
+          "time_end": "21:30"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-24",
+      "weekday": "Thursday",
+      "courses": [
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B403教室",
+          "start": "20260924T180000",
+          "date": "2026-09-24",
+          "time_start": "18:00",
+          "end": "20260924T213000",
+          "time_end": "21:30"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-27",
+      "weekday": "Sunday",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20260927T083000",
+          "date": "2026-09-27",
+          "time_start": "08:30",
+          "end": "20260927T120000",
+          "time_end": "12:00"
+        },
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B403教室",
+          "start": "20260927T133000",
+          "date": "2026-09-27",
+          "time_start": "13:30",
+          "end": "20260927T170000",
+          "time_end": "17:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-11",
+      "weekday": "Sunday",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20261011T083000",
+          "date": "2026-10-11",
+          "time_start": "08:30",
+          "end": "20261011T120000",
+          "time_end": "12:00"
+        },
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B403教室",
+          "start": "20261011T133000",
+          "date": "2026-10-11",
+          "time_start": "13:30",
+          "end": "20261011T170000",
+          "time_end": "17:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-15",
+      "weekday": "Thursday",
+      "courses": [
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B403教室",
+          "start": "20261015T180000",
+          "date": "2026-10-15",
+          "time_start": "18:00",
+          "end": "20261015T213000",
+          "time_end": "21:30"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-18",
+      "weekday": "Sunday",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20261018T083000",
+          "date": "2026-10-18",
+          "time_start": "08:30",
+          "end": "20261018T120000",
+          "time_end": "12:00"
+        },
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B403教室",
+          "start": "20261018T133000",
+          "date": "2026-10-18",
+          "time_start": "13:30",
+          "end": "20261018T170000",
+          "time_end": "17:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-22",
+      "weekday": "Thursday",
+      "courses": [
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B403教室",
+          "start": "20261022T180000",
+          "date": "2026-10-22",
+          "time_start": "18:00",
+          "end": "20261022T213000",
+          "time_end": "21:30"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "weekday": "Sunday",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20261025T083000",
+          "date": "2026-10-25",
+          "time_start": "08:30",
+          "end": "20261025T120000",
+          "time_end": "12:00"
+        },
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B403教室",
+          "start": "20261025T133000",
+          "date": "2026-10-25",
+          "time_start": "13:30",
+          "end": "20261025T170000",
+          "time_end": "17:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-10-29",
+      "weekday": "Thursday",
+      "courses": [
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B403教室",
+          "start": "20261029T180000",
+          "date": "2026-10-29",
+          "time_start": "18:00",
+          "end": "20261029T213000",
+          "time_end": "21:30"
+        }
+      ]
+    },
+    {
+      "date": "2026-11-01",
+      "weekday": "Sunday",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20261101T083000",
+          "date": "2026-11-01",
+          "time_start": "08:30",
+          "end": "20261101T120000",
+          "time_end": "12:00"
+        },
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B403教室",
+          "start": "20261101T133000",
+          "date": "2026-11-01",
+          "time_start": "13:30",
+          "end": "20261101T170000",
+          "time_end": "17:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-11-05",
+      "weekday": "Thursday",
+      "courses": [
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B403教室",
+          "start": "20261105T180000",
+          "date": "2026-11-05",
+          "time_start": "18:00",
+          "end": "20261105T213000",
+          "time_end": "21:30"
+        }
+      ]
+    },
+    {
+      "date": "2026-11-08",
+      "weekday": "Sunday",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20261108T083000",
+          "date": "2026-11-08",
+          "time_start": "08:30",
+          "end": "20261108T120000",
+          "time_end": "12:00"
+        },
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B403教室",
+          "start": "20261108T133000",
+          "date": "2026-11-08",
+          "time_start": "13:30",
+          "end": "20261108T170000",
+          "time_end": "17:00"
+        }
+      ]
+    }
+  ],
+  "last_updated": "2026-09-09 21:26"
+}
