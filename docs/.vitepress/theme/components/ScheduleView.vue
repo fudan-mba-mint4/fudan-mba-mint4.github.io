@@ -1,9 +1,19 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 
 const scheduleData = ref(null)
 const loading = ref(true)
 const activeTab = ref('week') // 'week' or 'course'
+
+// 切换标签时，手动触发滚动动画（因为新显示的元素需要重新观察）
+watch(activeTab, async () => {
+  await nextTick()
+  setTimeout(() => {
+    document.querySelectorAll('.schedule-page .reveal:not(.is-visible)').forEach(el => {
+      el.classList.add('is-visible')
+    })
+  }, 50)
+})
 
 onMounted(async () => {
   try {
