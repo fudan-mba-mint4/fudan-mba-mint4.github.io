@@ -11,8 +11,9 @@ export default defineConfig({
   lastUpdated: true,
   
   themeConfig: {
-    // 网站logo（后续替换为班徽）
-    logo: '/images/logo.jpg',
+    // 网站logo和favicon（压缩后的班徽）
+    logo: '/images/logo.png',
+    favicon: '/favicon.png',
     
     // 顶部导航栏
     nav: [

@@ -6,7 +6,7 @@ hero:
   text: 班级官方主页
   tagline: 课表 · 公告 · 知识库 · 课件
   image:
-    src: /images/logo.jpg
+    src: /images/logo.png
     alt: 薄荷4班班徽
   actions:
     - theme: brand
