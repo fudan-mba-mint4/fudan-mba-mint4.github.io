@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
+// 班级核心数据
 const stats = ref([
   { value: 3, suffix: '', label: '核心课程' },
   { value: 21, suffix: '', label: '本学期课时' },
-  { value: 100, suffix: '%', label: '同学覆盖' },
+  { value: 60, suffix: '+', label: '班级同学' },
   { value: 24, suffix: '/7', label: '全天在线' },
 ])
 
@@ -12,10 +13,9 @@ const animatedValues = ref(stats.value.map(() => 0))
 const hasAnimated = ref(false)
 
 onMounted(() => {
-  // 延迟启动数字动画
   setTimeout(() => {
     animateNumbers()
-  }, 800)
+  }, 600)
 })
 
 const animateNumbers = () => {
@@ -23,14 +23,13 @@ const animateNumbers = () => {
   hasAnimated.value = true
 
   stats.value.forEach((stat, index) => {
-    const duration = 2000
+    const duration = 1800
     const startTime = performance.now()
     const target = stat.value
 
     const update = (currentTime) => {
       const elapsed = currentTime - startTime
       const progress = Math.min(elapsed / duration, 1)
-      // 缓动函数
       const easeOut = 1 - Math.pow(1 - progress, 3)
       animatedValues.value[index] = Math.floor(target * easeOut)
 
@@ -48,16 +47,8 @@ const animateNumbers = () => {
 
 <template>
   <section class="hero">
-    <!-- 动态背景 -->
-    <div class="hero-bg">
-      <div class="orb orb-1" style="top: -10%; left: -5%;"></div>
-      <div class="orb orb-2" style="bottom: -15%; right: -10%;"></div>
-      <div class="orb orb-3" style="top: 30%; right: 20%;"></div>
-      <div class="grid-bg"></div>
-    </div>
-
     <div class="hero-content">
-      <!-- 顶部徽章 -->
+      <!-- 班级标识 -->
       <div class="hero-badge reveal">
         <span class="badge-dot"></span>
         <span>复旦大学 MBA 2024级 · 薄荷4班</span>
@@ -66,23 +57,25 @@ const animateNumbers = () => {
       <!-- 主标题 -->
       <h1 class="hero-title reveal reveal-delay-1">
         <span class="title-line">薄荷4班</span>
-        <span class="title-gradient">数字家园</span>
+        <span class="title-line accent">数字家园</span>
       </h1>
 
+      <!-- 班级口号 -->
+      <p class="hero-slogan reveal reveal-delay-2">
+        4 the Best, for the Future.
+      </p>
+
       <!-- 副标题 -->
-      <p class="hero-subtitle reveal reveal-delay-2">
+      <p class="hero-subtitle reveal reveal-delay-3">
         课表查询 · 公告通知 · 知识沉淀 · 资源共享
         <br />
-        <span class="subtitle-accent">为每一位同学打造高效便捷的学习平台</span>
+        为每一位同学打造高效便捷的学习平台
       </p>
 
       <!-- 按钮组 -->
-      <div class="hero-actions reveal reveal-delay-3">
+      <div class="hero-actions reveal reveal-delay-4">
         <a href="/schedule" class="btn btn-primary">
-          <span>查看本周课表</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
+          查看课表
         </a>
         <a href="/announcements/" class="btn btn-secondary">
           最新公告
@@ -90,7 +83,7 @@ const animateNumbers = () => {
       </div>
 
       <!-- 数据统计 -->
-      <div class="hero-stats reveal reveal-delay-4">
+      <div class="hero-stats reveal reveal-delay-5">
         <div class="stat-item" v-for="(stat, index) in stats" :key="index">
           <div class="stat-value">
             {{ animatedValues[index] }}<span class="stat-suffix">{{ stat.suffix }}</span>
@@ -105,7 +98,6 @@ const animateNumbers = () => {
       <div class="scroll-mouse">
         <div class="scroll-wheel"></div>
       </div>
-      <span>向下滚动探索</span>
     </div>
   </section>
 </template>
@@ -113,59 +105,48 @@ const animateNumbers = () => {
 <style scoped>
 .hero {
   position: relative;
-  min-height: 100vh;
+  min-height: 92vh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: var(--space-4xl) var(--space-xl);
-  margin-top: calc(-1 * var(--nav-height));
-  padding-top: var(--nav-height);
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background: var(--c-hero-gradient);
-  z-index: 0;
+  padding: var(--space-20) var(--space-6);
+  padding-top: calc(var(--nav-height) + var(--space-20));
+  background: transparent;
 }
 
 .hero-content {
   position: relative;
   z-index: 1;
   text-align: center;
-  max-width: 900px;
+  max-width: 720px;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-lg);
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border-accent);
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-4);
+  background: var(--c-bg-secondary);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   color: var(--c-text-secondary);
-  margin-bottom: var(--space-2xl);
-  backdrop-filter: blur(10px);
+  margin-bottom: var(--space-8);
 }
 
 .badge-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--c-mint);
-  box-shadow: 0 0 10px var(--c-mint-glow);
-  animation: pulse 2s ease-in-out infinite;
+  background: var(--c-accent);
 }
 
 .hero-title {
-  font-size: clamp(2.5rem, 8vw, 5.5rem);
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  margin-bottom: var(--space-xl);
+  font-size: clamp(40px, 8vw, 68px);
+  font-weight: var(--font-bold);
+  line-height: 1.08;
+  letter-spacing: var(--letter-spacing-tight);
+  margin-bottom: var(--space-6);
 }
 
 .title-line {
@@ -173,44 +154,42 @@ const animateNumbers = () => {
   color: var(--c-text-primary);
 }
 
-.title-gradient {
-  display: block;
-  background: var(--c-accent-gradient);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 4s linear infinite;
+.title-line.accent {
+  color: var(--c-accent);
+}
+
+.hero-slogan {
+  font-size: var(--text-xl);
+  font-weight: var(--font-medium);
+  color: var(--c-text-secondary);
+  margin-bottom: var(--space-4);
+  font-style: italic;
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .hero-subtitle {
-  font-size: var(--text-xl);
-  color: var(--c-text-secondary);
-  line-height: 1.8;
-  margin-bottom: var(--space-3xl);
-}
-
-.subtitle-accent {
-  color: var(--c-accent-light);
-  font-weight: 500;
+  font-size: var(--text-base);
+  color: var(--c-text-tertiary);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--space-10);
 }
 
 .hero-actions {
   display: flex;
-  gap: var(--space-lg);
+  gap: var(--space-3);
   justify-content: center;
-  margin-bottom: var(--space-4xl);
+  margin-bottom: var(--space-16);
   flex-wrap: wrap;
 }
 
 .hero-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-xl);
-  max-width: 700px;
+  gap: var(--space-6);
+  max-width: 560px;
   margin: 0 auto;
-  padding-top: var(--space-2xl);
-  border-top: 1px solid var(--c-border);
+  padding-top: var(--space-8);
+  border-top: 0.5px solid var(--c-separator);
 }
 
 .stat-item {
@@ -218,74 +197,64 @@ const animateNumbers = () => {
 }
 
 .stat-value {
-  font-size: var(--text-3xl);
-  font-weight: 800;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
   color: var(--c-text-primary);
-  margin-bottom: var(--space-xs);
-  font-family: var(--font-mono);
+  margin-bottom: var(--space-1);
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .stat-suffix {
   font-size: var(--text-lg);
   color: var(--c-accent);
+  font-weight: var(--font-medium);
 }
 
 .stat-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--c-text-tertiary);
 }
 
 .scroll-indicator {
   position: absolute;
-  bottom: var(--space-2xl);
+  bottom: var(--space-8);
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--c-text-tertiary);
-  font-size: var(--text-xs);
-  letter-spacing: 0.1em;
-  animation: bounceSubtle 2s ease-in-out infinite;
+  opacity: 0.4;
+  animation: bounceSubtle 2.5s ease-in-out infinite;
 }
 
 .scroll-mouse {
-  width: 24px;
-  height: 38px;
-  border: 2px solid var(--c-border-accent);
+  width: 22px;
+  height: 34px;
+  border: 1.5px solid var(--c-text-tertiary);
   border-radius: 12px;
   display: flex;
   justify-content: center;
-  padding-top: 6px;
+  padding-top: 5px;
 }
 
 .scroll-wheel {
-  width: 3px;
-  height: 8px;
-  background: var(--c-accent);
+  width: 2px;
+  height: 6px;
+  background: var(--c-text-tertiary);
   border-radius: 2px;
-  animation: scrollWheel 1.5s ease-in-out infinite;
+  animation: scrollWheel 1.8s ease-in-out infinite;
 }
 
 @keyframes scrollWheel {
   0%, 100% { transform: translateY(0); opacity: 1; }
-  50% { transform: translateY(8px); opacity: 0.3; }
+  50% { transform: translateY(6px); opacity: 0.3; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .hero-stats {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-lg);
+    gap: var(--space-4);
   }
 
-  .hero-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .hero-subtitle {
-    font-size: var(--text-lg);
+  .hero {
+    min-height: 88vh;
   }
 }
 </style>

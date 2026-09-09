@@ -247,12 +247,6 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
   font-weight: 800;
   color: var(--c-text-primary);
   margin-bottom: var(--space-md);
-  background: var(--c-accent-gradient);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 4s linear infinite;
 }
 
 .page-header p {
@@ -305,11 +299,9 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
 }
 
 .tab-btn.active {
-  background: var(--c-accent-gradient);
-  background-size: 200% auto;
+  background: var(--c-accent);
   color: var(--c-text-inverse);
   border-color: transparent;
-  box-shadow: 0 4px 20px var(--c-accent-glow);
 }
 
 /* 按日期视图 */
@@ -329,8 +321,8 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
 }
 
 .day-header.today {
-  border-color: var(--c-border-accent);
-  box-shadow: 0 0 30px var(--c-accent-glow);
+  border: 1px solid var(--c-accent);
+  background: var(--c-accent-light);
 }
 
 .day-date {
@@ -375,7 +367,7 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
 
 .today-badge {
   padding: var(--space-xs) var(--space-md);
-  background: var(--c-accent-gradient);
+  background: var(--c-accent);
   color: var(--c-text-inverse);
   font-size: var(--text-xs);
   font-weight: 700;
@@ -405,8 +397,7 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
 }
 
 .course-item:hover {
-  background: rgba(255, 255, 255, 0.02);
-  transform: translateX(4px);
+  background: var(--c-bg-secondary);
 }
 
 .course-item.past {
@@ -552,7 +543,6 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
 
 .session-item:hover {
   border-color: var(--c-border-accent);
-  transform: translateY(-2px);
 }
 
 .session-item.past {
@@ -598,8 +588,7 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
 }
 
 .upcoming-dot {
-  background: var(--c-mint);
-  box-shadow: 0 0 8px var(--c-mint-glow);
+  background: var(--c-accent);
 }
 
 /* 底部 */

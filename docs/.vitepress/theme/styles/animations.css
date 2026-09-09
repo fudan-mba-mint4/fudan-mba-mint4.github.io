@@ -1,13 +1,14 @@
 /* ============================================
    动画关键帧与动画类
+   遵循苹果 HIG：动效时长 200-400ms，克制、功能性优先
    ============================================ */
 
-/* ---------- 入场动画 ---------- */
+/* ---------- 入场关键帧（短位移，微妙） ---------- */
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -18,7 +19,7 @@
 @keyframes fadeInDown {
   from {
     opacity: 0;
-    transform: translateY(-40px);
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;
@@ -29,7 +30,7 @@
 @keyframes fadeInLeft {
   from {
     opacity: 0;
-    transform: translateX(-60px);
+    transform: translateX(-20px);
   }
   to {
     opacity: 1;
@@ -40,7 +41,7 @@
 @keyframes fadeInRight {
   from {
     opacity: 0;
-    transform: translateX(60px);
+    transform: translateX(20px);
   }
   to {
     opacity: 1;
@@ -56,7 +57,7 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -67,7 +68,7 @@
 @keyframes slideInUp {
   from {
     opacity: 0;
-    transform: translateY(100%);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -75,79 +76,38 @@
   }
 }
 
-/* ---------- 持续动画 ---------- */
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-@keyframes floatSlow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-30px) rotate(2deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
-  50% { box-shadow: 0 0 40px rgba(212, 175, 55, 0.4); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
+/* 功能性加载指示旋转（持续旋转属功能性反馈，保留） */
 @keyframes rotateSlow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-@keyframes rotateReverse {
-  from { transform: rotate(360deg); }
-  to { transform: rotate(0deg); }
+/* 骨架屏微光扫过（仅用于加载骨架，不用于静态文字/按钮） */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
-@keyframes bounceSubtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ---------- 滚动动画类（由JS触发） ---------- */
+/* ---------- 滚动渐入（由 Intersection Observer 触发） ---------- */
 
 .reveal {
   opacity: 0;
-  transform: translateY(40px);
-  transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateY(24px);
+  transition: opacity 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: opacity, transform;
 }
 
 .reveal.reveal-left {
-  transform: translateX(-60px);
+  transform: translateX(-24px);
 }
 
 .reveal.reveal-right {
-  transform: translateX(60px);
+  transform: translateX(24px);
 }
 
 .reveal.reveal-scale {
-  transform: scale(0.85);
+  transform: scale(0.96);
 }
 
 .reveal.is-visible {
@@ -155,76 +115,20 @@
   transform: translate(0, 0) scale(1);
 }
 
-/* 延迟类 */
-.reveal-delay-1 { transition-delay: 0.1s; }
-.reveal-delay-2 { transition-delay: 0.2s; }
-.reveal-delay-3 { transition-delay: 0.3s; }
-.reveal-delay-4 { transition-delay: 0.4s; }
-.reveal-delay-5 { transition-delay: 0.5s; }
-.reveal-delay-6 { transition-delay: 0.6s; }
+/* 延迟类（最大 0.3s，避免入场过久） */
+.reveal-delay-1 { transition-delay: 0.05s; }
+.reveal-delay-2 { transition-delay: 0.1s; }
+.reveal-delay-3 { transition-delay: 0.15s; }
+.reveal-delay-4 { transition-delay: 0.2s; }
+.reveal-delay-5 { transition-delay: 0.25s; }
+.reveal-delay-6 { transition-delay: 0.3s; }
 
-/* ---------- 文字渐变动画 ---------- */
-
-.text-gradient-gold {
-  background: linear-gradient(135deg, #d4af37 0%, #f0d77e 25%, #fff8dc 50%, #f0d77e 75%, #d4af37 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 4s linear infinite;
-}
-
-/* ---------- 卡片3D悬停 ---------- */
-
-.card-3d {
-  transform-style: preserve-3d;
-  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              box-shadow 0.5s ease;
-}
-
-.card-3d:hover {
-  transform: translateY(-8px) rotateX(2deg) rotateY(-2deg);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6),
-              0 0 40px rgba(212, 175, 55, 0.15);
-}
-
-/* ---------- 光晕背景动画 ---------- */
-
-.orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.orb-1 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, transparent 70%);
-  animation: float 8s ease-in-out infinite;
-}
-
-.orb-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(79, 209, 197, 0.25) 0%, transparent 70%);
-  animation: floatSlow 10s ease-in-out infinite;
-}
-
-.orb-3 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(100, 120, 200, 0.2) 0%, transparent 70%);
-  animation: float 12s ease-in-out infinite reverse;
-}
-
-/* ---------- 网格背景 ---------- */
+/* ---------- 网格背景（功能性纹理，无持续动画） ---------- */
 
 .grid-bg {
   background-image:
-    linear-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+    linear-gradient(var(--c-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-grid-line) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
@@ -240,29 +144,20 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--c-accent-dark), var(--c-accent));
+  background: var(--c-border);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--c-accent-light);
+  background: var(--c-text-tertiary);
 }
 
 /* ---------- 选中文字 ---------- */
 
 ::selection {
-  background: var(--c-accent);
-  color: var(--c-text-inverse);
+  background: var(--c-accent-light);
+  color: var(--c-text-primary);
 }
 
 /* ---------- 减少动画偏好 ---------- */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* 注：index.css 中已存在全局 prefers-reduced-motion 降级，此处不再重复 */

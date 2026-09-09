@@ -1,0 +1,827 @@
+{
+  "classInfo": {
+    "className": "薄荷4班",
+    "classNameEn": "Mint 4",
+    "classNameTh": "มินต์ 4",
+    "school": "复旦大学MBA",
+    "grade": "2024级",
+    "slogan": "4 the Best, for the Future.",
+    "sloganZh": "4 the Best, for the Future.",
+    "headTeacher": "贺婧",
+    "totalMembers": 86,
+    "students": 72,
+    "mentors": 12,
+    "internationalStudents": 1,
+    "lastUpdated": "2026-09-09",
+    "dataSource": "班级微信群成员截图 + 初次见面会分组图",
+    "privacyLevel": "internal",
+    "notes": "本数据包含班级成员个人信息，仅限班级内部使用，不应公开部署。如需在网站展示，需脱敏处理或设置访问权限。"
+  },
+
+  "roles": {
+    "headTeacher": "班主任",
+    "mentor": "传承人（往届学长学姐，带Orientation）",
+    "mentorLeader": "传承人Leader（统筹传承人工作）",
+    "student": "本班同学",
+    "internationalStudent": "国际学生",
+    "classCommittee": "班委"
+  },
+
+  "orientationGroups": {
+    "1": { "name": "1组", "mentors": ["叶萍", "胡敏峰"] },
+    "2": { "name": "2组", "mentors": ["郭丰", "俞耸闻"] },
+    "3": { "name": "3组", "mentors": ["陈实", "王抒星"] },
+    "4": { "name": "4组", "mentors": ["段志玲", "石音敏"] },
+    "5": { "name": "5组", "mentors": ["王沈秀", "李旭"] },
+    "6": { "name": "6组", "mentors": ["侯婷婷", "黄正炜"] }
+  },
+
+  "members": [
+    {
+      "id": "HT001",
+      "name": "贺婧",
+      "gender": "female",
+      "role": "headTeacher",
+      "orientationGroup": null,
+      "mentorGroup": null,
+      "isInternational": false,
+      "englishName": null,
+      "thaiName": null,
+      "avatar": null,
+      "contact": null,
+      "notes": "班主任"
+    },
+
+    {
+      "id": "MT001",
+      "name": "叶萍",
+      "gender": "female",
+      "role": "mentor",
+      "orientationGroup": "1",
+      "mentorGroup": "1",
+      "isInternational": false,
+      "notes": "1组传承人"
+    },
+    {
+      "id": "MT002",
+      "name": "胡敏峰",
+      "gender": "male",
+      "role": "mentor",
+      "orientationGroup": "1",
+      "mentorGroup": "1",
+      "isInternational": false,
+      "notes": "1组传承人"
+    },
+    {
+      "id": "MT003",
+      "name": "郭丰",
+      "gender": "male",
+      "role": "mentor",
+      "orientationGroup": "2",
+      "mentorGroup": "2",
+      "isInternational": false,
+      "notes": "2组传承人"
+    },
+    {
+      "id": "MT004",
+      "name": "俞耸闻",
+      "gender": "male",
+      "role": "mentor",
+      "orientationGroup": "2",
+      "mentorGroup": "2",
+      "isInternational": false,
+      "notes": "2组传承人"
+    },
+    {
+      "id": "MT005",
+      "name": "陈实",
+      "gender": "female",
+      "role": "mentor",
+      "orientationGroup": "3",
+      "mentorGroup": "3",
+      "isInternational": false,
+      "notes": "3组传承人"
+    },
+    {
+      "id": "MT006",
+      "name": "王抒星",
+      "gender": "male",
+      "role": "mentor",
+      "orientationGroup": "3",
+      "mentorGroup": "3",
+      "isInternational": false,
+      "notes": "3组传承人"
+    },
+    {
+      "id": "MT007",
+      "name": "段志玲",
+      "gender": "female",
+      "role": "mentor",
+      "orientationGroup": "4",
+      "mentorGroup": "4",
+      "isInternational": false,
+      "notes": "4组传承人"
+    },
+    {
+      "id": "MT008",
+      "name": "石音敏",
+      "gender": "female",
+      "role": "mentor",
+      "orientationGroup": "4",
+      "mentorGroup": "4",
+      "isInternational": false,
+      "notes": "4组传承人"
+    },
+    {
+      "id": "MT009",
+      "name": "王沈秀",
+      "gender": "female",
+      "role": "mentor",
+      "orientationGroup": "5",
+      "mentorGroup": "5",
+      "isInternational": false,
+      "notes": "5组传承人"
+    },
+    {
+      "id": "MT010",
+      "name": "李旭",
+      "gender": "male",
+      "role": "mentor",
+      "orientationGroup": "5",
+      "mentorGroup": "5",
+      "isInternational": false,
+      "notes": "5组传承人"
+    },
+    {
+      "id": "MT011",
+      "name": "侯婷婷",
+      "gender": "female",
+      "role": "mentor",
+      "orientationGroup": "6",
+      "mentorGroup": "6",
+      "isInternational": false,
+      "notes": "6组传承人"
+    },
+    {
+      "id": "MT012",
+      "name": "黄正炜",
+      "gender": "male",
+      "role": "mentor",
+      "orientationGroup": "6",
+      "mentorGroup": "6",
+      "isInternational": false,
+      "notes": "6组传承人"
+    },
+
+    {
+      "id": "ST001",
+      "name": "陈琦丽",
+      "englishName": "PILAIWARAPHET",
+      "thaiName": "พิไลวรพัฒน์",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "1",
+      "mentorGroup": null,
+      "isInternational": true,
+      "nationality": "Thailand",
+      "notes": "泰国同学，中文名陈琦丽，英文名PILAIWARAPHET（名单截图中显示为PILAIWAN）"
+    },
+
+    {
+      "id": "ST002",
+      "name": "宾晨慧",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST003",
+      "name": "高渊",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST004",
+      "name": "潘芸怡",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST005",
+      "name": "施纯",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST006",
+      "name": "王海莉",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST007",
+      "name": "吴益彤",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST008",
+      "name": "雷振宇",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false,
+      "notes": "网站建设负责人，GitHub组织管理员"
+    },
+    {
+      "id": "ST009",
+      "name": "李浩鹏",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST010",
+      "name": "刘景利",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false,
+      "notes": "名单截图中显示为刘昊利，按分组图修正为刘景利"
+    },
+    {
+      "id": "ST011",
+      "name": "谢炯慰",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+    {
+      "id": "ST012",
+      "name": "徐哲明",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "1",
+      "isInternational": false
+    },
+
+    {
+      "id": "ST013",
+      "name": "陈爽",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST014",
+      "name": "李欣乐",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST015",
+      "name": "李烨",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST016",
+      "name": "盛佳妍",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST017",
+      "name": "王星然",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST018",
+      "name": "叶宏颖",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST019",
+      "name": "张芷瑄",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false,
+      "notes": "名单截图中显示为张正瑄，按分组图修正为张芷瑄"
+    },
+    {
+      "id": "ST020",
+      "name": "陈世杨",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false,
+      "status": "withdrawn",
+      "notes": "已退学，仅在分组图中出现"
+    },
+    {
+      "id": "ST021",
+      "name": "高远",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST022",
+      "name": "潘飞翔",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST023",
+      "name": "姚天成龙",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+    {
+      "id": "ST024",
+      "name": "郑凯雄",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "2",
+      "isInternational": false
+    },
+
+    {
+      "id": "ST025",
+      "name": "程芳芳",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST026",
+      "name": "匡婷珑",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST027",
+      "name": "李雷达",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST028",
+      "name": "卿爽",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST029",
+      "name": "唐玉",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST030",
+      "name": "王雨露",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST031",
+      "name": "袁文琴",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST032",
+      "name": "姜嘉颢",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST033",
+      "name": "宋元君",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST034",
+      "name": "滕腾",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false,
+      "status": "withdrawn",
+      "notes": "已退学，仅在分组图中出现"
+    },
+    {
+      "id": "ST035",
+      "name": "许家瑞",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+    {
+      "id": "ST036",
+      "name": "赵磊",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "3",
+      "isInternational": false
+    },
+
+    {
+      "id": "ST037",
+      "name": "陈子欣",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST038",
+      "name": "高晓梅",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST039",
+      "name": "霍翊璇",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST040",
+      "name": "吴姗",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST041",
+      "name": "相婉玲",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST042",
+      "name": "徐珮莹",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST043",
+      "name": "杨旻",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST044",
+      "name": "鲍晴峰",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST045",
+      "name": "黄奕尊",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST046",
+      "name": "李旭磊",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST047",
+      "name": "生长军",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST048",
+      "name": "王炜泽",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+    {
+      "id": "ST049",
+      "name": "邹智宇",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "4",
+      "isInternational": false
+    },
+
+    {
+      "id": "ST050",
+      "name": "陈欢",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST051",
+      "name": "程枭",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST052",
+      "name": "杜曼丽",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST053",
+      "name": "孟维翰",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST054",
+      "name": "宋洁",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST055",
+      "name": "王歆昀",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false,
+      "status": "withdrawn",
+      "notes": "已退学，仅在分组图中出现"
+    },
+    {
+      "id": "ST056",
+      "name": "杨祎莲",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST057",
+      "name": "景孟晨",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST058",
+      "name": "彭皓宁",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false,
+      "notes": "名单截图中显示为彭海宁，按分组图修正为彭皓宁"
+    },
+    {
+      "id": "ST059",
+      "name": "王胜",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST060",
+      "name": "夏叶",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false
+    },
+    {
+      "id": "ST061",
+      "name": "周楠骐",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "5",
+      "isInternational": false,
+      "notes": "名单截图中显示为周俐骐，按分组图修正为周楠骐"
+    },
+
+    {
+      "id": "ST062",
+      "name": "曹朝",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST063",
+      "name": "陈飘逸",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST064",
+      "name": "李甜",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST065",
+      "name": "宋娇敏",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST066",
+      "name": "王瑜",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST067",
+      "name": "王雨佳",
+      "gender": "female",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST068",
+      "name": "李浩",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false,
+      "notes": "名单截图中显示为李洁，按分组图修正为李浩"
+    },
+    {
+      "id": "ST069",
+      "name": "刘瑞霖",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false,
+      "notes": "名单截图中显示为刘晓霖，按分组图修正为刘瑞霖"
+    },
+    {
+      "id": "ST070",
+      "name": "彭泽云",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST071",
+      "name": "辛秋言",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST072",
+      "name": "郑涛",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+    {
+      "id": "ST073",
+      "name": "朱奎政",
+      "gender": "male",
+      "role": "student",
+      "orientationGroup": "6",
+      "isInternational": false
+    },
+
+    {
+      "id": "CC001",
+      "name": "张志鹏",
+      "gender": "male",
+      "role": "mentorLeader",
+      "orientationGroup": null,
+      "isInternational": false,
+      "notes": "传承人Leader，统筹6组传承人工作，在分组图中单独列出"
+    }
+  ],
+
+  "statistics": {
+    "total": 87,
+    "active": 84,
+    "withdrawn": 3,
+    "byRole": {
+      "headTeacher": 1,
+      "mentor": 12,
+      "mentorLeader": 1,
+      "student": 73
+    },
+    "byGender": {
+      "female": 47,
+      "male": 40
+    },
+    "byOrientationGroup": {
+      "1": 12,
+      "2": 11,
+      "3": 11,
+      "4": 13,
+      "5": 11,
+      "6": 12
+    },
+    "internationalStudents": 1,
+    "withdrawnStudents": ["陈世杨", "滕腾", "王歆昀"]
+  },
+
+  "dataQuality": {
+    "confirmed": "所有名字已按分组图修正，3人已退学标记",
+    "withdrawn": ["陈世杨（2组）", "滕腾（3组）", "王歆昀（5组）"],
+    "notes": "数据来源于班级微信群成员截图（3张）和初次见面会分组图（1张）。名字以分组图为准，3人已退学。"
+  }
+}

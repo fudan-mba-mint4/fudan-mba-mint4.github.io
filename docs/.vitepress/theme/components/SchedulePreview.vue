@@ -42,8 +42,7 @@ const formatDate = (dateStr) => {
   const date = new Date(dateStr)
   const month = date.getMonth() + 1
   const day = date.getDate()
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  return `${month}月${day}日 ${weekdays[date.getDay()]}`
+  return `${month}月${day}日`
 }
 
 // 计算距离今天的天数
@@ -62,65 +61,55 @@ const daysUntil = (dateStr) => {
 <template>
   <section class="schedule-preview section">
     <div class="container">
-      <!-- 标题 -->
-      <div class="section-title reveal">
-        <span class="label">课程安排</span>
+      <!-- 区块标题 -->
+      <div class="section-header center reveal">
+        <span class="eyebrow">课程安排</span>
         <h2>即将开始的课程</h2>
         <p>实时同步校历，不错过每一节课</p>
       </div>
 
       <!-- 加载状态 -->
       <div v-if="loading" class="loading">
-        <div class="loading-spinner"></div>
         <p>加载课表中...</p>
       </div>
 
-      <!-- 课程卡片 -->
-      <div v-else class="schedule-cards">
+      <!-- 课程列表（苹果风格分组列表） -->
+      <div v-else class="schedule-list reveal reveal-delay-1">
         <div
           v-for="(course, index) in upcomingClasses"
           :key="index"
-          class="schedule-card reveal"
-          :class="`reveal-delay-${index + 1}`"
+          class="schedule-item"
         >
-          <!-- 日期标签 -->
-          <div class="date-badge">
-            <div class="date-day">{{ new Date(course.date).getDate() }}</div>
-            <div class="date-month">{{ new Date(course.date).getMonth() + 1 }}月</div>
+          <!-- 日期 -->
+          <div class="item-date">
+            <span class="date-day">{{ new Date(course.date).getDate() }}</span>
+            <span class="date-month">{{ new Date(course.date).getMonth() + 1 }}月</span>
           </div>
 
           <!-- 课程信息 -->
-          <div class="course-info">
-            <div class="course-meta">
-              <span class="meta-item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-                </svg>
-                {{ course.time_start }} - {{ course.time_end }}
-              </span>
-              <span class="meta-item location">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                </svg>
-                {{ course.location }}
-              </span>
-            </div>
+          <div class="item-info">
             <h3 class="course-name">{{ course.course }}</h3>
-            <p class="course-teacher">主讲：{{ course.teacher }}</p>
+            <div class="course-meta">
+              <span class="meta-item">{{ course.time_start }} - {{ course.time_end }}</span>
+              <span class="meta-dot">·</span>
+              <span class="meta-item">{{ course.teacher }}</span>
+              <span class="meta-dot">·</span>
+              <span class="meta-item">{{ course.location }}</span>
+            </div>
           </div>
 
           <!-- 倒计时 -->
-          <div class="countdown">
-            <span class="countdown-text">{{ daysUntil(course.date) }}</span>
+          <div class="item-countdown">
+            <span class="countdown-badge">{{ daysUntil(course.date) }}</span>
           </div>
         </div>
       </div>
 
-      <!-- 查看全部按钮 -->
-      <div class="view-all reveal reveal-delay-4">
-        <a href="/schedule" class="btn btn-secondary">
+      <!-- 查看全部 -->
+      <div class="view-all reveal reveal-delay-2">
+        <a href="/schedule" class="btn btn-ghost">
           查看完整课表
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
         </a>
@@ -132,160 +121,122 @@ const daysUntil = (dateStr) => {
 <style scoped>
 .schedule-preview {
   background: var(--c-bg-primary);
-  position: relative;
 }
 
 .loading {
   text-align: center;
-  padding: var(--space-4xl);
+  padding: var(--space-12);
   color: var(--c-text-tertiary);
+  font-size: var(--text-sm);
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--c-border);
-  border-top-color: var(--c-accent);
-  border-radius: 50%;
-  margin: 0 auto var(--space-lg);
-  animation: rotateSlow 1s linear infinite;
-}
-
-.schedule-cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  max-width: 800px;
+.schedule-list {
+  max-width: 640px;
   margin: 0 auto;
-}
-
-.schedule-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xl);
-  padding: var(--space-xl) var(--space-2xl);
   background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
   border-radius: var(--radius-xl);
-  transition: all var(--transition-base);
-  position: relative;
+  border: 0.5px solid var(--c-separator);
   overflow: hidden;
 }
 
-.schedule-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--c-accent-gradient);
-  transform: scaleY(0);
-  transition: transform var(--transition-base);
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 0.5px solid var(--c-border-light);
+  transition: background var(--transition-fast);
 }
 
-.schedule-card:hover {
-  border-color: var(--c-border-accent);
-  transform: translateX(8px);
-  box-shadow: var(--shadow-gold);
+.schedule-item:last-child {
+  border-bottom: none;
 }
 
-.schedule-card:hover::before {
-  transform: scaleY(1);
+.schedule-item:hover {
+  background: var(--c-bg-secondary);
 }
 
-.date-badge {
-  flex-shrink: 0;
-  width: 70px;
-  height: 70px;
-  background: var(--c-bg-tertiary);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-lg);
+.item-date {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--c-bg-secondary);
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
 }
 
 .date-day {
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  color: var(--c-accent);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--c-text-primary);
   line-height: 1;
 }
 
 .date-month {
-  font-size: var(--text-xs);
+  font-size: 10px;
   color: var(--c-text-tertiary);
   margin-top: 2px;
 }
 
-.course-info {
+.item-info {
   flex: 1;
   min-width: 0;
 }
 
-.course-meta {
-  display: flex;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-xs);
-  color: var(--c-text-tertiary);
-}
-
-.meta-item.location {
-  color: var(--c-mint);
-}
-
 .course-name {
-  font-size: var(--text-lg);
-  font-weight: 700;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   color: var(--c-text-primary);
   margin-bottom: 2px;
 }
 
-.course-teacher {
-  font-size: var(--text-sm);
+.course-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-size: var(--text-xs);
   color: var(--c-text-tertiary);
 }
 
-.countdown {
-  flex-shrink: 0;
-  text-align: right;
+.meta-dot {
+  color: var(--c-text-quaternary);
+  font-size: var(--text-xs);
 }
 
-.countdown-text {
+.item-countdown {
+  flex-shrink: 0;
+}
+
+.countdown-badge {
   display: inline-block;
-  padding: var(--space-xs) var(--space-md);
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid var(--c-border-accent);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  background: var(--c-accent-light);
   color: var(--c-accent);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-full);
 }
 
 .view-all {
   text-align: center;
-  margin-top: var(--space-3xl);
+  margin-top: var(--space-8);
 }
 
 @media (max-width: 640px) {
-  .schedule-card {
+  .schedule-item {
     flex-wrap: wrap;
-    padding: var(--space-lg);
   }
 
-  .countdown {
+  .item-countdown {
     width: 100%;
-    text-align: left;
+    padding-left: 60px;
   }
 }
 </style>

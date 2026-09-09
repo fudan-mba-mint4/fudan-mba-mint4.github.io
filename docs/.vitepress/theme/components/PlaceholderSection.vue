@@ -24,9 +24,7 @@ defineProps({
     <div class="placeholder-content reveal">
       <!-- 图标 -->
       <div class="placeholder-icon">
-        <span class="icon-emoji">{{ icon }}</span>
-        <div class="icon-ring"></div>
-        <div class="icon-pulse"></div>
+        <span>{{ icon }}</span>
       </div>
 
       <!-- 标题 -->
@@ -35,7 +33,6 @@ defineProps({
 
       <!-- 功能预告 -->
       <div v-if="features.length > 0" class="feature-preview">
-        <h3 class="preview-label">即将上线</h3>
         <div class="preview-tags">
           <span v-for="feature in features" :key="feature" class="preview-tag">
             {{ feature }}
@@ -43,15 +40,9 @@ defineProps({
         </div>
       </div>
 
-      <!-- 底部提示 -->
+      <!-- 底部 -->
       <div class="placeholder-footer">
-        <div class="footer-line"></div>
-        <p class="footer-text">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-          </svg>
-          由薄荷4班智库研究员共同维护
-        </p>
+        <p>薄荷4班 · 智库研究员共同维护</p>
       </div>
     </div>
   </div>
@@ -63,120 +54,68 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-3xl) var(--space-xl);
-  position: relative;
+  padding: var(--space-16) var(--space-6);
 }
 
 .placeholder-content {
   text-align: center;
-  max-width: 600px;
+  max-width: 480px;
 }
 
 .placeholder-icon {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  margin: 0 auto var(--space-2xl);
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--space-8);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.icon-emoji {
-  font-size: 3rem;
-  position: relative;
-  z-index: 2;
-}
-
-.icon-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-2xl);
-  border: 1px solid var(--c-border-accent);
-  background: var(--c-bg-card);
-  animation: rotateSlow 20s linear infinite;
-}
-
-.icon-pulse {
-  position: absolute;
-  inset: -10px;
-  border-radius: var(--radius-2xl);
-  border: 1px solid var(--c-border);
-  animation: pulseGlow 3s ease-in-out infinite;
+  font-size: 36px;
+  background: var(--c-bg-secondary);
+  border-radius: var(--radius-xl);
 }
 
 .placeholder-title {
   font-size: var(--text-3xl);
-  font-weight: 800;
+  font-weight: var(--font-bold);
   color: var(--c-text-primary);
-  margin-bottom: var(--space-md);
-  background: var(--c-accent-gradient);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 4s linear infinite;
+  margin-bottom: var(--space-3);
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .placeholder-desc {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   color: var(--c-text-tertiary);
-  margin-bottom: var(--space-3xl);
-  line-height: 1.8;
+  margin-bottom: var(--space-10);
+  line-height: var(--line-height-relaxed);
 }
 
 .feature-preview {
-  margin-bottom: var(--space-3xl);
-}
-
-.preview-label {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--c-accent);
-  letter-spacing: 0.1em;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-10);
 }
 
 .preview-tags {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-2);
 }
 
 .preview-tag {
-  padding: var(--space-xs) var(--space-md);
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
+  padding: var(--space-1) var(--space-3);
+  background: var(--c-bg-secondary);
   border-radius: var(--radius-full);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--c-text-secondary);
-  transition: all var(--transition-fast);
-}
-
-.preview-tag:hover {
-  border-color: var(--c-border-accent);
-  color: var(--c-accent-light);
-  transform: translateY(-2px);
 }
 
 .placeholder-footer {
-  margin-top: var(--space-3xl);
+  padding-top: var(--space-8);
+  border-top: 0.5px solid var(--c-separator);
 }
 
-.footer-line {
-  width: 60px;
-  height: 1px;
-  background: var(--c-border-accent);
-  margin: 0 auto var(--space-lg);
-}
-
-.footer-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
+.placeholder-footer p {
   font-size: var(--text-xs);
   color: var(--c-text-tertiary);
+  margin: 0;
 }
 </style>
