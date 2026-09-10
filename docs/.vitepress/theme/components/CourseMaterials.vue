@@ -207,29 +207,43 @@ const formatDate = (dateStr) => {
           <div v-if="session.references && session.references.length > 0" class="refs-section">
             <h4 class="files-label">{{ t.references }}</h4>
             <div class="files-grid">
-              <a
-                v-for="ref in session.references"
-                :key="ref.filename"
-                :href="ref.url"
-                class="file-card file-card--ref"
-                download
-              >
-                <div class="file-icon file-icon--ref">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                  </svg>
+              <template v-for="ref in session.references" :key="ref.filename">
+                <!-- 下载型参考资料 -->
+                <a
+                  v-if="ref.url"
+                  :href="ref.url"
+                  class="file-card file-card--ref"
+                  download
+                >
+                  <div class="file-icon file-icon--ref">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                  </div>
+                  <div class="file-info">
+                    <span class="file-name">{{ ref.name }}</span>
+                    <span class="file-meta" v-if="ref.desc">{{ ref.desc }}</span>
+                    <span class="file-meta">{{ ref.size }} · PDF</span>
+                  </div>
+                  <div class="file-download">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </div>
+                </a>
+                <!-- 说明型参考资料（无下载链接） -->
+                <div v-else class="file-card file-card--ref file-card--note">
+                  <div class="file-icon file-icon--ref">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                    </svg>
+                  </div>
+                  <div class="file-info">
+                    <span class="file-name">{{ ref.name }}</span>
+                    <span class="file-meta" v-if="ref.desc">{{ ref.desc }}</span>
+                  </div>
                 </div>
-                <div class="file-info">
-                  <span class="file-name">{{ ref.name }}</span>
-                  <span class="file-meta" v-if="ref.desc">{{ ref.desc }}</span>
-                  <span class="file-meta">{{ ref.size }} · PDF</span>
-                </div>
-                <div class="file-download">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                </div>
-              </a>
+              </template>
             </div>
           </div>
         </div>
@@ -499,6 +513,15 @@ const formatDate = (dateStr) => {
   border-color: var(--c-accent);
   background: var(--c-accent-light);
   transform: translateY(-1px);
+}
+
+.file-card--note {
+  cursor: default;
+}
+.file-card--note:hover {
+  border-color: var(--c-border);
+  background: var(--c-bg-secondary);
+  transform: none;
 }
 
 .file-icon {

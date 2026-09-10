@@ -23,7 +23,14 @@
               "type": "slide"
             }
           ],
-          "references": []
+          "references": [
+            {
+              "name": "黄达老师推荐 · 数学基础读物（3本）",
+              "filename": "math-comics",
+              "url": "",
+              "desc": "欧姆社学习漫画：微积分 / 统计学 / 回归分析 · 见企业微信DMD群"
+            }
+          ]
         }
       ]
     },
