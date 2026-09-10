@@ -44,6 +44,10 @@
   --c-mint-800: #1f554b;
   --c-mint-900: #1a453d;
 
+  /* 性别标识色（低饱和，与薄荷调色板协调） */
+  --c-gender-female: #d48fa3;
+  --c-gender-male: #73a8d1;
+
   /* 语义色（苹果系统色） */
   --c-blue: #007aff;
   --c-green: #34c759;
@@ -219,6 +223,10 @@ html.dark {
   --c-accent-active: #4ab89e;       /* 点击态 */
   --c-accent-light: rgba(94, 196, 172, 0.15);
   --c-accent-glow: rgba(94, 196, 172, 0.15);
+
+  /* 深色模式提亮，保证在#2c2c2e上的可见性 */
+  --c-gender-female: #eba5b8;
+  --c-gender-male: #82bde6;
 
   /* 语义色（深色模式系统色） */
   --c-blue: #0a84ff;

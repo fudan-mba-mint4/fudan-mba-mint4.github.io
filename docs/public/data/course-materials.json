@@ -1,0 +1,49 @@
+{
+  "last_updated": "2026-09-10",
+  "note": "课件按课程分类，每门课按节次排列。文件较大，建议右键另存为下载。",
+  "courses": [
+    {
+      "id": "dmd",
+      "name": "数据、模型与决策",
+      "name_en": "Data, Models and Decisions",
+      "teacher": "黄达",
+      "location": "政立院区 B403",
+      "weekday": "周四 18:00-21:30",
+      "sessions": [
+        {
+          "session": 1,
+          "date": "2026-09-10",
+          "title": "第1讲：课程导论与数学基础回顾",
+          "files": [
+            {
+              "name": "DMD 第1讲课件（学生版）",
+              "filename": "DMD_Lecture01_student_2026.pdf",
+              "url": "/files/courses/dmd/20260910/DMD_Lecture01_student_2026.pdf",
+              "size": "16 MB",
+              "type": "slide"
+            }
+          ],
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "managerial-economics",
+      "name": "管理经济学",
+      "name_en": "Managerial Economics",
+      "teacher": "罗云辉",
+      "location": "政立院区 B403",
+      "weekday": "周日 08:30-12:00",
+      "sessions": []
+    },
+    {
+      "id": "accounting",
+      "name": "会计学",
+      "name_en": "Accounting",
+      "teacher": "钟覃琳",
+      "location": "政立院区 B403",
+      "weekday": "周日 13:30-17:00",
+      "sessions": []
+    }
+  ]
+}

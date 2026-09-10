@@ -15,17 +15,31 @@ const sharedThemeConfig = {
 const zhNav = [
   { text: '首页', link: '/' },
   { text: '课表', link: '/schedule' },
-  { text: '公告通知', link: '/announcements/' },
-  { text: '知识库', link: '/knowledge/' },
-  { text: '课件下载', link: '/slides/' },
+  { text: '公告', link: '/announcements/' },
   {
-    text: '更多',
+    text: '智库',
+    items: [
+      { text: '知识库', link: '/knowledge/' },
+      { text: '课件下载', link: '/slides/' },
+    ],
+  },
+  { text: '活动', link: '/activities/' },
+  { text: '回忆', link: '/gallery/' },
+  { text: '班费', link: '/finance/' },
+  {
+    text: '治理',
     items: [
       { text: '同学名录', link: '/directory/' },
-      { text: '活动相册', link: '/gallery/' },
+      { text: '班委介绍', link: '/governance/' },
+    ],
+  },
+  {
+    text: '关于',
+    items: [
+      { text: '班级文化', link: '/about/culture/' },
+      { text: '班级愿景', link: '/about/vision/' },
+      { text: '职能架构', link: '/about/structure/' },
       { text: '职业发展', link: '/career/' },
-      { text: '班费公开', link: '/finance/' },
-      { text: '活动日历', link: '/activities/' },
     ],
   },
 ]
@@ -33,7 +47,7 @@ const zhNav = [
 const zhSidebar = {
   '/announcements/': [
     {
-      text: '公告通知',
+      text: '公告',
       items: [{ text: '最新公告', link: '/announcements/' }],
     },
   ],
@@ -43,11 +57,35 @@ const zhSidebar = {
       items: [{ text: '知识库首页', link: '/knowledge/' }],
     },
   ],
+  '/governance/': [
+    {
+      text: '班委介绍',
+      items: [{ text: '班委介绍', link: '/governance/' }],
+    },
+  ],
+  '/about/culture/': [
+    {
+      text: '班级文化',
+      items: [{ text: '班级文化', link: '/about/culture/' }],
+    },
+  ],
+  '/about/vision/': [
+    {
+      text: '班级愿景',
+      items: [{ text: '班级愿景', link: '/about/vision/' }],
+    },
+  ],
+  '/about/structure/': [
+    {
+      text: '职能架构',
+      items: [{ text: '职能架构', link: '/about/structure/' }],
+    },
+  ],
 }
 
 const zhFooter = {
-  message: '复旦MBA 薄荷4班 · 智库研究员共同维护',
-  copyright: 'Copyright © 2024-present 薄荷4班',
+  message: '复旦 MBA 薄荷 4 班 · 智库研究员共同维护',
+  copyright: 'Copyright © 2024-present 薄荷 4 班',
 }
 
 const zhSearch = {
@@ -71,16 +109,30 @@ const enNav = [
   { text: 'Home', link: '/en/' },
   { text: 'Schedule', link: '/en/schedule' },
   { text: 'Announcements', link: '/en/announcements/' },
-  { text: 'Knowledge', link: '/en/knowledge/' },
-  { text: 'Slides', link: '/en/slides/' },
   {
-    text: 'More',
+    text: 'Knowledge',
+    items: [
+      { text: 'Knowledge Base', link: '/en/knowledge/' },
+      { text: 'Slides', link: '/en/slides/' },
+    ],
+  },
+  { text: 'Activities', link: '/en/activities/' },
+  { text: 'Memories', link: '/en/gallery/' },
+  { text: 'Finance', link: '/en/finance/' },
+  {
+    text: 'Governance',
     items: [
       { text: 'Directory', link: '/en/directory/' },
-      { text: 'Gallery', link: '/en/gallery/' },
+      { text: 'Class Committee', link: '/en/governance/' },
+    ],
+  },
+  {
+    text: 'About',
+    items: [
+      { text: 'Class Culture', link: '/en/about/culture/' },
+      { text: 'Class Vision', link: '/en/about/vision/' },
+      { text: 'Org Structure', link: '/en/about/structure/' },
       { text: 'Career', link: '/en/career/' },
-      { text: 'Finance', link: '/en/finance/' },
-      { text: 'Activities', link: '/en/activities/' },
     ],
   },
 ]
@@ -96,6 +148,30 @@ const enSidebar = {
     {
       text: 'Knowledge Base',
       items: [{ text: 'Overview', link: '/en/knowledge/' }],
+    },
+  ],
+  '/en/governance/': [
+    {
+      text: 'Class Committee',
+      items: [{ text: 'Class Committee', link: '/en/governance/' }],
+    },
+  ],
+  '/en/about/culture/': [
+    {
+      text: 'Class Culture',
+      items: [{ text: 'Class Culture', link: '/en/about/culture/' }],
+    },
+  ],
+  '/en/about/vision/': [
+    {
+      text: 'Class Vision',
+      items: [{ text: 'Class Vision', link: '/en/about/vision/' }],
+    },
+  ],
+  '/en/about/structure/': [
+    {
+      text: 'Org Structure',
+      items: [{ text: 'Org Structure', link: '/en/about/structure/' }],
     },
   ],
 }
@@ -126,16 +202,30 @@ const thNav = [
   { text: 'หน้าแรก', link: '/th/' },
   { text: 'ตารางเรียน', link: '/th/schedule' },
   { text: 'ประกาศ', link: '/th/announcements/' },
-  { text: 'ความรู้', link: '/th/knowledge/' },
-  { text: 'ไฟล์บรรยาย', link: '/th/slides/' },
   {
-    text: 'เพิ่มเติม',
+    text: 'ความรู้',
+    items: [
+      { text: 'คลังความรู้', link: '/th/knowledge/' },
+      { text: 'ไฟล์บรรยาย', link: '/th/slides/' },
+    ],
+  },
+  { text: 'กิจกรรม', link: '/th/activities/' },
+  { text: 'ความทรงจำ', link: '/th/gallery/' },
+  { text: 'การเงิน', link: '/th/finance/' },
+  {
+    text: 'การปกครอง',
     items: [
       { text: 'รายชื่อ', link: '/th/directory/' },
-      { text: 'แกลเลอรี', link: '/th/gallery/' },
+      { text: 'คณะกรรมการ', link: '/th/governance/' },
+    ],
+  },
+  {
+    text: 'เกี่ยวกับ',
+    items: [
+      { text: 'วัฒนธรรมชั้นเรียน', link: '/th/about/culture/' },
+      { text: 'วิสัยทัศน์', link: '/th/about/vision/' },
+      { text: 'โครงสร้าง', link: '/th/about/structure/' },
       { text: 'อาชีพ', link: '/th/career/' },
-      { text: 'การเงิน', link: '/th/finance/' },
-      { text: 'กิจกรรม', link: '/th/activities/' },
     ],
   },
 ]
@@ -151,6 +241,30 @@ const thSidebar = {
     {
       text: 'ความรู้',
       items: [{ text: 'ภาพรวม', link: '/th/knowledge/' }],
+    },
+  ],
+  '/th/governance/': [
+    {
+      text: 'คณะกรรมการ',
+      items: [{ text: 'คณะกรรมการ', link: '/th/governance/' }],
+    },
+  ],
+  '/th/about/culture/': [
+    {
+      text: 'วัฒนธรรมชั้นเรียน',
+      items: [{ text: 'วัฒนธรรมชั้นเรียน', link: '/th/about/culture/' }],
+    },
+  ],
+  '/th/about/vision/': [
+    {
+      text: 'วิสัยทัศน์',
+      items: [{ text: 'วิสัยทัศน์', link: '/th/about/vision/' }],
+    },
+  ],
+  '/th/about/structure/': [
+    {
+      text: 'โครงสร้าง',
+      items: [{ text: 'โครงสร้าง', link: '/th/about/structure/' }],
     },
   ],
 }
@@ -178,8 +292,8 @@ const thSearch = {
 
 // ========== 导出最终配置 ==========
 export default defineConfig({
-  title: '复旦MBA 薄荷4班',
-  description: '班级官方主页 - 课表、公告、知识库、课件',
+  title: '复旦 MBA 薄荷 4 班',
+  description: '复旦 MBA 薄荷 4 班官方主页 — 课表、公告、智库、活动、回忆、班费与班级治理',
 
   // 站点图标
   head: [
@@ -219,7 +333,7 @@ export default defineConfig({
     root: {
       label: '简体中文',
       lang: 'zh-CN',
-      description: '班级官方主页 - 课表、公告、知识库、课件',
+      description: '复旦 MBA 薄荷 4 班官方主页 — 课表、公告、智库、活动、回忆、班费与班级治理',
       themeConfig: {
         ...sharedThemeConfig,
         nav: zhNav,
@@ -235,7 +349,7 @@ export default defineConfig({
     en: {
       label: 'English',
       lang: 'en-US',
-      description: 'Class Portal - Schedule, Announcements, Knowledge Base, Slides',
+      description: 'Fudan MBA Mint 4 Class Portal — Schedule, Announcements, Knowledge, Activities, Memories, Finance and Governance',
       themeConfig: {
         ...sharedThemeConfig,
         nav: enNav,
@@ -251,7 +365,7 @@ export default defineConfig({
     th: {
       label: 'ไทย',
       lang: 'th-TH',
-      description: 'เว็บไซต์ชั้นเรียน - ตารางเรียน ประกาศ ความรู้ สไลด์',
+      description: 'เว็บไซต์ชั้นเรียน Fudan MBA มินต์ 4 — ตารางเรียน ประกาศ ความรู้ กิจกรรม ความทรงจำ การเงิน และการปกครอง',
       themeConfig: {
         ...sharedThemeConfig,
         nav: thNav,

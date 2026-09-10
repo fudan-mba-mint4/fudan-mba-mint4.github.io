@@ -3,7 +3,120 @@ import { ref, onMounted, computed, watch, nextTick } from 'vue'
 
 const scheduleData = ref(null)
 const loading = ref(true)
-const activeTab = ref('week') // 'week' or 'course'
+const activeTab = ref('week') // 'week' | 'course' | 'calendar'
+
+// ========== 月历视图逻辑 ==========
+const currentMonth = ref(new Date())
+
+const calendarYear = computed(() => currentMonth.value.getFullYear())
+const calendarMonth = computed(() => currentMonth.value.getMonth()) // 0-11
+
+const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+const weekdayHeaders = ['日', '一', '二', '三', '四', '五', '六']
+
+// 构建月历日期网格（6行×7列）
+const calendarDays = computed(() => {
+  const year = calendarYear.value
+  const month = calendarMonth.value
+  const firstDay = new Date(year, month, 1)
+  const startWeekday = firstDay.getDay() // 0=周日
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const daysInPrevMonth = new Date(year, month, 0).getDate()
+
+  const days = []
+  // 上月填充
+  for (let i = startWeekday - 1; i >= 0; i--) {
+    days.push({
+      date: `${year}-${String(month).padStart(2, '0')}-${String(daysInPrevMonth - i).padStart(2, '0')}`,
+      day: daysInPrevMonth - i,
+      inMonth: false,
+      isToday: false,
+      courses: []
+    })
+  }
+  // 本月
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    days.push({
+      date: dateStr,
+      day: d,
+      inMonth: true,
+      isToday: isToday(dateStr),
+      courses: getCoursesByDate(dateStr)
+    })
+  }
+  // 下月填充到42格
+  let nextDay = 1
+  while (days.length < 42) {
+    days.push({
+      date: `${year}-${String(month + 2).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`,
+      day: nextDay,
+      inMonth: false,
+      isToday: false,
+      courses: []
+    })
+    nextDay++
+  }
+  return days
+})
+
+// 按日期查课程
+const getCoursesByDate = (dateStr) => {
+  if (!scheduleData.value) return []
+  const day = scheduleData.value.schedule.find(d => d.date === dateStr)
+  return day ? day.courses : []
+}
+
+// 月历中有课的月份列表（用于限制切换范围）
+const availableMonths = computed(() => {
+  if (!scheduleData.value) return []
+  const months = new Set()
+  scheduleData.value.schedule.forEach(d => {
+    const dt = new Date(d.date)
+    months.add(`${dt.getFullYear()}-${dt.getMonth()}`)
+  })
+  return Array.from(months).sort()
+})
+
+const canGoPrev = computed(() => {
+  if (availableMonths.value.length === 0) return true
+  const current = `${calendarYear.value}-${calendarMonth.value}`
+  return current > availableMonths.value[0]
+})
+
+const canGoNext = computed(() => {
+  if (availableMonths.value.length === 0) return true
+  const current = `${calendarYear.value}-${calendarMonth.value}`
+  return current < availableMonths.value[availableMonths.value.length - 1]
+})
+
+const prevMonth = () => {
+  if (canGoPrev.value) {
+    currentMonth.value = new Date(calendarYear.value, calendarMonth.value - 1, 1)
+  }
+}
+
+const nextMonth = () => {
+  if (canGoNext.value) {
+    currentMonth.value = new Date(calendarYear.value, calendarMonth.value + 1, 1)
+  }
+}
+
+// 选中的日期（用于展开详情）
+const selectedDate = ref(null)
+
+const toggleDate = (dateStr) => {
+  if (selectedDate.value === dateStr) {
+    selectedDate.value = null
+  } else {
+    selectedDate.value = dateStr
+  }
+}
+
+const selectedDayCourses = computed(() => {
+  if (!selectedDate.value) return []
+  return getCoursesByDate(selectedDate.value)
+})
 
 // 切换标签时，手动触发滚动动画（因为新显示的元素需要重新观察）
 watch(activeTab, async () => {
@@ -97,11 +210,20 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
           </svg>
           按课程查看
         </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'calendar' }"
+          @click="activeTab = 'calendar'"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+          </svg>
+          月历
+        </button>
       </div>
 
       <!-- 按日期视图 -->
-      <div v-if="activeTab === 'week'" class="week-view">
-        <div
+      <div v-if="activeTab === 'week'" class="week-view">        <div
           v-for="(day, dayIndex) in scheduleData.schedule"
           :key="day.date"
           class="day-block reveal"
@@ -161,7 +283,7 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
       </div>
 
       <!-- 按课程视图 -->
-      <div v-else class="course-view">
+      <div v-else-if="activeTab === 'course'" class="course-view">
         <div
           v-for="(course, index) in scheduleData.courses"
           :key="course.name"
@@ -200,6 +322,85 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 月历视图 -->
+      <div v-else class="calendar-view reveal">
+        <!-- 月份切换 -->
+        <div class="calendar-header">
+          <button class="cal-nav-btn" :disabled="!canGoPrev" @click="prevMonth">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 class="calendar-title">{{ calendarYear }}年 {{ monthNames[calendarMonth] }}</h2>
+          <button class="cal-nav-btn" :disabled="!canGoNext" @click="nextMonth">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        <!-- 图例 -->
+        <div class="calendar-legend">
+          <span class="legend-item"><span class="legend-dot" style="background: #4fd1c5"></span>管理经济学</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #d4af37"></span>会计学</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #8b9cf0"></span>数据模型与决策</span>
+        </div>
+
+        <!-- 月历网格 -->
+        <div class="calendar-grid">
+          <!-- 星期头 -->
+          <div v-for="w in weekdayHeaders" :key="w" class="cal-weekday">{{ w }}</div>
+          <!-- 日期 -->
+          <div
+            v-for="(day, idx) in calendarDays"
+            :key="idx"
+            class="cal-day"
+            :class="{
+              'out-of-month': !day.inMonth,
+              'today': day.isToday,
+              'has-class': day.courses.length > 0,
+              'selected': selectedDate === day.date,
+              'past': day.inMonth && isPast(day.date, '23:59')
+            }"
+            @click="day.courses.length > 0 && toggleDate(day.date)"
+          >
+            <span class="cal-day-num">{{ day.day }}</span>
+            <!-- 课程标记点 -->
+            <div v-if="day.courses.length > 0" class="cal-dots">
+              <span
+                v-for="c in day.courses.slice(0, 3)"
+                :key="c.course"
+                class="cal-dot"
+                :style="{ background: getCourseColor(c.course).text }"
+              ></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 选中日期的课程详情 -->
+        <transition name="fade">
+          <div v-if="selectedDate && selectedDayCourses.length > 0" class="cal-detail">
+            <div class="cal-detail-header">
+              <h3>{{ formatDate(selectedDate) }}</h3>
+              <button class="cal-close-btn" @click="selectedDate = null">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="cal-detail-courses">
+              <div
+                v-for="course in selectedDayCourses"
+                :key="course.course + course.time_start"
+                class="cal-course-item"
+                :style="{
+                  background: getCourseColor(course.course).bg,
+                  borderLeftColor: getCourseColor(course.course).border,
+                }"
+              >
+                <div class="cal-course-time">{{ course.time_start }} - {{ course.time_end }}</div>
+                <div class="cal-course-name" :style="{ color: getCourseColor(course.course).text }">{{ course.course }}</div>
+                <div class="cal-course-meta">{{ course.teacher }} · {{ course.location }}</div>
+              </div>
+            </div>
+          </div>
+        </transition>
       </div>
 
       <!-- 底部说明 -->
@@ -634,5 +835,278 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
   .session-list {
     grid-template-columns: 1fr;
   }
+
+  /* 月历移动端 */
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .cal-day {
+    min-height: 52px;
+    padding: 6px 4px;
+  }
+
+  .cal-day-num {
+    font-size: 13px;
+  }
+
+  .cal-dots {
+    gap: 2px;
+  }
+
+  .cal-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .calendar-legend {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+}
+
+/* ========== 月历视图样式 ========== */
+.calendar-view {
+  margin-top: 24px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.calendar-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.cal-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-card);
+  color: var(--c-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.cal-nav-btn:hover:not(:disabled) {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+}
+
+.cal-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--c-text-secondary);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  background: var(--c-bg-secondary);
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--c-border);
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-tertiary);
+  padding: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cal-day {
+  position: relative;
+  min-height: 64px;
+  border-radius: 10px;
+  background: var(--c-bg-card);
+  border: 1px solid transparent;
+  padding: 8px 6px;
+  cursor: default;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cal-day.out-of-month {
+  background: transparent;
+  opacity: 0.3;
+}
+
+.cal-day.past:not(.has-class) {
+  opacity: 0.5;
+}
+
+.cal-day.today {
+  border-color: var(--c-accent);
+  background: var(--c-accent-light);
+}
+
+.cal-day.today .cal-day-num {
+  color: var(--c-accent);
+  font-weight: 700;
+}
+
+.cal-day.has-class {
+  cursor: pointer;
+  border-color: var(--c-border-accent);
+}
+
+.cal-day.has-class:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--c-accent);
+}
+
+.cal-day.selected {
+  border-color: var(--c-accent);
+  background: var(--c-accent-light);
+  box-shadow: 0 0 0 2px var(--c-accent);
+}
+
+.cal-day-num {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-text-primary);
+  line-height: 1.2;
+}
+
+.cal-dots {
+  display: flex;
+  gap: 3px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* 详情面板 */
+.cal-detail {
+  margin-top: 20px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  padding: 20px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cal-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cal-detail-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.cal-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: var(--c-bg-secondary);
+  color: var(--c-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.cal-close-btn:hover {
+  background: var(--c-border);
+  color: var(--c-text-primary);
+}
+
+.cal-detail-courses {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cal-course-item {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border-left: 3px solid;
+}
+
+.cal-course-time {
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.cal-course-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.cal-course-meta {
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
 }
 </style>

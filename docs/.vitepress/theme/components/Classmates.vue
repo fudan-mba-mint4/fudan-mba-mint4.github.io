@@ -20,18 +20,21 @@ onMounted(() => {
 const i18n = {
   zh: {
     title: '同学名录',
-    subtitle: '薄荷4班全体成员',
+    subtitle: '薄荷 4 班全体成员',
     searchPlaceholder: '搜索同学姓名...',
     stats: { total: '总人数', female: '女生', male: '男生', mentors: '传承人' },
     classGuides: '班级导师',
     mentors: '传承人 · 感谢付出',
-    mentorsSubtitle: '往届学长学姐带领我们完成 Orientation，感谢每一位的付出与陪伴',
+    mentorsSubtitle: '感谢每一位的付出与陪伴',
     students: '本班同学',
     studentsSubtitle: '按 Orientation 初次见面分组展示',
     group: '组',
-    mentorOf: '传承人',
     members: '人',
-    noResults: '未找到匹配的同学'
+    headTeacherRole: '班主任',
+    mentorRole: '传承人',
+    noResults: '未找到匹配的同学',
+    noResultsHint: '请尝试其他关键词',
+    clearSearch: '清除搜索'
   },
   en: {
     title: 'Class Directory',
@@ -40,13 +43,16 @@ const i18n = {
     stats: { total: 'Total', female: 'Female', male: 'Male', mentors: 'Mentors' },
     classGuides: 'Class Guides',
     mentors: 'Mentors · With Gratitude',
-    mentorsSubtitle: 'Senior students who guided us through Orientation. Thank you for your dedication.',
+    mentorsSubtitle: 'Thank you for your dedication.',
     students: 'Classmates',
     studentsSubtitle: 'Grouped by Orientation first-meeting groups',
     group: 'Group',
-    mentorOf: 'Mentors',
     members: 'members',
-    noResults: 'No matching classmates found'
+    headTeacherRole: 'Head Teacher',
+    mentorRole: 'Mentor',
+    noResults: 'No matching classmates found',
+    noResultsHint: 'Try a different keyword',
+    clearSearch: 'Clear search'
   },
   th: {
     title: 'สารบัญชั้นเรียน',
@@ -55,13 +61,16 @@ const i18n = {
     stats: { total: 'ทั้งหมด', female: 'หญิง', male: 'ชาย', mentors: 'ผู้ให้คำปรึกษา' },
     classGuides: 'ผู้แนะนำชั้นเรียน',
     mentors: 'ผู้ให้คำปรึกษา · ขอขอบคุณ',
-    mentorsSubtitle: 'นักศึกษารุ่นเก่าที่แนะนำเราผ่าน Orientation ขอบคุณสำหรับความอุทิศตน',
+    mentorsSubtitle: 'ขอบคุณสำหรับความอุทิศตน',
     students: 'เพื่อนร่วมชั้น',
     studentsSubtitle: 'จัดกลุ่มตามกลุ่มพบปะครั้งแรก Orientation',
     group: 'กลุ่ม',
-    mentorOf: 'ผู้ให้คำปรึกษา',
     members: 'คน',
-    noResults: 'ไม่พบเพื่อนร่วมชั้นที่ตรงกัน'
+    headTeacherRole: 'ครูประจำชั้น',
+    mentorRole: 'ผู้ให้คำปรึกษา',
+    noResults: 'ไม่พบเพื่อนร่วมชั้นที่ตรงกัน',
+    noResultsHint: 'ลองค้นหาคำอื่น',
+    clearSearch: 'ล้างการค้นหา'
   }
 }
 
@@ -106,7 +115,9 @@ const studentsByGroup = computed(() => {
       .filter(m => m.orientationGroup === String(i))
       .filter(m => {
         if (!searchQuery.value.trim()) return true
-        return m.name.toLowerCase().includes(searchQuery.value.toLowerCase().trim())
+        const q = searchQuery.value.toLowerCase().trim()
+        return m.name.toLowerCase().includes(q) ||
+               (m.nickname && m.nickname.toLowerCase().includes(q))
       })
   }
   return groups
@@ -131,8 +142,8 @@ const stats = computed(() => {
   }
 })
 
-// 性别颜色
-const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
+// 性别圆点 class
+const dotClass = (gender) => gender === 'female' ? 'dot-female' : 'dot-male'
 </script>
 
 <template>
@@ -145,61 +156,69 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
-      <div class="stat-card">
+      <div class="stat-card stat-card--total">
         <div class="stat-number">{{ stats.total }}</div>
         <div class="stat-label">{{ t.stats.total }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number" style="color: #e8a0b4">{{ stats.female }}</div>
+        <div class="stat-number">{{ stats.female }}</div>
         <div class="stat-label">{{ t.stats.female }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number" style="color: #7ab8e8">{{ stats.male }}</div>
+        <div class="stat-number">{{ stats.male }}</div>
         <div class="stat-label">{{ t.stats.male }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number" style="color: var(--c-accent)">{{ stats.mentors }}</div>
+        <div class="stat-number">{{ stats.mentors }}</div>
         <div class="stat-label">{{ t.stats.mentors }}</div>
       </div>
     </div>
 
-    <!-- 班级导师与传承人（合并区块，减少间距） -->
-    <div class="section">
+    <!-- 班级导师与传承人 -->
+    <div class="directory-section">
       <h2 class="section-title-sm">{{ t.classGuides }}</h2>
-      <div class="teacher-single" v-if="headTeacher">
-        <span class="name-dot" :style="{ background: genderColor(headTeacher.gender) }"></span>
+      <div class="person-row" v-if="headTeacher">
+        <span class="name-dot" :class="dotClass(headTeacher.gender)"></span>
         <span class="name-uniform">{{ headTeacher.name }}</span>
-        <span class="role-tag">{{ currentLang === 'zh' ? '班主任' : currentLang === 'en' ? 'Head Teacher' : 'ครูประจำชั้น' }}</span>
+        <span class="name-nickname" v-if="headTeacher.nickname">{{ headTeacher.nickname }}</span>
+        <span class="role-tag role-tag--accent">{{ t.headTeacherRole }}</span>
       </div>
 
-      <h2 class="section-title" style="margin-top: 16px;">{{ t.mentors }}</h2>
+      <h2 class="section-title section-title--spaced">{{ t.mentors }}</h2>
       <p class="section-subtitle">{{ t.mentorsSubtitle }}</p>
 
       <!-- 张志鹏（传承人，不突出Leader） -->
-      <div class="mentor-leader-row" v-if="mentorLeader">
-        <span class="name-dot" :style="{ background: genderColor(mentorLeader.gender) }"></span>
+      <div class="person-row person-row--spaced" v-if="mentorLeader">
+        <span class="name-dot" :class="dotClass(mentorLeader.gender)"></span>
         <span class="name-uniform">{{ mentorLeader.name }}</span>
-        <span class="role-tag">{{ currentLang === 'zh' ? '传承人' : currentLang === 'en' ? 'Mentor' : 'ผู้ให้คำปรึกษา' }}</span>
+        <span class="name-nickname" v-if="mentorLeader.nickname">{{ mentorLeader.nickname }}</span>
+        <span class="role-tag role-tag--accent">{{ t.mentorRole }}</span>
       </div>
 
       <div class="mentors-grid">
-        <div class="mentor-group-card" v-for="i in 6" :key="i">
-          <div class="mentor-group-header">
-            <span class="group-number">{{ i }}</span>
-            <span class="group-label">{{ t.group }} · {{ t.mentorOf }}</span>
+        <div class="group-card" v-for="i in 6" :key="i">
+          <div class="group-card-header">
+            <span class="group-badge">{{ i }}</span>
+            <span class="group-card-title">{{ t.group }} {{ i }}</span>
+            <span class="group-card-count">{{ mentorsByGroup[i].length }} {{ t.members }}</span>
           </div>
-          <div class="mentor-names">
-            <div class="mentor-name" v-for="m in mentorsByGroup[i]" :key="m.id">
-              <span class="name-dot" :style="{ background: genderColor(m.gender) }"></span>
+          <ul class="group-card-names">
+            <li class="group-name-item" v-for="m in mentorsByGroup[i]" :key="m.id">
+              <span class="name-dot" :class="dotClass(m.gender)"></span>
               <span class="name-uniform">{{ m.name }}</span>
-            </div>
-          </div>
+              <span class="name-nickname" v-if="m.nickname">{{ m.nickname }}</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
 
-    <!-- 搜索框 -->
-    <div class="section">
+    <!-- 同学按组展示（搜索框移入本区，关联内容组） -->
+    <div class="directory-section">
+      <h2 class="section-title">{{ t.students }}</h2>
+      <p class="section-subtitle">{{ t.studentsSubtitle }}</p>
+
+      <!-- 搜索框 -->
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="11" cy="11" r="8"/>
@@ -211,237 +230,387 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
           :placeholder="t.searchPlaceholder"
           class="search-input"
         />
+        <button
+          v-if="searchQuery"
+          class="search-clear"
+          @click="searchQuery = ''"
+          :aria-label="t.clearSearch"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="m15 9-6 6M9 9l6 6"/>
+          </svg>
+        </button>
       </div>
-    </div>
 
-    <!-- 同学按组展示 -->
-    <div class="section">
-      <h2 class="section-title">{{ t.students }}</h2>
-      <p class="section-subtitle">{{ t.studentsSubtitle }}</p>
-
-      <!-- 无搜索结果提示 -->
-      <div v-if="searchQuery.trim() && groupsWithResults.length === 0" class="no-results">
-        {{ t.noResults }}
-      </div>
-
-      <div class="students-grid">
-        <div class="student-group-card" v-for="i in groupsWithResults" :key="i">
-          <div class="student-group-header">
-            <span class="group-badge">{{ i }}</span>
-            <span class="group-title">{{ t.group }} {{ i }}</span>
-            <span class="group-count">{{ studentsByGroup[i].length }} {{ t.members }}</span>
-          </div>
-          <div class="student-names">
-            <div
-              class="student-name-item"
-              v-for="m in studentsByGroup[i]"
-              :key="m.id"
-            >
-              <span class="name-dot" :style="{ background: genderColor(m.gender) }"></span>
-              <span class="name-uniform">{{ m.name }}</span>
-            </div>
-          </div>
+      <!-- 无搜索结果空状态 -->
+      <Transition name="empty-fade">
+        <div v-if="searchQuery.trim() && groupsWithResults.length === 0" class="empty-state">
+          <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+            <path d="m8 8 6 6M14 8l-6 6"/>
+          </svg>
+          <h3 class="empty-state-title">{{ t.noResults }}</h3>
+          <p class="empty-state-hint">{{ t.noResultsHint }}</p>
         </div>
-      </div>
+      </Transition>
+
+      <!-- 同学组卡片（搜索过滤时过渡） -->
+      <TransitionGroup name="group-filter" tag="div" class="students-grid">
+        <div class="group-card" v-for="i in groupsWithResults" :key="i">
+          <div class="group-card-header">
+            <span class="group-badge">{{ i }}</span>
+            <span class="group-card-title">{{ t.group }} {{ i }}</span>
+            <span class="group-card-count">{{ studentsByGroup[i].length }} {{ t.members }}</span>
+          </div>
+          <ul class="group-card-names">
+            <li class="group-name-item" v-for="m in studentsByGroup[i]" :key="m.id">
+              <span class="name-dot" :class="dotClass(m.gender)"></span>
+              <span class="name-uniform">{{ m.name }}</span>
+              <span class="name-nickname" v-if="m.nickname">{{ m.nickname }}</span>
+            </li>
+          </ul>
+        </div>
+      </TransitionGroup>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* ========== 页面容器 ========== */
 .classmates-page {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 24px 24px 40px;
+  padding: 32px 24px 40px;
 }
 
-/* 统一名字大小 */
+/* ========== 页面加载渐入动画 ========== */
+@keyframes fadeInUpSubtle {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  animation: fadeInUpSubtle 300ms ease-out both;
+  animation-delay: 0ms;
+}
+
+.stats-grid {
+  animation: fadeInUpSubtle 300ms ease-out both;
+  animation-delay: 50ms;
+}
+
+.directory-section {
+  animation: fadeInUpSubtle 300ms ease-out both;
+  animation-delay: 100ms;
+}
+
+.directory-section + .directory-section {
+  animation-delay: 150ms;
+}
+
+/* ========== 统一名字样式 ========== */
 .name-uniform {
   font-size: 16px;
   font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.1px;
   color: var(--c-text-primary);
+  min-width: 0;
 }
 
-/* 页面标题 */
+/* 花名 */
+.name-nickname {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--c-text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 性别圆点 */
+.name-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.name-dot.dot-female { background: var(--c-gender-female); }
+.name-dot.dot-male   { background: var(--c-gender-male); }
+
+/* ========== 页面标题 ========== */
 .page-header {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .page-title {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.5px;
+  line-height: 1.2;
   margin: 0 0 4px 0;
   color: var(--c-text-primary);
 }
 
 .page-subtitle {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--c-text-secondary);
   margin: 0;
 }
 
-/* 统计卡片 */
+/* ========== 统计卡片 ========== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 32px;
 }
 
 .stat-card {
   background: var(--c-bg-secondary);
-  border-radius: 10px;
-  padding: 12px 8px;
+  border: 0.5px solid var(--c-separator);
+  border-radius: var(--radius-md);
+  padding: 16px 12px;
   text-align: center;
+  transition: background-color var(--transition-base),
+              border-color var(--transition-base);
+}
+
+/* 总人数卡高亮态 —— 唯一视觉焦点 */
+.stat-card--total {
+  background: var(--c-accent-light);
+  border-color: var(--c-border-accent);
+}
+
+.stat-card--total .stat-number {
+  color: var(--c-accent);
+}
+
+.stat-card--total .stat-label {
+  color: var(--c-text-secondary);
 }
 
 .stat-number {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
   color: var(--c-text-primary);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
   color: var(--c-text-tertiary);
 }
 
-/* 区块 */
-.section {
-  margin-bottom: 16px;
+/* ========== 区块 ========== */
+.directory-section {
+  padding: 0;
+  margin-bottom: 32px;
 }
 
-.section-sm {
-  margin-bottom: 12px;
+.directory-section:last-of-type {
+  margin-bottom: 0;
 }
 
+/* 分区标题（带薄荷绿竖条） */
 .section-title {
+  display: flex;
+  align-items: center;
   font-size: 17px;
   font-weight: 600;
-  margin: 0 0 4px 0;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+  margin: 0 0 8px 0;
   color: var(--c-text-primary);
 }
 
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  background: var(--c-accent);
+  border-radius: 2px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+/* 传承人标题：与班主任之间增加呼吸感 */
+.section-title--spaced {
+  margin-top: 28px;
+}
+
+/* 子区块标签（班级导师） */
 .section-title-sm {
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0 0 8px 0;
   color: var(--c-text-secondary);
 }
 
 .section-subtitle {
-  font-size: 12px;
-  color: var(--c-text-secondary);
-  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 1.5;
+  color: var(--c-text-secondary);
+  margin: 0 0 16px 0;
 }
 
-/* 班主任 - 单行 */
-.teacher-single {
+/* ========== 单行人物行（班主任 / 张志鹏） ========== */
+.person-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   background: var(--c-bg-secondary);
-  border-radius: 8px;
-  max-width: 280px;
+  border: 0.5px solid var(--c-separator);
+  border-radius: var(--radius-sm);
+  max-width: 320px;
+  transition: background-color var(--transition-base),
+              border-color var(--transition-base);
 }
 
+.person-row--spaced {
+  margin-bottom: 12px;
+}
+
+/* 角色标签 */
 .role-tag {
-  font-size: 11px;
-  color: var(--c-text-tertiary);
-  background: var(--c-bg-tertiary);
-  padding: 2px 6px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--c-bg-secondary);
+  color: var(--c-text-secondary);
   margin-left: auto;
-}
-
-.role-tag.accent {
-  color: var(--c-accent);
-  background: var(--c-accent-light);
-}
-
-/* 张志鹏行 - 普通样式，不突出 */
-.mentor-leader-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: var(--c-bg-secondary);
-  border-radius: 8px;
-  margin-bottom: 8px;
-  max-width: 280px;
-}
-
-/* 传承人网格 */
-.mentors-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.mentor-group-card {
-  background: var(--c-bg-secondary);
-  border-radius: 10px;
-  padding: 10px;
-}
-
-.mentor-group-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.group-number {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background: var(--c-accent);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.group-label {
-  font-size: 11px;
-  color: var(--c-text-tertiary);
-}
-
-.mentor-names {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.mentor-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.name-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
-/* 搜索框 */
+.role-tag--accent {
+  background: var(--c-accent-light);
+  color: var(--c-accent);
+}
+
+/* ========== 统一组卡片（传承人 / 同学共用） ========== */
+.mentors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.group-card {
+  background: var(--c-bg-card);
+  border: 0.5px solid var(--c-separator);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  transition: background-color var(--transition-base),
+              border-color var(--transition-base);
+}
+
+.group-card:hover {
+  background-color: var(--c-bg-secondary);
+  border-color: var(--c-border);
+}
+
+.group-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.group-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  background: var(--c-accent);
+  color: var(--c-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.group-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--c-text-primary);
+  flex: 1;
+}
+
+.group-card-count {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--c-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* 名字列表（语义化 ul/li） */
+.group-card-names {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group-name-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+/* ========== 搜索框 ========== */
 .search-box {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--c-bg-secondary);
-  border-radius: 8px;
-  padding: 8px 12px;
-  max-width: 360px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  max-width: 420px;
+  margin-bottom: 16px;
+  transition: background-color var(--transition-base),
+              border-color var(--transition-base),
+              box-shadow var(--transition-base);
+}
+
+.search-box:hover {
+  background-color: var(--c-bg-tertiary);
+}
+
+.search-box:focus-within {
+  background-color: var(--c-bg-primary);
+  border-color: var(--c-border-accent);
+  box-shadow: 0 0 0 3px var(--c-accent-glow);
 }
 
 .search-icon {
@@ -456,83 +625,124 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
   border: none;
   background: transparent;
   font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
   color: var(--c-text-primary);
   outline: none;
+  min-width: 0;
 }
 
 .search-input::placeholder {
   color: var(--c-text-tertiary);
 }
 
-/* 无搜索结果 */
-.no-results {
-  text-align: center;
-  padding: 24px;
+/* 搜索清除按钮 */
+.search-clear {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: var(--c-bg-tertiary);
+  border-radius: 50%;
   color: var(--c-text-tertiary);
-  font-size: 14px;
-}
-
-/* 同学网格 */
-.students-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.student-group-card {
-  background: var(--c-bg-secondary);
-  border-radius: 10px;
-  padding: 10px;
-}
-
-.student-group-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--c-border);
-}
-
-.group-badge {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background: var(--c-accent);
-  color: white;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast),
+              transform var(--transition-fast);
 }
 
-.group-title {
-  font-size: 13px;
-  font-weight: 600;
+.search-clear svg {
+  width: 10px;
+  height: 10px;
+}
+
+.search-clear:hover {
+  background: var(--c-border);
   color: var(--c-text-primary);
-  flex: 1;
 }
 
-.group-count {
-  font-size: 11px;
-  color: var(--c-text-tertiary);
+.search-clear:active {
+  transform: scale(0.92);
 }
 
-.student-names {
+/* ========== 空状态 ========== */
+.empty-state {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.student-name-item {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 1px 0;
+  text-align: center;
+  padding: 40px 24px;
 }
 
-/* 响应式 */
+.empty-state-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--c-text-tertiary);
+  opacity: 0.4;
+  margin-bottom: 12px;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--c-text-primary);
+  margin: 0 0 4px 0;
+}
+
+.empty-state-hint {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--c-text-tertiary);
+  margin: 0;
+}
+
+/* 空状态过渡 */
+.empty-fade-enter-active {
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.empty-fade-leave-active {
+  transition: opacity var(--transition-fast);
+}
+
+.empty-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+.empty-fade-leave-to {
+  opacity: 0;
+}
+
+/* ========== 搜索过滤组卡片过渡 ========== */
+.group-filter-enter-active {
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.group-filter-leave-active {
+  transition: none;
+}
+
+.group-filter-move {
+  transition: transform var(--transition-base);
+}
+
+.group-filter-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.group-filter-leave-to {
+  opacity: 0;
+}
+
+/* ========== 响应式 ========== */
 @media (max-width: 1024px) {
   .mentors-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -543,20 +753,38 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
   .classmates-page {
     padding: 24px 16px 40px;
   }
+
   .page-title {
     font-size: 22px;
   }
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .stat-number {
+    font-size: 18px;
+  }
+
   .mentors-grid {
     grid-template-columns: 1fr;
   }
+
   .students-grid {
     grid-template-columns: 1fr;
   }
-  .stat-number {
-    font-size: 20px;
+
+  .group-card-names {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .person-row {
+    max-width: 100%;
   }
 }
 </style>

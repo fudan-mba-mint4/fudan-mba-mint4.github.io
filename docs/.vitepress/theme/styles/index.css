@@ -163,6 +163,9 @@ body {
 /* 移动端菜单面板需要高z-index，不被MobileTabBar遮挡 */
 .VPNavScreen {
   z-index: 1100 !important;
+  /* 修复：fixed定位+top/bottom时height计算为0的问题，强制设置高度 */
+  height: calc(100dvh - var(--vp-nav-height, 52px)) !important;
+  min-height: calc(100dvh - var(--vp-nav-height, 52px)) !important;
 }
 
 .VPSidebarItem .text {

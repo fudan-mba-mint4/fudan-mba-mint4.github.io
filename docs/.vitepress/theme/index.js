@@ -12,6 +12,9 @@ import ScheduleView from './components/ScheduleView.vue'
 import PlaceholderSection from './components/PlaceholderSection.vue'
 import MobileTabBar from './components/MobileTabBar.vue'
 import Classmates from './components/Classmates.vue'
+import HomeDashboard from './components/HomeDashboard.vue'
+import CourseMaterials from './components/CourseMaterials.vue'
+import PageHeader from './components/PageHeader.vue'
 import './styles/index.css'
 
 export default {
@@ -26,5 +29,8 @@ export default {
     app.component('PlaceholderSection', PlaceholderSection)
     app.component('MobileTabBar', MobileTabBar)
     app.component('Classmates', Classmates)
+    app.component('HomeDashboard', HomeDashboard)
+    app.component('CourseMaterials', CourseMaterials)
+    app.component('PageHeader', PageHeader)
   }
 }

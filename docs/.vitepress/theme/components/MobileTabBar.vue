@@ -4,38 +4,89 @@ import { useData } from 'vitepress'
 
 const { page } = useData()
 
-// 顶部 Tab 定义：图标为内联 SVG 线框
-const tabs = [
-  {
-    name: '首页',
-    path: '/',
-    icon: 'home',
-  },
-  {
-    name: '课表',
-    path: '/schedule',
-    icon: 'calendar',
-  },
-  {
-    name: '公告',
-    path: '/announcements/',
-    icon: 'bell',
-  },
-]
+/* ========== 语言检测 ========== */
+const currentLang = ref('zh')
 
-// “更多”菜单展开项
-const moreItems = [
-  { name: '知识库', path: '/knowledge/' },
-  { name: '课件下载', path: '/slides/' },
-]
+onMounted(() => {
+  const path = window.location.pathname
+  if (path.startsWith('/en/')) currentLang.value = 'en'
+  else if (path.startsWith('/th/')) currentLang.value = 'th'
+  else currentLang.value = 'zh'
+})
+
+const langPrefix = computed(() => {
+  if (currentLang.value === 'en') return '/en'
+  if (currentLang.value === 'th') return '/th'
+  return ''
+})
+
+/* ========== 多语言文案 ========== */
+const i18n = {
+  zh: {
+    home: '首页',
+    schedule: '课表',
+    announcements: '公告',
+    more: '更多',
+    knowledge: '知识库',
+    activities: '活动',
+    gallery: '相册',
+    finance: '班费',
+    directory: '同学名录',
+  },
+  en: {
+    home: 'Home',
+    schedule: 'Schedule',
+    announcements: 'Announcements',
+    more: 'More',
+    knowledge: 'Knowledge',
+    activities: 'Activities',
+    gallery: 'Gallery',
+    finance: 'Finance',
+    directory: 'Directory',
+  },
+  th: {
+    home: 'หน้าแรก',
+    schedule: 'ตารางเรียน',
+    announcements: 'ประกาศ',
+    more: 'เพิ่มเติม',
+    knowledge: 'ความรู้',
+    activities: 'กิจกรรม',
+    gallery: 'อัลบั้ม',
+    finance: 'การเงิน',
+    directory: 'สารบัญ',
+  },
+}
+
+const t = computed(() => i18n[currentLang.value])
+
+// 底部 Tab 定义：图标为内联 SVG 线框
+const tabs = computed(() => [
+  { name: t.value.home, path: `${langPrefix.value}/`, icon: 'home' },
+  { name: t.value.schedule, path: `${langPrefix.value}/schedule`, icon: 'calendar' },
+  { name: t.value.announcements, path: `${langPrefix.value}/announcements/`, icon: 'bell' },
+])
+
+// "更多"菜单展开项
+const moreItems = computed(() => [
+  { name: t.value.knowledge, path: `${langPrefix.value}/knowledge/` },
+  { name: t.value.activities, path: `${langPrefix.value}/activities/` },
+  { name: t.value.gallery, path: `${langPrefix.value}/gallery/` },
+  { name: t.value.finance, path: `${langPrefix.value}/finance/` },
+  { name: t.value.directory, path: `${langPrefix.value}/directory/` },
+])
 
 const moreOpen = ref(false)
+
+// 去除语言前缀，用于路由匹配
+const stripLangPrefix = (p) => p.replace(/^\/(en|th)(?=\/|$)/, '') || '/'
 
 // 判断当前路由是否命中某个 Tab（支持子路径）
 const isActive = (path) => {
   const current = page.value.path || '/'
-  if (path === '/') return current === '/' || current === '/index.html'
-  return current === path || current.startsWith(path)
+  const p = stripLangPrefix(path)
+  const c = stripLangPrefix(current)
+  if (p === '/') return c === '/' || c === '/index.html'
+  return c === p || c.startsWith(p)
 }
 
 const currentPath = computed(() => page.value.path || '/')
@@ -103,7 +154,7 @@ const toggleMore = () => {
       <button
         class="m-tabbar-item"
         :class="{ active: moreOpen }"
-        aria-label="更多"
+        :aria-label="t.more"
         @click.stop="toggleMore"
       >
         <svg class="m-tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -111,7 +162,7 @@ const toggleMore = () => {
           <line x1="4" y1="12" x2="20" y2="12" />
           <line x1="4" y1="17" x2="20" y2="17" />
         </svg>
-        <span class="m-tabbar-label">更多</span>
+        <span class="m-tabbar-label">{{ t.more }}</span>
       </button>
 
       <!-- 简易弹层菜单 -->
