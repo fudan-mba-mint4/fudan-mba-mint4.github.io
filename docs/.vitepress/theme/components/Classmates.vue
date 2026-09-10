@@ -163,26 +163,23 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
       </div>
     </div>
 
-    <!-- 班主任 -->
-    <div class="section section-sm">
+    <!-- 班级导师与传承人（合并区块，减少间距） -->
+    <div class="section">
       <h2 class="section-title-sm">{{ t.classGuides }}</h2>
       <div class="teacher-single" v-if="headTeacher">
         <span class="name-dot" :style="{ background: genderColor(headTeacher.gender) }"></span>
         <span class="name-uniform">{{ headTeacher.name }}</span>
         <span class="role-tag">{{ currentLang === 'zh' ? '班主任' : currentLang === 'en' ? 'Head Teacher' : 'ครูประจำชั้น' }}</span>
       </div>
-    </div>
 
-    <!-- 传承人（含Leader） -->
-    <div class="section">
-      <h2 class="section-title">{{ t.mentors }}</h2>
+      <h2 class="section-title" style="margin-top: 16px;">{{ t.mentors }}</h2>
       <p class="section-subtitle">{{ t.mentorsSubtitle }}</p>
 
-      <!-- 传承人Leader -->
+      <!-- 张志鹏（传承人，不突出Leader） -->
       <div class="mentor-leader-row" v-if="mentorLeader">
         <span class="name-dot" :style="{ background: genderColor(mentorLeader.gender) }"></span>
         <span class="name-uniform">{{ mentorLeader.name }}</span>
-        <span class="role-tag accent">{{ currentLang === 'zh' ? '传承人 Leader' : currentLang === 'en' ? 'Mentor Leader' : 'หัวหน้าผู้ให้คำปรึกษา' }}</span>
+        <span class="role-tag">{{ currentLang === 'zh' ? '传承人' : currentLang === 'en' ? 'Mentor' : 'ผู้ให้คำปรึกษา' }}</span>
       </div>
 
       <div class="mentors-grid">
@@ -259,7 +256,7 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
 
 /* 统一名字大小 */
 .name-uniform {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--c-text-primary);
 }
@@ -289,7 +286,7 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .stat-card {
@@ -314,11 +311,11 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
 
 /* 区块 */
 .section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .section-sm {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .section-title {
@@ -338,7 +335,7 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
 .section-subtitle {
   font-size: 12px;
   color: var(--c-text-secondary);
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
   line-height: 1.5;
 }
 
@@ -367,15 +364,15 @@ const genderColor = (gender) => gender === 'female' ? '#e8a0b4' : '#7ab8e8'
   background: var(--c-accent-light);
 }
 
-/* 传承人Leader - 单行 */
+/* 张志鹏行 - 普通样式，不突出 */
 .mentor-leader-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: var(--c-accent-light);
+  background: var(--c-bg-secondary);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   max-width: 280px;
 }
 

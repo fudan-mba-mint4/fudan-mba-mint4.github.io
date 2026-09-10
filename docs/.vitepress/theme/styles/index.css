@@ -86,8 +86,8 @@ body {
 /* ---------- 班徽水印（已移除，用户决定主页不放） ---------- */
 
 /* 确保内容层位于水印之上，且背景透明让水印透出 */
+/* 注意：VPSidebar不能在这里设置position:relative，会覆盖移动端fixed定位导致菜单无法滑出 */
 .VPContent,
-.VPSidebar,
 .container {
   position: relative;
   z-index: var(--z-content);
@@ -151,6 +151,18 @@ body {
 .VPSidebar {
   background: var(--c-bg-secondary) !important;
   border-right: 0.5px solid var(--c-separator) !important;
+  /* 确保移动端侧边栏z-index足够高，不被MobileTabBar遮挡 */
+  z-index: 1100 !important;
+}
+
+/* 背景遮罩也需要高z-index */
+.VPBackdrop {
+  z-index: 1050 !important;
+}
+
+/* 移动端菜单面板需要高z-index，不被MobileTabBar遮挡 */
+.VPNavScreen {
+  z-index: 1100 !important;
 }
 
 .VPSidebarItem .text {
