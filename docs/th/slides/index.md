@@ -1,6 +1,6 @@
 ---
 layout: page
-title: สื่อการสอน
+title: เอกสารรายวิชา
 ---
 
 <CourseMaterials />

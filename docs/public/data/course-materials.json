@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-09-10",
-  "note": "课件按课程分类，每门课按节次排列。文件较大，建议右键另存为下载。",
+  "note": "课程资料按课程分类，每门课按节次排列。文件较大，建议右键另存为下载。",
   "courses": [
     {
       "id": "dmd",
@@ -30,7 +30,16 @@
               "url": "",
               "desc": "欧姆社学习漫画：微积分 / 统计学 / 回归分析 · 见企业微信DMD群"
             }
-          ]
+          ],
+          "homework": {
+            "name": "DMD 第一次作业",
+            "deadline": "2026-09-17",
+            "submission": "纸质版手写，写姓名学号",
+            "description": "Oxenol 公司的市场决策：(a) 面临怎样的决策 (b) 构造决策树 (c) 指出最优战略",
+            "filename": "DMD_Homework1.pdf",
+            "url": "/files/courses/dmd/20260910/DMD_Homework1.pdf",
+            "size": "92 KB"
+          }
         }
       ]
     },

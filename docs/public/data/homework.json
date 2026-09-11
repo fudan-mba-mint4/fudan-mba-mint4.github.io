@@ -1,0 +1,20 @@
+{
+  "last_updated": "2026-09-11",
+  "homework": [
+    {
+      "id": "dmd-hw1",
+      "course": "数据、模型与决策",
+      "course_id": "dmd",
+      "course_en": "Data, Models and Decisions",
+      "course_th": "ข้อมูล โมเดล และการตัดสินใจ",
+      "title": "第一次作业",
+      "title_en": "Homework 1",
+      "title_th": "การบ้านครั้งที่ 1",
+      "deadline": "2026-09-17",
+      "submission": "纸质版手写，写姓名学号",
+      "description": "Oxenol 公司的市场决策：(a) 面临怎样的决策 (b) 构造决策树 (c) 指出最优战略",
+      "url": "/files/courses/dmd/20260910/DMD_Homework1.pdf",
+      "status": "pending"
+    }
+  ]
+}

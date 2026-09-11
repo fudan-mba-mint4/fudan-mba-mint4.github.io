@@ -15,6 +15,15 @@ import Classmates from './components/Classmates.vue'
 import HomeDashboard from './components/HomeDashboard.vue'
 import CourseMaterials from './components/CourseMaterials.vue'
 import PageHeader from './components/PageHeader.vue'
+import Announcements from './components/Announcements.vue'
+import ClassFinance from './components/ClassFinance.vue'
+import KnowledgeBase from './components/KnowledgeBase.vue'
+import Activities from './components/Activities.vue'
+import ClassCulture from './components/ClassCulture.vue'
+import ClassVision from './components/ClassVision.vue'
+import OrgStructure from './components/OrgStructure.vue'
+import ClassCommittee from './components/ClassCommittee.vue'
+import Gallery from './components/Gallery.vue'
 import './styles/index.css'
 
 export default {
@@ -32,5 +41,14 @@ export default {
     app.component('HomeDashboard', HomeDashboard)
     app.component('CourseMaterials', CourseMaterials)
     app.component('PageHeader', PageHeader)
+    app.component('Announcements', Announcements)
+    app.component('ClassFinance', ClassFinance)
+    app.component('KnowledgeBase', KnowledgeBase)
+    app.component('Activities', Activities)
+    app.component('ClassCulture', ClassCulture)
+    app.component('ClassVision', ClassVision)
+    app.component('OrgStructure', OrgStructure)
+    app.component('ClassCommittee', ClassCommittee)
+    app.component('Gallery', Gallery)
   }
 }

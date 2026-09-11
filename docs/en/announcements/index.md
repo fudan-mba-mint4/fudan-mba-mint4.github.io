@@ -2,8 +2,11 @@
 layout: page
 ---
 
-# Announcements
+<PageHeader
+  title="Announcements"
+  description="Class notices, academic schedules, and event updates all in one place."
+  slogan="Transparent, Timely"
+  icon="📢"
+/>
 
-No announcements yet. Please check back later.
-
-*公告功能即将上线 / การประกาศจะเร็วๆ นี้*
+<Announcements />

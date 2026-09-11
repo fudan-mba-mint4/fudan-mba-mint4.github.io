@@ -112,6 +112,10 @@ body {
   border-bottom: 0.5px solid var(--c-separator) !important;
   height: var(--nav-height) !important;
   transition: background var(--transition-base);
+  /* 确保导航栏始终固定在顶部，不随滚动消失 */
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
 }
 
 /* 支持 backdrop-filter 时叠加毛玻璃 */

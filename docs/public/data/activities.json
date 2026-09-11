@@ -1,0 +1,139 @@
+{
+  "activities": [
+    {
+      "id": "act-001",
+      "title": { "zh": "新生见面会", "en": "New Student Meet & Greet", "th": "งานพบเพื่อนร่วมชั้น" },
+      "date": "2026-08-01",
+      "endDate": "2026-08-01",
+      "time": "14:00 - 18:00",
+      "location": { "zh": "复旦管理学院", "en": "Fudan School of Management", "th": "โรงเรียนบริหารธุรกิจ ม.ฝูด่าน" },
+      "organizer": { "zh": "班委会", "en": "Class Committee", "th": "คณะกรรมการชั้นเรียน" },
+      "description": { "zh": "班级初次见面会，同学分组互相认识，建立班级初步联系。", "en": "First class meeting, classmates get to know each other in groups.", "th": "การพบปะครั้งแรกของชั้นเรียน แบ่งกลุ่มทำความรู้จักกัน" },
+      "status": "ended",
+      "capacity": 84,
+      "registered": 84,
+      "tags": {
+        "hasMedia": true,
+        "mediaUrl": "https://live.photoplus.cn/live/76223991",
+        "mediaType": "photoplus",
+        "cover": "/images/albums/cover-meeting.jpg",
+        "involvesFinance": false,
+        "financeAmount": 0,
+        "financeCategory": null
+      }
+    },
+    {
+      "id": "act-002",
+      "title": { "zh": "班级团建聚餐", "en": "Class Team Building Dinner", "th": "งานสร้างทีมและทานข้าวร่วมชั้น" },
+      "date": "2026-08-29",
+      "endDate": "2026-08-29",
+      "time": "18:00 - 22:00",
+      "location": { "zh": "上海市区餐厅", "en": "Downtown Shanghai Restaurant", "th": "ร้านอาหารในใจกลางเซี่ยงไฮ้" },
+      "organizer": { "zh": "班委会", "en": "Class Committee", "th": "คณะกรรมการชั้นเรียน" },
+      "description": { "zh": "班级首次团建聚餐，同学们AA制，增进感情。", "en": "First class team building dinner, AA split among classmates.", "th": "งานสร้างทีมครั้งแรกของชั้นเรียน แบ่งค่าใช้จ่ายเท่าๆ กัน" },
+      "status": "ended",
+      "capacity": 84,
+      "registered": 78,
+      "tags": {
+        "hasMedia": true,
+        "mediaUrl": "https://m.alltuu.com/album/95acdd57c4253d3f8cd2b44f8fa35c4c",
+        "mediaType": "alltuu",
+        "cover": "/images/albums/cover-dinner.jpg",
+        "involvesFinance": true,
+        "financeAmount": 0,
+        "financeCategory": "activity",
+        "financeNote": "同学们AA制，不经过班费"
+      }
+    },
+    {
+      "id": "act-003",
+      "title": { "zh": "开学典礼", "en": "Opening Ceremony", "th": "พิธีเปิดภาคเรียน" },
+      "date": "2026-09-04",
+      "endDate": "2026-09-06",
+      "time": "全天",
+      "location": { "zh": "复旦管理学院", "en": "Fudan School of Management", "th": "โรงเรียนบริหารธุรกิจ ม.ฝูด่าน" },
+      "organizer": { "zh": "学院", "en": "School", "th": "โรงเรียน" },
+      "description": { "zh": "2026级MBA开学典礼，为期三天，包含学院介绍、课程说明、团队建设等。", "en": "2026 MBA Opening Ceremony, three days including school introduction, course briefing, and team building.", "th": "พิธีเปิดภาคเรียน MBA ปี 2026 ระยะเวลา 3 วัน" },
+      "status": "ended",
+      "capacity": 300,
+      "registered": 280,
+      "tags": {
+        "hasMedia": true,
+        "mediaUrl": "https://live.photoplus.cn/live/18618886",
+        "mediaType": "photoplus",
+        "cover": "/images/albums/cover-opening.jpg",
+        "involvesFinance": false,
+        "financeAmount": 0,
+        "financeCategory": null
+      }
+    },
+    {
+      "id": "act-004",
+      "title": { "zh": "Orientation迎新活动", "en": "Orientation Welcome Event", "th": "กิจกรรมต้อนรับ Orientation" },
+      "date": "2026-09-05",
+      "endDate": "2026-09-05",
+      "time": "09:00 - 17:00",
+      "location": { "zh": "复旦管理学院", "en": "Fudan School of Management", "th": "โรงเรียนบริหารธุรกิจ ม.ฝูด่าน" },
+      "organizer": { "zh": "学院+传承人", "en": "School + Mentors", "th": "โรงเรียน + ผู้ให้คำปรึกษา" },
+      "description": { "zh": "2026级MBA迎新Orientation，团队建设、学院介绍、学长学姐分享。活动物资从班费支出。", "en": "2026 MBA Orientation, team building, school introduction, senior sharing. Supplies covered by class fund.", "th": "Orientation ปี 2026 กิจกรรมสร้างทีม แนะนำโรงเรียน และร่วม分享จากรุ่นพี่" },
+      "status": "ended",
+      "capacity": 300,
+      "registered": 280,
+      "tags": {
+        "hasMedia": false,
+        "mediaUrl": null,
+        "mediaType": null,
+        "cover": null,
+        "involvesFinance": true,
+        "financeAmount": 3200,
+        "financeCategory": "activity",
+        "financeNote": "Orientation活动物资采购"
+      }
+    },
+    {
+      "id": "act-005",
+      "title": { "zh": "DMD课程小组讨论", "en": "DMD Study Group Session", "th": "กลุ่มศึกษาร่วมวิชา DMD" },
+      "date": "2026-09-17",
+      "endDate": "2026-09-17",
+      "time": "19:00 - 21:00",
+      "location": { "zh": "线上（腾讯会议）", "en": "Online (Tencent Meeting)", "th": "ออนไลน์ (Tencent Meeting)" },
+      "organizer": { "zh": "学习委员", "en": "Academic Officer", "th": "เจ้าหน้าที่การเรียน" },
+      "description": { "zh": "第一节课后习题讨论，知识点梳理，互帮互助。", "en": "Post-lecture exercise discussion and knowledge review. Help each other learn.", "th": "อภิปรายแบบฝึกหัดหลังเรียน และทบทวนความรู้ ช่วยเหลือซึ่งกันและกัน" },
+      "status": "open",
+      "capacity": 30,
+      "registered": 18,
+      "tags": {
+        "hasMedia": false,
+        "mediaUrl": null,
+        "mediaType": null,
+        "cover": null,
+        "involvesFinance": false,
+        "financeAmount": 0,
+        "financeCategory": null
+      }
+    },
+    {
+      "id": "act-006",
+      "title": { "zh": "班级破冰活动", "en": "Class Ice-Breaking Activity", "th": "กิจกรรมทำความรู้จักชั้นเรียน" },
+      "date": "2026-09-20",
+      "endDate": "2026-09-20",
+      "time": "14:00 - 18:00",
+      "location": { "zh": "政立院区 活动室", "en": "Zhengli Campus Activity Room", "th": "ห้องกิจกรรม วิทยาเขตเจิ้งหลี่" },
+      "organizer": { "zh": "班委会", "en": "Class Committee", "th": "คณะกรรมการชั้นเรียน" },
+      "description": { "zh": "团队游戏、自我介绍、自由交流，增进同学之间的了解。活动费用从班费支出。", "en": "Team games, self-introductions, and free networking to help classmates get to know each other. Costs covered by class fund.", "th": "เกมทีม แนะนำตัว และแลกเปลี่ยนเสรี เพื่อสร้างความรู้จักระหว่างเพื่อนร่วมชั้น ค่าใช้จ่ายจากกองทุนชั้นเรียน" },
+      "status": "open",
+      "capacity": 84,
+      "registered": 52,
+      "tags": {
+        "hasMedia": false,
+        "mediaUrl": null,
+        "mediaType": null,
+        "cover": null,
+        "involvesFinance": true,
+        "financeAmount": 0,
+        "financeCategory": "activity",
+        "financeNote": "活动费用从班费支出，金额待定"
+      }
+    }
+  ]
+}

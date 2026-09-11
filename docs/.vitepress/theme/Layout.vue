@@ -23,6 +23,16 @@ watch(
 )
 
 onMounted(() => {
+  // 深色模式：每次都跟随系统设置，手动切换不保留记忆
+  localStorage.removeItem('vitepress-theme-appearance')
+  const applySystemTheme = () => {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    document.documentElement.classList.toggle('dark', isDark)
+  }
+  applySystemTheme()
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  mediaQuery.addEventListener('change', applySystemTheme)
+
   // 导航栏滚动效果（滚动超过50px时切换毛玻璃强度）
   const nav = document.querySelector('.VPNav')
   if (nav) {

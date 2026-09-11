@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 课件下载
+title: 课程资料
 ---
 
 <CourseMaterials />

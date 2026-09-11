@@ -14,78 +14,41 @@ const sharedThemeConfig = {
 // 中文（根路径 /）
 const zhNav = [
   { text: '首页', link: '/' },
-  { text: '课表', link: '/schedule' },
-  { text: '公告', link: '/announcements/' },
   {
-    text: '智库',
+    text: '主理团',
     items: [
-      { text: '知识库', link: '/knowledge/' },
-      { text: '课件下载', link: '/slides/' },
-    ],
-  },
-  { text: '活动', link: '/activities/' },
-  { text: '回忆', link: '/gallery/' },
-  { text: '班费', link: '/finance/' },
-  {
-    text: '治理',
-    items: [
-      { text: '同学名录', link: '/directory/' },
+      { text: '公告通知', link: '/announcements/' },
       { text: '班委介绍', link: '/governance/' },
+      { text: '班级文化', link: '/about/culture/' },
+      { text: '愿景使命', link: '/about/vision/' },
+      { text: '职能架构', link: '/about/structure/' },
     ],
   },
   {
-    text: '关于',
+    text: '体验运营',
     items: [
-      { text: '班级文化', link: '/about/culture/' },
-      { text: '班级愿景', link: '/about/vision/' },
-      { text: '职能架构', link: '/about/structure/' },
+      { text: '活动日历', link: '/activities/' },
+      { text: '同学名录', link: '/directory/' },
       { text: '职业发展', link: '/career/' },
+    ],
+  },
+  { text: '财务激励', link: '/finance/' },
+  { text: '记忆主理', link: '/gallery/' },
+  {
+    text: '智库研究',
+    items: [
+      { text: '课表', link: '/schedule' },
+      { text: '知识库', link: '/knowledge/' },
+      { text: '课程资料', link: '/slides/' },
     ],
   },
 ]
 
-const zhSidebar = {
-  '/announcements/': [
-    {
-      text: '公告',
-      items: [{ text: '最新公告', link: '/announcements/' }],
-    },
-  ],
-  '/knowledge/': [
-    {
-      text: '知识库',
-      items: [{ text: '知识库首页', link: '/knowledge/' }],
-    },
-  ],
-  '/governance/': [
-    {
-      text: '班委介绍',
-      items: [{ text: '班委介绍', link: '/governance/' }],
-    },
-  ],
-  '/about/culture/': [
-    {
-      text: '班级文化',
-      items: [{ text: '班级文化', link: '/about/culture/' }],
-    },
-  ],
-  '/about/vision/': [
-    {
-      text: '班级愿景',
-      items: [{ text: '班级愿景', link: '/about/vision/' }],
-    },
-  ],
-  '/about/structure/': [
-    {
-      text: '职能架构',
-      items: [{ text: '职能架构', link: '/about/structure/' }],
-    },
-  ],
-}
+const zhSidebar = {}
 
 const zhFooter = {
-  message: '复旦 MBA 薄荷 4 班 · 智库研究员共同维护',
-  copyright: 'Copyright © 2024-present 薄荷 4 班',
+  message: '复旦 MBA 薄荷 4 班 · 雷振宇维护',
+  copyright: 'Copyright © 2026 薄荷 4 班',
 }
 
 const zhSearch = {
@@ -107,78 +70,41 @@ const zhSearch = {
 // English（/en/）
 const enNav = [
   { text: 'Home', link: '/en/' },
-  { text: 'Schedule', link: '/en/schedule' },
-  { text: 'Announcements', link: '/en/announcements/' },
   {
-    text: 'Knowledge',
+    text: 'Leadership',
     items: [
-      { text: 'Knowledge Base', link: '/en/knowledge/' },
-      { text: 'Slides', link: '/en/slides/' },
-    ],
-  },
-  { text: 'Activities', link: '/en/activities/' },
-  { text: 'Memories', link: '/en/gallery/' },
-  { text: 'Finance', link: '/en/finance/' },
-  {
-    text: 'Governance',
-    items: [
-      { text: 'Directory', link: '/en/directory/' },
+      { text: 'Announcements', link: '/en/announcements/' },
       { text: 'Class Committee', link: '/en/governance/' },
+      { text: 'Class Culture', link: '/en/about/culture/' },
+      { text: 'Vision & Mission', link: '/en/about/vision/' },
+      { text: 'Org Structure', link: '/en/about/structure/' },
     ],
   },
   {
-    text: 'About',
+    text: 'Experience',
     items: [
-      { text: 'Class Culture', link: '/en/about/culture/' },
-      { text: 'Class Vision', link: '/en/about/vision/' },
-      { text: 'Org Structure', link: '/en/about/structure/' },
+      { text: 'Activities', link: '/en/activities/' },
+      { text: 'Directory', link: '/en/directory/' },
       { text: 'Career', link: '/en/career/' },
+    ],
+  },
+  { text: 'Finance', link: '/en/finance/' },
+  { text: 'Memories', link: '/en/gallery/' },
+  {
+    text: 'Research',
+    items: [
+      { text: 'Schedule', link: '/en/schedule' },
+      { text: 'Knowledge Base', link: '/en/knowledge/' },
+      { text: 'Course Materials', link: '/en/slides/' },
     ],
   },
 ]
 
-const enSidebar = {
-  '/en/announcements/': [
-    {
-      text: 'Announcements',
-      items: [{ text: 'Latest', link: '/en/announcements/' }],
-    },
-  ],
-  '/en/knowledge/': [
-    {
-      text: 'Knowledge Base',
-      items: [{ text: 'Overview', link: '/en/knowledge/' }],
-    },
-  ],
-  '/en/governance/': [
-    {
-      text: 'Class Committee',
-      items: [{ text: 'Class Committee', link: '/en/governance/' }],
-    },
-  ],
-  '/en/about/culture/': [
-    {
-      text: 'Class Culture',
-      items: [{ text: 'Class Culture', link: '/en/about/culture/' }],
-    },
-  ],
-  '/en/about/vision/': [
-    {
-      text: 'Class Vision',
-      items: [{ text: 'Class Vision', link: '/en/about/vision/' }],
-    },
-  ],
-  '/en/about/structure/': [
-    {
-      text: 'Org Structure',
-      items: [{ text: 'Org Structure', link: '/en/about/structure/' }],
-    },
-  ],
-}
+const enSidebar = {}
 
 const enFooter = {
-  message: 'Fudan MBA Mint 4 · Maintained by Research Team',
-  copyright: 'Copyright © 2024-present Mint 4 Class',
+  message: 'Fudan MBA Mint 4 · Maintained by Zhenyu Lei',
+  copyright: 'Copyright © 2026 Mint 4 Class',
 }
 
 const enSearch = {
@@ -200,78 +126,41 @@ const enSearch = {
 // ไทย（/th/）
 const thNav = [
   { text: 'หน้าแรก', link: '/th/' },
-  { text: 'ตารางเรียน', link: '/th/schedule' },
-  { text: 'ประกาศ', link: '/th/announcements/' },
   {
-    text: 'ความรู้',
+    text: 'ผู้นำ',
     items: [
-      { text: 'คลังความรู้', link: '/th/knowledge/' },
-      { text: 'ไฟล์บรรยาย', link: '/th/slides/' },
-    ],
-  },
-  { text: 'กิจกรรม', link: '/th/activities/' },
-  { text: 'ความทรงจำ', link: '/th/gallery/' },
-  { text: 'การเงิน', link: '/th/finance/' },
-  {
-    text: 'การปกครอง',
-    items: [
-      { text: 'รายชื่อ', link: '/th/directory/' },
+      { text: 'ประกาศ', link: '/th/announcements/' },
       { text: 'คณะกรรมการ', link: '/th/governance/' },
-    ],
-  },
-  {
-    text: 'เกี่ยวกับ',
-    items: [
       { text: 'วัฒนธรรมชั้นเรียน', link: '/th/about/culture/' },
       { text: 'วิสัยทัศน์', link: '/th/about/vision/' },
       { text: 'โครงสร้าง', link: '/th/about/structure/' },
+    ],
+  },
+  {
+    text: 'ประสบการณ์',
+    items: [
+      { text: 'กิจกรรม', link: '/th/activities/' },
+      { text: 'รายชื่อ', link: '/th/directory/' },
       { text: 'อาชีพ', link: '/th/career/' },
+    ],
+  },
+  { text: 'การเงิน', link: '/th/finance/' },
+  { text: 'ความทรงจำ', link: '/th/gallery/' },
+  {
+    text: 'วิจัย',
+    items: [
+      { text: 'ตารางเรียน', link: '/th/schedule' },
+      { text: 'คลังความรู้', link: '/th/knowledge/' },
+      { text: 'เอกสารรายวิชา', link: '/th/slides/' },
     ],
   },
 ]
 
-const thSidebar = {
-  '/th/announcements/': [
-    {
-      text: 'ประกาศ',
-      items: [{ text: 'ประกาศล่าสุด', link: '/th/announcements/' }],
-    },
-  ],
-  '/th/knowledge/': [
-    {
-      text: 'ความรู้',
-      items: [{ text: 'ภาพรวม', link: '/th/knowledge/' }],
-    },
-  ],
-  '/th/governance/': [
-    {
-      text: 'คณะกรรมการ',
-      items: [{ text: 'คณะกรรมการ', link: '/th/governance/' }],
-    },
-  ],
-  '/th/about/culture/': [
-    {
-      text: 'วัฒนธรรมชั้นเรียน',
-      items: [{ text: 'วัฒนธรรมชั้นเรียน', link: '/th/about/culture/' }],
-    },
-  ],
-  '/th/about/vision/': [
-    {
-      text: 'วิสัยทัศน์',
-      items: [{ text: 'วิสัยทัศน์', link: '/th/about/vision/' }],
-    },
-  ],
-  '/th/about/structure/': [
-    {
-      text: 'โครงสร้าง',
-      items: [{ text: 'โครงสร้าง', link: '/th/about/structure/' }],
-    },
-  ],
-}
+const thSidebar = {}
 
 const thFooter = {
-  message: 'Fudan MBA มินต์ 4 · ดูแลโดยทีมวิจัย',
-  copyright: 'Copyright © 2024-present ชั้นเรียนมินต์ 4',
+  message: 'Fudan MBA มินต์ 4 · ดูแลโดย Zhenyu Lei',
+  copyright: 'Copyright © 2026 ชั้นเรียนมินต์ 4',
 }
 
 const thSearch = {

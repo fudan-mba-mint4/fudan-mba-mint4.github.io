@@ -1,0 +1,40 @@
+{
+  "announcements": [
+    {
+      "id": "ann-001",
+      "date": "2026-09-10",
+      "category": "important",
+      "title": { "zh": "关于中秋节放假安排的通知", "en": "Mid-Autumn Festival Holiday Notice", "th": "แจ้งการหยุดวันไหว้พระจันทร์" },
+      "summary": { "zh": "9月15日至17日放假调休，共3天。9月14日（周日）上课。", "en": "Holiday from Sep 15-17, classes on Sep 14 (Sunday).", "th": "หยุด 15-17 ก.ย. เรียนวันอาทิตย์ที่ 14 ก.ย." },
+      "content": { "zh": "各位同学：根据国务院办公厅通知，结合学院教学安排，2026年中秋节放假时间为9月15日（周一）至9月17日（周三），共3天。9月14日（周日）正常上课，补上周一课程。请各位同学合理安排时间，注意出行安全。", "en": "Dear classmates: According to the official holiday schedule, Mid-Autumn Festival holiday is Sep 15-17. Classes resume on Sep 14 (Sunday) to make up for Monday classes.", "th": "ตามประกาศของรัฐบาล หยุดวันไหว้พระจันทร์ 15-17 ก.ย. เรียนวันอาทิตย์ที่ 14 ก.ย. ชดเชยวันจันทร์" },
+      "pinned": true
+    },
+    {
+      "id": "ann-002",
+      "date": "2026-09-08",
+      "category": "academic",
+      "title": { "zh": "DMD课程第一节课后作业通知", "en": "DMD Course Assignment Notice", "th": "การบ้านวิชา DMD" },
+      "summary": { "zh": "黄达老师布置课后作业，截止日期9月17日，请按时提交。", "en": "Prof. Huang Da assigned homework, due Sep 17.", "th": "อาจารย์หวง ต้าหมายอดการบ้าน ส่งภายใน 17 ก.ย." },
+      "content": { "zh": "DMD课程第一节课后作业已发布在课程平台，请各位同学登录查看。作业截止日期为9月17日（周三）23:59，请按时提交。作业要求：完成教材第1-3章课后习题，以PDF格式提交。", "en": "DMD first assignment has been posted on the course platform. Deadline: Sep 17 (Wednesday) 23:59. Complete textbook chapters 1-3 exercises, submit as PDF.", "th": "การบ้าน DMD ได้เผยแพร่แล้ว ส่งภายใน 17 ก.ย. 23:59 น. ทำแบบฝึกหัดบทที่ 1-3 ส่งเป็น PDF" },
+      "pinned": false
+    },
+    {
+      "id": "ann-003",
+      "date": "2026-09-05",
+      "category": "activity",
+      "title": { "zh": "班级破冰活动报名开始", "en": "Class Ice-Breaking Activity Registration Open", "th": "ลงทะเบียนกิจกรรมทำความรู้จัก" },
+      "summary": { "zh": "定于9月20日举办班级破冰活动，地点待定，请于9月15日前报名。", "en": "Ice-breaking activity on Sep 20, register by Sep 15.", "th": "กิจกรรมทำความรู้จัก 20 ก.ย. ลงทะเบียนภายใน 15 ก.ย." },
+      "content": { "zh": "为增进同学之间的了解，班委会定于9月20日（周六）举办班级破冰活动。活动内容包括团队游戏、自我介绍、自由交流等。地点待定，将在报名后通知。请有意参加的同学于9月15日前在班级群内报名。活动费用从班费中支出。", "en": "To help classmates get to know each other, the class committee will host an ice-breaking activity on Sep 20 (Saturday). Activities include team games, self-introductions, and free networking. Venue TBD. Please register in the class group by Sep 15. Costs covered by class fund.", "th": "คณะกรรมการชั้นเรียนจัดกิจกรรมทำความรู้จักวันเสาร์ที่ 20 ก.ย. ลงทะเบียนภายใน 15 ก.ย. ค่าใช้จ่ายจากกองทุนชั้นเรียน" },
+      "pinned": false
+    },
+    {
+      "id": "ann-004",
+      "date": "2026-09-01",
+      "category": "normal",
+      "title": { "zh": "班级通讯录已更新", "en": "Class Contact Directory Updated", "th": "สมุดรายชื่อชั้นเรียนอัปเดตแล้ว" },
+      "summary": { "zh": "最新版班级通讯录已上传，请各位同学核对个人信息。", "en": "Latest class contact directory uploaded, please verify your info.", "th": "สมุดรายชื่อล่าสุดอัปโหลดแล้ว กรุณาตรวจสอบข้อมูลส่วนตัว" },
+      "content": { "zh": "最新版班级通讯录已上传至班级资源库（私有），包含全体同学的姓名、公司、职位、联系方式等信息。请各位同学核对个人信息，如有错误或更新请联系班委。通讯录仅供班级内部使用，请勿外传。", "en": "The latest class contact directory has been uploaded to the class resource hub (private). It includes all classmates names, companies, positions, and contact info. Please verify your personal information. For internal use only.", "th": "สมุดรายชื่อล่าสุดอัปโหลดในคลังทรัพยากรส่วนตัวแล้ว กรุณาตรวจสอบข้อมูลส่วนตัว ใช้ภายในชั้นเรียนเท่านั้น" },
+      "pinned": false
+    }
+  ]
+}

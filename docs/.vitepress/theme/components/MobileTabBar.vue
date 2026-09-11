@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useData } from 'vitepress'
 
 const { page } = useData()
@@ -26,56 +26,31 @@ const i18n = {
     home: '首页',
     schedule: '课表',
     announcements: '公告',
-    more: '更多',
-    knowledge: '知识库',
-    activities: '活动',
-    gallery: '相册',
-    finance: '班费',
-    directory: '同学名录',
+    slides: '课件',
   },
   en: {
     home: 'Home',
     schedule: 'Schedule',
     announcements: 'Announcements',
-    more: 'More',
-    knowledge: 'Knowledge',
-    activities: 'Activities',
-    gallery: 'Gallery',
-    finance: 'Finance',
-    directory: 'Directory',
+    slides: 'Slides',
   },
   th: {
     home: 'หน้าแรก',
     schedule: 'ตารางเรียน',
     announcements: 'ประกาศ',
-    more: 'เพิ่มเติม',
-    knowledge: 'ความรู้',
-    activities: 'กิจกรรม',
-    gallery: 'อัลบั้ม',
-    finance: 'การเงิน',
-    directory: 'สารบัญ',
+    slides: 'ไฟล์บรรยาย',
   },
 }
 
 const t = computed(() => i18n[currentLang.value])
 
-// 底部 Tab 定义：图标为内联 SVG 线框
+// 底部 4 个固定 Tab：首页 / 课表 / 公告 / 课件
 const tabs = computed(() => [
   { name: t.value.home, path: `${langPrefix.value}/`, icon: 'home' },
   { name: t.value.schedule, path: `${langPrefix.value}/schedule`, icon: 'calendar' },
   { name: t.value.announcements, path: `${langPrefix.value}/announcements/`, icon: 'bell' },
+  { name: t.value.slides, path: `${langPrefix.value}/slides/`, icon: 'file' },
 ])
-
-// "更多"菜单展开项
-const moreItems = computed(() => [
-  { name: t.value.knowledge, path: `${langPrefix.value}/knowledge/` },
-  { name: t.value.activities, path: `${langPrefix.value}/activities/` },
-  { name: t.value.gallery, path: `${langPrefix.value}/gallery/` },
-  { name: t.value.finance, path: `${langPrefix.value}/finance/` },
-  { name: t.value.directory, path: `${langPrefix.value}/directory/` },
-])
-
-const moreOpen = ref(false)
 
 // 去除语言前缀，用于路由匹配
 const stripLangPrefix = (p) => p.replace(/^\/(en|th)(?=\/|$)/, '') || '/'
@@ -89,39 +64,18 @@ const isActive = (path) => {
   return c === p || c.startsWith(p)
 }
 
-const currentPath = computed(() => page.value.path || '/')
-
-// 点击空白处关闭“更多”菜单
-const onDocClick = (e) => {
-  if (!moreOpen.value) return
-  if (e.target.closest('.m-tabbar-more')) return
-  moreOpen.value = false
-}
-
-// 切换页面后自动收起“更多”菜单
-watch(currentPath, () => {
-  moreOpen.value = false
-})
-
 onMounted(() => {
-  document.addEventListener('click', onDocClick)
   // 为 body 预留底部安全距离，防止内容被 Tab Bar 遮挡
   document.body.style.paddingBottom = '56px'
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', onDocClick)
   document.body.style.paddingBottom = ''
 })
-
-const toggleMore = () => {
-  moreOpen.value = !moreOpen.value
-}
 </script>
 
 <template>
   <nav class="m-tabbar" aria-label="移动端导航">
-    <!-- 固定三 Tab -->
     <a
       v-for="tab in tabs"
       :key="tab.name"
@@ -146,45 +100,15 @@ const toggleMore = () => {
         <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
         <path d="M10 19a2 2 0 0 0 4 0" />
       </svg>
+      <!-- 课件图标 -->
+      <svg v-else-if="tab.icon === 'file'" class="m-tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="8" y1="13" x2="16" y2="13" />
+        <line x1="8" y1="17" x2="13" y2="17" />
+      </svg>
       <span class="m-tabbar-label">{{ tab.name }}</span>
     </a>
-
-    <!-- 更多按钮（带弹层） -->
-    <div class="m-tabbar-more">
-      <button
-        class="m-tabbar-item"
-        :class="{ active: moreOpen }"
-        :aria-label="t.more"
-        @click.stop="toggleMore"
-      >
-        <svg class="m-tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="7" x2="20" y2="7" />
-          <line x1="4" y1="12" x2="20" y2="12" />
-          <line x1="4" y1="17" x2="20" y2="17" />
-        </svg>
-        <span class="m-tabbar-label">{{ t.more }}</span>
-      </button>
-
-      <!-- 简易弹层菜单 -->
-      <transition name="more-pop">
-        <div v-if="moreOpen" class="m-tabbar-menu">
-          <a
-            v-for="item in moreItems"
-            :key="item.name"
-            :href="item.path"
-            class="m-tabbar-menu-item"
-            :class="{ active: isActive(item.path) }"
-          >
-            <svg class="m-tabbar-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span>{{ item.name }}</span>
-          </a>
-        </div>
-      </transition>
-    </div>
   </nav>
 </template>
 
@@ -247,70 +171,5 @@ const toggleMore = () => {
 .m-tabbar-label {
   font-size: 10px;
   line-height: 1;
-}
-
-/* 更多按钮容器（相对定位以承载弹层） */
-.m-tabbar-more {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.m-tabbar-more .m-tabbar-item {
-  width: 100%;
-}
-
-/* 弹层菜单 */
-.m-tabbar-menu {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%);
-  min-width: 140px;
-  padding: 6px;
-  background: var(--c-bg-glass-strong);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 0.5px solid var(--c-separator);
-  border-radius: 14px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  z-index: 1001;
-}
-
-.m-tabbar-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 14px;
-  color: var(--c-text-secondary);
-  text-decoration: none;
-  transition: background 200ms ease-in-out, color 200ms ease-in-out;
-}
-
-.m-tabbar-menu-item:active,
-.m-tabbar-menu-item.active {
-  background: var(--c-accent-light);
-  color: var(--c-accent);
-}
-
-.m-tabbar-menu-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* 弹层出现/消失过渡 */
-.more-pop-enter-active,
-.more-pop-leave-active {
-  transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
-}
-
-.more-pop-enter-from,
-.more-pop-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(6px);
 }
 </style>

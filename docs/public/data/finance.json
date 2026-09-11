@@ -1,0 +1,40 @@
+{
+  "transactions": [
+    {
+      "id": "tx-001",
+      "date": "2026-09-01",
+      "type": "income",
+      "category": "tuition",
+      "amount": 42000,
+      "description": "2026秋季学期班费缴纳（84人×500元）",
+      "activityId": null
+    },
+    {
+      "id": "tx-002",
+      "date": "2026-09-05",
+      "type": "expense",
+      "category": "material",
+      "amount": 850,
+      "description": "班级通讯录印刷费",
+      "activityId": null
+    },
+    {
+      "id": "tx-003",
+      "date": "2026-09-08",
+      "type": "expense",
+      "category": "activity",
+      "amount": 3200,
+      "description": "Orientation活动物资采购",
+      "activityId": "act-004"
+    },
+    {
+      "id": "tx-004",
+      "date": "2026-09-10",
+      "type": "expense",
+      "category": "other",
+      "amount": 200,
+      "description": "班群红包活动经费",
+      "activityId": null
+    }
+  ]
+}

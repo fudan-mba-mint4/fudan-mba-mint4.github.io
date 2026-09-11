@@ -32,14 +32,16 @@ const loadData = async () => {
 const i18n = {
   zh: {
     label: '智库资源',
-    title: '课件下载',
-    subtitle: '按课程分类 · 按节次排列',
-    loading: '加载课件中...',
-    noMaterials: '该课程课件尚未上传，敬请期待',
+    title: '课程资料',
+    subtitle: '按课程分类 · 含课件与作业',
+    loading: '加载课程资料中...',
+    noMaterials: '该课程资料尚未上传，敬请期待',
     session: '第',
     sessionUnit: '讲',
     slides: '课件',
     references: '推荐阅读 / 参考资料',
+    homework: '课后作业',
+    deadline: '截止日期',
     download: '下载',
     fileSize: '文件大小',
     teacher: '主讲',
@@ -59,6 +61,8 @@ const i18n = {
     sessionUnit: '',
     slides: 'Slides',
     references: 'Recommended Reading',
+    homework: 'Homework',
+    deadline: 'Deadline',
     download: 'Download',
     fileSize: 'Size',
     teacher: 'Instructor',
@@ -70,14 +74,16 @@ const i18n = {
   },
   th: {
     label: 'คลังความรู้',
-    title: 'ดาวน์โหลดสื่อการสอน',
-    subtitle: 'แยกตามรายวิชา · แยกตามคาบ',
+    title: 'เอกสารรายวิชา',
+    subtitle: 'แยกตามรายวิชา · รวมสื่อการสอนและการบ้าน',
     loading: 'กำลังโหลดสื่อการสอน...',
     noMaterials: 'สื่อการสอนสำหรับรายวิชานี้ยังไม่ได้อัปโหลด',
     session: 'คาบที่',
     sessionUnit: '',
     slides: 'สไลด์',
     references: 'หนังสือแนะนำ',
+    homework: 'การบ้าน',
+    deadline: 'กำหนดส่ง',
     download: 'ดาวน์โหลด',
     fileSize: 'ขนาด',
     teacher: 'ผู้สอน',
@@ -246,6 +252,38 @@ const formatDate = (dateStr) => {
               </template>
             </div>
           </div>
+
+          <!-- 作业 -->
+          <div v-if="session.homework" class="homework-section">
+            <h4 class="files-label">{{ t.homework }}</h4>
+            <a :href="session.homework.url" class="homework-card" download>
+              <div class="homework-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <div class="homework-card-info">
+                <span class="homework-card-title">{{ session.homework.name }}</span>
+                <span class="homework-card-desc" v-if="session.homework.description">{{ session.homework.description }}</span>
+                <div class="homework-card-meta">
+                  <span class="homework-meta-item homework-meta-item--deadline">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {{ t.deadline }}: {{ session.homework.deadline }}
+                  </span>
+                  <span class="homework-meta-item">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    {{ session.homework.submission }}
+                  </span>
+                  <span class="homework-meta-item" v-if="session.homework.size">{{ session.homework.size }}</span>
+                </div>
+              </div>
+              <div class="homework-card-download">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </div>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -261,7 +299,7 @@ const formatDate = (dateStr) => {
 .materials-page {
   max-width: 960px;
   margin: 0 auto;
-  padding: 40px 24px 60px;
+  padding: 0 24px 60px;
 }
 
 .page-header {
@@ -522,6 +560,120 @@ const formatDate = (dateStr) => {
   border-color: var(--c-border);
   background: var(--c-bg-secondary);
   transform: none;
+}
+
+/* ========== 作业卡片 ========== */
+.homework-section {
+  margin-top: 16px;
+}
+
+.homework-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, var(--c-accent-light) 0%, var(--c-bg-secondary) 100%);
+  border: 1px solid var(--c-accent-light);
+  border-radius: 16px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.homework-card:hover {
+  border-color: var(--c-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.homework-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--c-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.homework-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.homework-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+}
+
+.homework-card-desc {
+  font-size: 13px;
+  color: var(--c-text-secondary);
+  line-height: 1.5;
+}
+
+.homework-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.homework-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--c-text-secondary);
+}
+
+.homework-meta-item svg {
+  flex-shrink: 0;
+}
+
+.homework-meta-item--deadline {
+  color: var(--c-accent);
+  font-weight: 600;
+}
+
+.homework-card-download {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--c-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.homework-card:hover .homework-card-download {
+  background: var(--c-accent);
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .homework-card {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .homework-card-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .homework-card-title {
+    font-size: 15px;
+  }
+  .homework-card-meta {
+    gap: 10px;
+  }
 }
 
 .file-icon {

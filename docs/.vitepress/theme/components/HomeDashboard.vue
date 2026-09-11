@@ -63,6 +63,10 @@ const i18n = {
     countdownTitle: '距离下次上课',
     semesterProgress: '学期进度',
     days: '天',
+    // 作业
+    homeworkTitle: '作业待办',
+    noHomework: '暂无待办作业',
+    day: '天',
     // 传承人
     mentorsTitle: '传承人',
     mentorsSubtitle: '感谢每一位的付出',
@@ -132,6 +136,9 @@ const i18n = {
     countdownTitle: 'Next Class In',
     semesterProgress: 'Semester Progress',
     days: 'days',
+    homeworkTitle: 'Homework',
+    noHomework: 'No pending homework',
+    day: 'day',
     mentorsTitle: 'Mentors',
     mentorsSubtitle: 'With gratitude for your dedication',
     mentorLeader: 'Zhang Zhipeng',
@@ -195,6 +202,9 @@ const i18n = {
     countdownTitle: 'อีกกี่วันถึงคาบเรียนถัดไป',
     semesterProgress: 'ความคืบหน้าเทอม',
     days: 'วัน',
+    homeworkTitle: 'การบ้าน',
+    noHomework: 'ไม่มีการบ้านค้าง',
+    day: 'วัน',
     mentorsTitle: 'ผู้ให้คำปรึกษา',
     mentorsSubtitle: 'ขอบคุณสำหรับความอุทิศตน',
     mentorLeader: 'จาง จือผิง',
@@ -230,6 +240,53 @@ const scheduleData = ref(null)
 const scheduleLoading = ref(true)
 const scheduleError = ref(false)
 
+/* ========== 作业数据 ========== */
+const homeworkData = ref([])
+
+async function fetchHomework() {
+  try {
+    const res = await fetch(`${langPrefix.value}/data/homework.json`)
+    const data = await res.json()
+    homeworkData.value = data.homework || []
+  } catch (e) {
+    try {
+      const res = await fetch('/data/homework.json')
+      const data = await res.json()
+      homeworkData.value = data.homework || []
+    } catch (e2) {
+      console.error('加载作业失败', e2)
+    }
+  }
+}
+
+// 课程简称映射
+const courseShortNames = {
+  'dmd': 'DMD',
+  'accounting': '会计',
+  'managerial-economics': '管经',
+}
+
+// 待完成作业（计算剩余天数）
+const pendingHomework = computed(() => {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return homeworkData.value
+    .filter(hw => hw.status === 'pending')
+    .map(hw => {
+      const deadline = new Date(hw.deadline)
+      deadline.setHours(0, 0, 0, 0)
+      const daysLeft = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
+      const courseShort = courseShortNames[hw.course_id] || hw.course.slice(0, 4)
+      const titleShort = currentLang.value === 'zh' ? hw.title :
+                         currentLang.value === 'en' ? hw.title_en : hw.title_th
+      const deadlineText = currentLang.value === 'zh' ? `截止 ${hw.deadline.slice(5)}` :
+                           currentLang.value === 'en' ? `Due ${hw.deadline.slice(5)}` :
+                           `กำหนด ${hw.deadline.slice(5)}`
+      return { ...hw, daysLeft, courseShort, titleShort, deadlineText }
+    })
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+})
+
 async function fetchSchedule() {
   scheduleLoading.value = true
   scheduleError.value = false
@@ -255,6 +312,7 @@ const retrySchedule = () => {
 
 onMounted(() => {
   fetchSchedule()
+  fetchHomework()
 })
 
 // 获取接下来的2节课
@@ -307,6 +365,19 @@ const countdownText = computed(() => {
   if (d === 1) return t.value.tomorrow
   return `${d} ${t.value.daysLater}`
 })
+
+// 通用：计算某门课距离今天的天数，返回"X天后"格式
+const formatCourseDays = (course) => {
+  if (!course || !course.date) return '—'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(course.date)
+  target.setHours(0, 0, 0, 0)
+  const d = Math.ceil((target - today) / (1000 * 60 * 60 * 24))
+  if (d <= 0) return t.value.today
+  if (d === 1) return t.value.tomorrow
+  return `${d} ${t.value.daysLater}`
+}
 
 // 倒计时是否紧迫（≤1天）
 const isCountdownUrgent = computed(() => daysToNextClass.value !== null && daysToNextClass.value <= 1)
@@ -708,7 +779,7 @@ const financeData = {
                 <span class="schedule-meta">{{ course.time_start }}–{{ course.time_end }} · {{ course.teacher }}</span>
               </div>
               <span class="schedule-countdown" :class="{ 'schedule-countdown--soon': i === 0 && isCountdownUrgent }">
-                {{ i === 0 ? countdownText : formatWeekday(course.weekday) }}
+                {{ formatCourseDays(course) }}
               </span>
               <svg class="schedule-expand-icon" :class="{ 'schedule-expand-icon--open': expandedCourseIndex === i }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"/>
@@ -778,24 +849,38 @@ const financeData = {
         </div>
       </div>
 
-      <!-- 4. 班级统计（1x1，真实数据） -->
-      <div class="card card--stats" v-tilt role="region" :aria-label="t.statsTitle">
-        <h3 class="card-title card-title--compact">{{ t.statsTitle }}</h3>
-        <div class="stats-grid-inner">
-          <a
-            v-for="(key, idx) in ['members', 'courses', 'groups', 'mentors']"
-            :key="key"
-            :href="statLinks[key]"
-            class="stat-item"
-            :aria-label="`${animatedStats[key]} ${t.stats[key]}`"
-          >
-            <span class="stat-number">{{ animatedStats[key] }}</span>
-            <span class="stat-label">{{ t.stats[key] }}</span>
-          </a>
+      <!-- 4. 班费公开（1x1，Demo） -->
+      <div class="card card--finance" v-tilt role="region" :aria-label="t.financeTitle">
+        <div class="card-header">
+          <h3 class="card-title card-title--compact">{{ t.financeTitle }}</h3>
+          <div class="card-header-right">
+            <span class="demo-badge">{{ t.demoLabel }}</span>
+            <a :href="`${langPrefix}/finance/`" class="card-link" :aria-label="`${t.viewAll} ${t.financeTitle}`">
+              {{ t.viewAll }}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="finance-balance">
+          <span class="finance-amount">¥ {{ formatNumber(financeData.balance) }}</span>
+          <span class="finance-label">{{ t.balance }}</span>
+        </div>
+        <div class="finance-row">
+          <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.incomeDetail">
+            <span class="finance-sub finance-sub--income">+¥ {{ formatNumber(financeData.income) }}</span>
+            <span class="finance-sublabel">{{ t.income }}</span>
+            <span class="finance-tooltip" role="tooltip">{{ t.incomeDetail }}</span>
+          </div>
+          <div class="finance-divider-v"></div>
+          <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.expenseDetail">
+            <span class="finance-sub finance-sub--expense">-¥ {{ formatNumber(financeData.expense) }}</span>
+            <span class="finance-sublabel">{{ t.expense }}</span>
+            <span class="finance-tooltip" role="tooltip">{{ t.expenseDetail }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- 5. 最新公告（2x1，Demo） -->
+      <!-- 6. 最新公告（2x1，Demo） -->
       <div class="card card--announcements card--span-2-col" v-tilt role="region" :aria-label="t.announcementsTitle">
         <div class="card-header">
           <h3 class="card-title">{{ t.announcementsTitle }}</h3>
@@ -856,6 +941,42 @@ const financeData = {
         </div>
       </div>
 
+      <!-- 作业TODO（1x1，真实数据） -->
+      <div class="card card--homework" v-tilt role="region" :aria-label="t.homeworkTitle">
+        <div class="card-header">
+          <h3 class="card-title card-title--compact">{{ t.homeworkTitle }}</h3>
+          <span class="homework-count" v-if="pendingHomework.length > 0">{{ pendingHomework.length }}</span>
+        </div>
+        <div class="homework-list" v-if="pendingHomework.length > 0">
+          <a
+            v-for="hw in pendingHomework"
+            :key="hw.id"
+            :href="hw.url"
+            class="homework-item"
+            target="_blank"
+            rel="noopener"
+          >
+            <div class="homework-course-tag">{{ hw.courseShort }}</div>
+            <div class="homework-info">
+              <span class="homework-title">{{ hw.titleShort }}</span>
+              <span class="homework-deadline" :class="{ 'homework-deadline--urgent': hw.daysLeft <= 2 }">
+                {{ hw.deadlineText }}
+              </span>
+            </div>
+            <div class="homework-days" :class="{ 'homework-days--urgent': hw.daysLeft <= 2 }">
+              <span class="homework-days-num">{{ hw.daysLeft }}</span>
+              <span class="homework-days-unit">{{ hw.daysLeft === 1 ? t.day : t.days }}</span>
+            </div>
+          </a>
+        </div>
+        <div class="homework-empty" v-else>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          <span>{{ t.noHomework }}</span>
+        </div>
+      </div>
+
       <!-- 7. 传承人（1x1，真实数据） -->
       <div class="card card--mentors" v-tilt role="region" :aria-label="t.mentorsTitle">
         <div class="card-header">
@@ -909,37 +1030,6 @@ const financeData = {
         <p class="culture-name">{{ t.className }} · {{ t.classFull }}</p>
       </div>
 
-      <!-- 10. 班费公开（1x1，Demo） -->
-      <div class="card card--finance" v-tilt role="region" :aria-label="t.financeTitle">
-        <div class="card-header">
-          <h3 class="card-title card-title--compact">{{ t.financeTitle }}</h3>
-          <div class="card-header-right">
-            <span class="demo-badge">{{ t.demoLabel }}</span>
-            <a :href="`${langPrefix}/finance/`" class="card-link" :aria-label="`${t.viewAll} ${t.financeTitle}`">
-              {{ t.viewAll }}
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
-          </div>
-        </div>
-        <div class="finance-balance">
-          <span class="finance-amount">¥ {{ formatNumber(financeData.balance) }}</span>
-          <span class="finance-label">{{ t.balance }}</span>
-        </div>
-        <div class="finance-row">
-          <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.incomeDetail">
-            <span class="finance-sub finance-sub--income">+¥ {{ formatNumber(financeData.income) }}</span>
-            <span class="finance-sublabel">{{ t.income }}</span>
-            <span class="finance-tooltip" role="tooltip">{{ t.incomeDetail }}</span>
-          </div>
-          <div class="finance-divider-v"></div>
-          <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.expenseDetail">
-            <span class="finance-sub finance-sub--expense">-¥ {{ formatNumber(financeData.expense) }}</span>
-            <span class="finance-sublabel">{{ t.expense }}</span>
-            <span class="finance-tooltip" role="tooltip">{{ t.expenseDetail }}</span>
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <!-- 回到顶部按钮 -->
@@ -977,6 +1067,12 @@ const financeData = {
   position: relative;
   --mouse-x: 50%;
   --mouse-y: 50%;
+  /* 桌面端4列布局：1身份 2课程 3快捷 4作业 5倒计时 6班费 7公告 8传承人 9相册 10文化 */
+  grid-template-areas:
+    "identity identity schedule schedule"
+    "identity identity quicklinks homework"
+    "countdown finance announcements announcements"
+    "mentors gallery gallery culture";
 }
 
 /* 聚光灯层 */
@@ -1004,6 +1100,18 @@ const financeData = {
 
 .card--span-2-col { grid-column: span 2; }
 .card--span-2-row { grid-row: span 2; }
+
+/* ========== 卡片 grid-area 命名（用于精确定位） ========== */
+.card--identity { grid-area: identity; }
+.card--schedule { grid-area: schedule; }
+.card--quicklinks { grid-area: quicklinks; }
+.card--finance { grid-area: finance; }
+.card--homework { grid-area: homework; }
+.card--announcements { grid-area: announcements; }
+.card--countdown { grid-area: countdown; }
+.card--mentors { grid-area: mentors; }
+.card--gallery { grid-area: gallery; }
+.card--culture { grid-area: culture; }
 
 /* ========== 基础卡片 ========== */
 .card {
@@ -2044,6 +2152,133 @@ const financeData = {
   100% { background-position: 200% 0; }
 }
 
+/* ========== 作业TODO ========== */
+.card--homework {
+  display: flex;
+  flex-direction: column;
+}
+
+.homework-count {
+  background: var(--c-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.homework-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  margin-top: 4px;
+}
+
+.homework-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--c-bg-elevated);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.homework-item:hover {
+  background: var(--c-accent-light);
+  transform: translateX(2px);
+}
+
+.homework-course-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.homework-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.homework-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.homework-deadline {
+  font-size: 11px;
+  color: var(--c-text-tertiary);
+}
+
+.homework-deadline--urgent {
+  color: #FF3B30;
+  font-weight: 600;
+}
+
+.homework-days {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.homework-days-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  line-height: 1;
+}
+
+.homework-days-unit {
+  font-size: 9px;
+  color: var(--c-text-tertiary);
+  margin-top: 2px;
+}
+
+.homework-days--urgent .homework-days-num {
+  color: #FF3B30;
+}
+
+.homework-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--c-text-tertiary);
+}
+
+.homework-empty svg {
+  opacity: 0.4;
+}
+
+.homework-empty span {
+  font-size: 12px;
+}
+
 /* ========== 7. 传承人 ========== */
 .mentors-subtitle {
   font-size: 11px;
@@ -2391,6 +2626,13 @@ const financeData = {
     grid-template-columns: repeat(3, 1fr);
     grid-auto-rows: minmax(142px, auto);
     gap: 12px;
+    /* 平板端3列布局 */
+    grid-template-areas:
+      "identity identity identity"
+      "schedule schedule quicklinks"
+      "homework countdown finance"
+      "announcements announcements mentors"
+      "gallery gallery culture";
   }
 
   .card--identity {
@@ -2433,6 +2675,15 @@ const financeData = {
     grid-template-columns: repeat(2, 1fr);
     grid-auto-rows: minmax(132px, auto);
     gap: 10px;
+    /* 手机端2列布局：1身份 2课程 3快捷 4作业 5公告 6班费 7倒计时 8相册 9传承人 10文化 */
+    grid-template-areas:
+      "identity identity"
+      "schedule schedule"
+      "quicklinks homework"
+      "announcements announcements"
+      "finance countdown"
+      "gallery gallery"
+      "mentors culture";
   }
 
   .card {
@@ -2450,8 +2701,9 @@ const financeData = {
 
   .card--identity .identity-inner {
     flex-direction: row;
-    text-align: left;
-    gap: 36px;
+    text-align: center;
+    justify-content: center;
+    gap: 24px;
   }
 
   .identity-badge {
@@ -2496,6 +2748,18 @@ const financeData = {
 @media (max-width: 380px) {
   .bento-grid {
     grid-template-columns: 1fr;
+    /* 超小屏1列布局，按手机端顺序 */
+    grid-template-areas:
+      "identity"
+      "schedule"
+      "quicklinks"
+      "homework"
+      "announcements"
+      "finance"
+      "countdown"
+      "gallery"
+      "mentors"
+      "culture";
   }
 
   .card--identity,
