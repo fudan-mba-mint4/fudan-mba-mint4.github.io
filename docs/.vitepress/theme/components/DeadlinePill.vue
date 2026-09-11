@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLang } from '../composables/useLang'
 
 const props = defineProps({
@@ -30,12 +30,22 @@ const i18n = {
 
 const { t } = useLang(i18n)
 
-/* ========== 截止状态计算 ========== */
-// 距截止天数：Math.ceil((deadlineDate - now) / 86400000)
+/* ========== 响应式时钟（每分钟刷新，跨越截止点自动更新） ========== */
+const now = ref(Date.now())
+let timer = null
+onMounted(() => {
+  timer = setInterval(() => { now.value = Date.now() }, 60000)
+})
+onUnmounted(() => { if (timer) clearInterval(timer) })
+
+/* ========== 截止状态计算 ==========
+   先判过期：已过截止点（本地零点）一律返回 -1（灰色 overdue），
+   避免刚过期几分钟时 Math.ceil 仍返回 0 而误显示"即将截止"。 */
 const daysLeft = computed(() => {
   if (!props.deadline) return null
-  const deadlineDate = new Date(props.deadline)
-  return Math.ceil((deadlineDate - Date.now()) / 86400000)
+  const deadlineDate = new Date(props.deadline + 'T00:00:00')
+  if (deadlineDate.getTime() <= now.value) return -1
+  return Math.ceil((deadlineDate.getTime() - now.value) / 86400000)
 })
 
 // normal  → 距离 >=1 天：普通薄荷 chip

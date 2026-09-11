@@ -1,15 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import DeadlinePill from './DeadlinePill.vue'
-
-/* ========== 语言检测 ========== */
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
-})
+import { useLang, formatDate } from '../composables/useLang'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -53,7 +45,7 @@ const i18n = {
     deadlineOn: 'กำหนดส่ง',
   },
 }
-const t = computed(() => i18n[currentLang.value])
+const { lang, t } = useLang(i18n)
 
 /* ========== 分类标签 ========== */
 const categories = computed(() => [
@@ -72,7 +64,7 @@ onMounted(async () => {
   try {
     const res = await fetch('/data/announcements.json')
     const data = await res.json()
-    announcements.value = data.announcements
+    announcements.value = data.announcements || []
   } catch (e) {
     console.error('Failed to load announcements:', e)
   }
@@ -102,18 +94,6 @@ const toggle = (id) => {
   }
 }
 const isExpanded = (id) => expanded.value.has(id)
-
-/* ========== 格式化日期 ========== */
-const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
-  if (currentLang.value === 'zh') {
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
-  } else if (currentLang.value === 'en') {
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  } else {
-    return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
-  }
-}
 
 /* ========== 分类颜色 ========== */
 const categoryStyle = (cat) => {
@@ -156,12 +136,12 @@ const weightClass = (item) => {
         v-for="item in filtered"
         :key="item.id"
         class="announcement-card"
-        :class="[weightClass(item), { pinned: item.pinned, expanded: isExpanded(item.id) }]"
+        :class="[weightClass(item), { expanded: isExpanded(item.id) }]"
       >
         <div class="announcement-header" @click="toggle(item.id)">
           <!-- 第一行：标题 + 标签（右） -->
           <div class="announcement-toprow">
-            <h3 class="announcement-title">{{ item.title[currentLang] }}</h3>
+            <h3 class="announcement-title">{{ item.title[lang] }}</h3>
             <div class="announcement-tags">
               <span v-if="item.pinned" class="pinned-badge">📌</span>
               <span class="announcement-category" :style="categoryStyle(item.category)">
@@ -170,7 +150,7 @@ const weightClass = (item) => {
             </div>
           </div>
           <!-- 第二行：摘要（精简） -->
-          <p class="announcement-summary">{{ item.summary[currentLang] }}</p>
+          <p class="announcement-summary">{{ item.summary[lang] }}</p>
           <!-- 第三行：日期 + 截止药丸（左） + 展开按钮（右） -->
           <div class="announcement-bottomrow">
             <div class="announcement-meta">
@@ -192,7 +172,7 @@ const weightClass = (item) => {
               <span>{{ formatDate(item.deadline) }}</span>
             </div>
             <div class="content-divider"></div>
-            <p>{{ item.content[currentLang] }}</p>
+            <p>{{ item.content[lang] }}</p>
           </div>
         </transition>
       </article>
@@ -365,6 +345,7 @@ const weightClass = (item) => {
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

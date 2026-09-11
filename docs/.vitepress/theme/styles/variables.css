@@ -62,6 +62,9 @@
   --c-amber-light: rgba(255, 149, 0, 0.1);
   --c-coral: #ff6b6b;
   --c-coral-light: rgba(255, 107, 107, 0.1);
+  --c-red-light: rgba(255, 59, 48, 0.1);
+  --c-blue-light: rgba(0, 122, 255, 0.1);
+  --c-orange-light: rgba(255, 149, 0, 0.1);
 
   /* 强调色卡片（与班费余额卡片一致的渐变配色，全站统一） */
   --c-card-accent-bg: linear-gradient(135deg, #7ad1bc 0%, #5ec4ac 100%);
@@ -147,9 +150,6 @@
   --radius-xl: 16px;              /* 大卡片 16px */
   --radius-2xl: 20px;
   --radius-full: 9999px;
-
-  /* 兼容旧变量名 */
-  --radius-sm: var(--radius-sm);
 
   /* ========== 阴影系统（克制原则，零阴影为主） ========== */
 
@@ -255,6 +255,9 @@ html.dark {
   --c-amber-light: rgba(255, 159, 10, 0.15);
   --c-coral: #ff6961;
   --c-coral-light: rgba(255, 105, 97, 0.15);
+  --c-red-light: rgba(255, 69, 58, 0.15);
+  --c-blue-light: rgba(10, 132, 255, 0.15);
+  --c-orange-light: rgba(255, 159, 10, 0.15);
 
   /* 强调色卡片（深色模式，与班费余额卡片一致） */
   --c-card-accent-bg: linear-gradient(135deg, #2d7a6c 0%, #1f5a4f 100%);

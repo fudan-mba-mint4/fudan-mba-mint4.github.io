@@ -5,6 +5,7 @@ import SemesterHighway from './SemesterHighway.vue'
 
 const scheduleData = ref(null)
 const loading = ref(true)
+const loadError = ref(false)
 const activeTab = ref('week') // 'week' | 'course' | 'calendar'
 
 // ========== 月历视图逻辑 ==========
@@ -47,12 +48,14 @@ const calendarDays = computed(() => {
       courses: getCoursesByDate(dateStr)
     })
   }
-  // 下月填充到42格
+  // 下月填充到42格（用 Date 归一化，12月自动跨年，避免拼成 "2026-13-01"）
   let nextDay = 1
   while (days.length < 42) {
+    const nd = new Date(year, month + 1, nextDay)
+    const dateStr = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`
     days.push({
-      date: `${year}-${String(month + 2).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`,
-      day: nextDay,
+      date: dateStr,
+      day: nd.getDate(),
       inMonth: false,
       isToday: false,
       courses: []
@@ -69,38 +72,43 @@ const getCoursesByDate = (dateStr) => {
   return day ? day.courses : []
 }
 
+// 月份 key（月份补零，保证字符串字典序 = 时间序；m0 为 0-based 月份）
+const monthKey = (y, m0) => `${y}-${String(m0 + 1).padStart(2, '0')}`
+
 // 月历中有课的月份列表（用于限制切换范围）
 const availableMonths = computed(() => {
   if (!scheduleData.value) return []
   const months = new Set()
   scheduleData.value.schedule.forEach(d => {
     const dt = new Date(d.date)
-    months.add(`${dt.getFullYear()}-${dt.getMonth()}`)
+    months.add(monthKey(dt.getFullYear(), dt.getMonth()))
   })
   return Array.from(months).sort()
 })
 
 const canGoPrev = computed(() => {
   if (availableMonths.value.length === 0) return true
-  const current = `${calendarYear.value}-${calendarMonth.value}`
+  const current = monthKey(calendarYear.value, calendarMonth.value)
   return current > availableMonths.value[0]
 })
 
 const canGoNext = computed(() => {
   if (availableMonths.value.length === 0) return true
-  const current = `${calendarYear.value}-${calendarMonth.value}`
+  const current = monthKey(calendarYear.value, calendarMonth.value)
   return current < availableMonths.value[availableMonths.value.length - 1]
 })
 
 const prevMonth = () => {
   if (canGoPrev.value) {
     currentMonth.value = new Date(calendarYear.value, calendarMonth.value - 1, 1)
+    selectedDate.value = null
   }
 }
 
 const nextMonth = () => {
   if (canGoNext.value) {
     currentMonth.value = new Date(calendarYear.value, calendarMonth.value + 1, 1)
+    selectedDate.value = null
   }
 }
 
@@ -130,16 +138,21 @@ watch(activeTab, async () => {
   }, 50)
 })
 
-onMounted(async () => {
+const loadSchedule = async () => {
+  loading.value = true
+  loadError.value = false
   try {
     const res = await fetch('/data/schedule.json')
     scheduleData.value = await res.json()
   } catch (e) {
     console.error('加载课表失败', e)
+    loadError.value = true
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(loadSchedule)
 
 // 格式化日期
 const formatDate = (dateStr) => {
@@ -173,19 +186,23 @@ const courseColors = {
 
 const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
 
-// 学期高速公路节点点击：切换到按日期视图并尝试滚动到对应日期
+// 月历图例：直接从 courseColors 派生，课程名与颜色与课程块保持一致
+const legendItems = computed(() =>
+  Object.keys(courseColors).map(name => ({
+    name,
+    color: courseColors[name].text
+  }))
+)
+
+// 学期高速公路节点点击：切换到按日期视图并滚动到对应日期块
 const handleJumpDate = (dateStr) => {
-  console.log('[SemesterHighway] jump to date:', dateStr)
   activeTab.value = 'week'
-  // 尝试滚动到对应日期块（day-block 无 date 标识，先尽力定位）
   nextTick(() => {
     setTimeout(() => {
-      const blocks = document.querySelectorAll('.schedule-page .day-block')
-      blocks.forEach(el => {
-        if (el.textContent.includes(dateStr)) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }
-      })
+      const el = document.querySelector('.schedule-page .day-block[data-date="' + dateStr + '"]')
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
     }, 80)
   })
 }
@@ -204,6 +221,12 @@ const handleJumpDate = (dateStr) => {
     <div v-if="loading" class="loading">
       <div class="loading-spinner"></div>
       <p>加载课表中...</p>
+    </div>
+
+    <!-- 加载失败 -->
+    <div v-else-if="loadError" class="loading load-error">
+      <p>加载失败，请刷新重试</p>
+      <button class="retry-btn" @click="loadSchedule">重试</button>
     </div>
 
     <template v-else-if="scheduleData">
@@ -253,6 +276,7 @@ const handleJumpDate = (dateStr) => {
       <div v-if="activeTab === 'week'" class="week-view">        <div
           v-for="(day, dayIndex) in scheduleData.schedule"
           :key="day.date"
+          :data-date="day.date"
           class="day-block reveal"
           :class="`reveal-delay-${Math.min(dayIndex + 1, 6)}`"
         >
@@ -333,7 +357,7 @@ const handleJumpDate = (dateStr) => {
           <div class="session-list">
             <div
               v-for="session in course.sessions"
-              :key="session.date"
+              :key="session.date + '-' + session.time_start"
               class="session-item"
               :class="{ past: isPast(session.date, session.time_start) }"
             >
@@ -366,9 +390,9 @@ const handleJumpDate = (dateStr) => {
 
         <!-- 图例 -->
         <div class="calendar-legend">
-          <span class="legend-item"><span class="legend-dot" style="background: #4fd1c5"></span>管理经济学</span>
-          <span class="legend-item"><span class="legend-dot" style="background: #d4af37"></span>会计学</span>
-          <span class="legend-item"><span class="legend-dot" style="background: #8b9cf0"></span>数据模型与决策</span>
+          <span v-for="item in legendItems" :key="item.name" class="legend-item">
+            <span class="legend-dot" :style="{ background: item.color }"></span>{{ item.name }}
+          </span>
         </div>
 
         <!-- 月历网格 -->
@@ -496,6 +520,26 @@ const handleJumpDate = (dateStr) => {
   border-radius: 50%;
   margin: 0 auto var(--space-lg);
   animation: rotateSlow 1s linear infinite;
+}
+
+.load-error p {
+  margin-bottom: var(--space-lg);
+}
+
+.retry-btn {
+  padding: var(--space-sm) var(--space-xl);
+  background: var(--c-accent);
+  color: var(--c-text-inverse);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.retry-btn:hover {
+  opacity: 0.85;
 }
 
 /* 标签切换 */

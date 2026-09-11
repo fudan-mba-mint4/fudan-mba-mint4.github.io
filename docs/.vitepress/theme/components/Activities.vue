@@ -61,7 +61,7 @@ onMounted(async () => {
   try {
     const res = await fetch('/data/activities.json')
     const data = await res.json()
-    activities.value = data.activities
+    activities.value = data.activities || []
   } catch (e) {
     console.error('Failed to load activities:', e)
   }
@@ -81,28 +81,34 @@ const todayStart = computed(() => {
   return d
 })
 
+/* ========== 日期解析：YYYY-MM-DD 补本地零点，避免按 UTC 解析偏 8 小时 ========== */
+const parseDate = (dateStr) =>
+  typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+    ? new Date(dateStr + 'T00:00:00')
+    : new Date(dateStr)
+
 const isUpcoming = (act) =>
-  new Date(act.date) >= todayStart.value && act.status !== 'ended'
+  parseDate(act.date) >= todayStart.value && act.status !== 'ended'
 
 /* ========== 方案4.3：下一场活动 Hero 巨幕倒计时 ========== */
 const nextEvent = computed(() => {
   const upcoming = activities.value
     .filter(a => isUpcoming(a))
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .sort((a, b) => parseDate(a.date) - parseDate(b.date))
   return upcoming[0] || null
 })
 
 /* 30 天内才升级为 Hero，否则占位 */
 const heroEvent = computed(() => {
   if (!nextEvent.value) return null
-  const diff = new Date(nextEvent.value.date) - now.value
+  const diff = parseDate(nextEvent.value.date) - now.value
   if (diff > 30 * 24 * 60 * 60 * 1000) return null
   return nextEvent.value
 })
 
 const heroCountdown = computed(() => {
   if (!heroEvent.value) return { days: 0, hours: 0 }
-  const diff = new Date(heroEvent.value.date) - now.value
+  const diff = parseDate(heroEvent.value.date) - now.value
   if (diff <= 0) return { days: 0, hours: 0 }
   return {
     days: Math.floor(diff / 86400000),
@@ -110,25 +116,28 @@ const heroCountdown = computed(() => {
   }
 })
 
-/* Hero 报名进度环 */
+/* Hero 报名进度环（capacity 为 0/undefined 时兜底为 1，避免 NaN） */
 const RING_R = 26
 const RING_C = 2 * Math.PI * RING_R
 const ringOffset = computed(() => {
   if (!heroEvent.value) return RING_C
-  const p = Math.min(1, heroEvent.value.registered / heroEvent.value.capacity)
+  const cap = heroEvent.value.capacity || 1
+  const p = Math.min(1, heroEvent.value.registered / cap)
   return RING_C * (1 - p)
 })
 const heroFull = computed(
-  () => !!heroEvent.value && heroEvent.value.registered >= heroEvent.value.capacity
+  () => !!heroEvent.value && heroEvent.value.registered >= (heroEvent.value.capacity || 0)
 )
 
 /* ========== 方案4.1：垂直脊柱时间线（按日期倒序） ========== */
 const sortedEvents = computed(() =>
-  [...activities.value].sort((a, b) => new Date(b.date) - new Date(a.date))
+  [...activities.value].sort((a, b) => parseDate(b.date) - parseDate(a.date))
 )
 
-const registrationProgress = (act) =>
-  Math.min(100, Math.round((act.registered / act.capacity) * 100))
+const registrationProgress = (act) => {
+  const cap = act.capacity || 1
+  return Math.min(100, Math.round((act.registered / cap) * 100))
+}
 
 /* 是否为"今天"分割点：当前未来活动，且下一个已非未来活动 */
 const isTodayDivider = (idx) => {
@@ -213,7 +222,7 @@ const isTodayDivider = (idx) => {
               <!-- 日期块 -->
               <div class="tl-date-block">
                 <span class="tl-month">{{ formatDate(act.date, { month: 'short' }) }}</span>
-                <span class="tl-day">{{ new Date(act.date).getDate() }}</span>
+                <span class="tl-day">{{ parseDate(act.date).getDate() }}</span>
               </div>
 
               <div class="tl-main">

@@ -25,24 +25,27 @@ const i18n = {
     days: '天',
     hours: '小时',
     at: '在',
-    in: '还有'
+    in: '还有',
+    live: '进行中'
   },
   en: {
     nextUp: 'Next class',
     days: 'd',
     hours: 'h',
     at: 'at',
-    in: 'in'
+    in: 'in',
+    live: 'In progress'
   },
   th: {
     nextUp: 'คาบเรียนถัดไป',
     days: 'วัน',
     hours: 'ชม.',
     at: 'ที่',
-    in: 'อีก'
+    in: 'อีก',
+    live: 'กำลังเรียน'
   }
 }
-const { lang, t } = useLang(i18n)
+const { t } = useLang(i18n)
 
 // ============ 倒计时时钟 ============
 const now = ref(new Date())
@@ -92,33 +95,35 @@ const nextUp = computed(() => {
 const countdown = computed(() => {
   if (!nextUp.value) return null
   const diffMs = nextUp.value.startDateTime - now.value
-  if (diffMs <= 0) return { days: 0, hours: 0, totalHours: 0 }
+  // nextUp 保证 endDateTime > now，因此 diffMs <= 0 即课程正在进行中
+  if (diffMs <= 0) return { live: true, days: 0, hours: 0, totalHours: 0 }
   const totalMinutes = Math.floor(diffMs / 60000)
   const days = Math.floor(totalMinutes / (60 * 24))
   const hours = Math.floor((totalMinutes - days * 60 * 24) / 60)
   const totalHours = Math.floor(totalMinutes / 60)
-  return { days, hours, totalHours }
+  return { live: false, days, hours, totalHours }
 })
 
-// <24h 紧急态：薄荷呼吸光
+// <24h 紧急态：薄荷呼吸光（进行中不触发）
 const urgent = computed(() => {
   if (!nextUp.value || !countdown.value) return false
+  if (countdown.value.live) return false
   return countdown.value.totalHours < 24
 })
 
 // 紧凑显示：>=1天 显示 "X天 Y小时"，<1天 显示 "Y小时"
 const countdownMain = computed(() => {
-  if (!countdown.value) return ''
+  if (!countdown.value || countdown.value.live) return ''
   const { days, hours } = countdown.value
   if (days > 0) return days
   return hours
 })
 const countdownUnit = computed(() => {
-  if (!countdown.value) return ''
+  if (!countdown.value || countdown.value.live) return ''
   return countdown.value.days > 0 ? t.value.days : t.value.hours
 })
 const countdownSub = computed(() => {
-  if (!countdown.value) return ''
+  if (!countdown.value || countdown.value.live) return ''
   if (countdown.value.days > 0) return `${countdown.value.hours}${t.value.hours}`
   return ''
 })
@@ -138,9 +143,14 @@ const countdownSub = computed(() => {
     <div class="nu-mid">
       <span class="nu-label">{{ t.nextUp }}</span>
       <div class="nu-count">
-        <span class="nu-number">{{ countdownMain }}</span>
-        <span class="nu-unit">{{ countdownUnit }}</span>
-        <span v-if="countdownSub" class="nu-sub">{{ countdownSub }}</span>
+        <template v-if="countdown && countdown.live">
+          <span class="nu-number nu-live">{{ t.live }}</span>
+        </template>
+        <template v-else>
+          <span class="nu-number">{{ countdownMain }}</span>
+          <span class="nu-unit">{{ countdownUnit }}</span>
+          <span v-if="countdownSub" class="nu-sub">{{ countdownSub }}</span>
+        </template>
       </div>
       <span class="nu-date">
         {{ t.in }} · {{ formatDate(nextUp.date, { weekday: 'short' }) }}

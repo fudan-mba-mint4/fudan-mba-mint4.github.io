@@ -45,7 +45,7 @@ const i18n = {
     upcoming: 'จะถึง'
   }
 }
-const { lang, t } = useLang(i18n)
+const { t } = useLang(i18n)
 
 // ============ 时钟（分钟级刷新，与日期状态一致） ============
 const now = ref(new Date())
@@ -99,7 +99,9 @@ const lanes = computed(() => {
         .map(s => {
           const start = new Date(`${s.date}T${s.time_start}:00`)
           const end = new Date(`${s.date}T${s.time_end}:00`)
-          const pct = span > 0 ? ((start - range.semStart) / span) * 100 : 0
+          // clamp 到 [1.5, 98.5]，避免首尾节点 translate(-50%,-50%) 后半个圆点溢出轨道被裁剪
+          const rawPct = span > 0 ? ((start - range.semStart) / span) * 100 : 0
+          const pct = Math.min(98.5, Math.max(1.5, rawPct))
           let status = 'upcoming'
           if (end < now.value) status = 'past'
           else if (start.toDateString() === todayStr) status = 'today'
