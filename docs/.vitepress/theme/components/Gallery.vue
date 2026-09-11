@@ -131,7 +131,7 @@ const albumsByYear = computed(() => {
             class="album-card"
           >
             <div class="album-cover">
-              <img v-if="album.cover" :src="album.cover" :alt="album.title" class="album-cover-img" loading="lazy" />
+              <img v-if="album.cover" :src="album.cover" :alt="album.title[currentLang]" class="album-cover-img" loading="lazy" />
               <div v-else class="album-cover-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -149,8 +149,8 @@ const albumsByYear = computed(() => {
             </div>
             <div class="album-info">
               <div class="album-date">{{ t.dateFormat(album.date) }}</div>
-              <h3 class="album-title">{{ album.title }}</h3>
-              <p v-if="album.description" class="album-desc">{{ album.description }}</p>
+              <h3 class="album-title">{{ album.title[currentLang] }}</h3>
+              <p v-if="album.description" class="album-desc">{{ album.description[currentLang] }}</p>
             </div>
           </a>
         </div>

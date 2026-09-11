@@ -22,6 +22,7 @@ const i18n = {
     collapse: '收起',
     noAnnouncements: '暂无公告',
     postedOn: '发布于',
+    new: '新',
   },
   en: {
     all: 'All',
@@ -33,6 +34,7 @@ const i18n = {
     collapse: 'Collapse',
     noAnnouncements: 'No announcements',
     postedOn: 'Posted',
+    new: 'New',
   },
   th: {
     all: 'ทั้งหมด',
@@ -44,6 +46,7 @@ const i18n = {
     collapse: 'ย่อ',
     noAnnouncements: 'ไม่มีประกาศ',
     postedOn: 'เผยแพร่',
+    new: 'ใหม่',
   },
 }
 const t = computed(() => i18n[currentLang.value])

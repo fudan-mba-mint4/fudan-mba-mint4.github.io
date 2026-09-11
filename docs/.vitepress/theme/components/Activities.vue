@@ -25,6 +25,7 @@ const i18n = {
     daysLeft: '天后',
     today: '今天',
     tomorrow: '明天',
+    people: '人',
   },
   en: {
     upcoming: 'Upcoming',
@@ -39,6 +40,7 @@ const i18n = {
     daysLeft: 'days left',
     today: 'Today',
     tomorrow: 'Tomorrow',
+    people: 'people',
   },
   th: {
     upcoming: 'กิจกรรมที่กำลังจะมาถึง',
@@ -53,6 +55,7 @@ const i18n = {
     daysLeft: 'วัน',
     today: 'วันนี้',
     tomorrow: 'พรุ่งนี้',
+    people: 'คน',
   },
 }
 const t = computed(() => i18n[currentLang.value])
@@ -164,15 +167,12 @@ const registrationProgress = (act) => Math.min(100, Math.round((act.registered /
 
           <p class="activity-desc">{{ act.description[currentLang] }}</p>
 
-          <!-- 报名进度 -->
+          <!-- 报名进度（信息展示，无交互按钮） -->
           <div class="signup-section" v-if="act.status !== 'ended'">
             <div class="signup-progress">
               <div class="progress-bar"><div class="progress-fill" :style="{ width: registrationProgress(act) + '%' }"></div></div>
-              <span class="signup-count">{{ act.registered }}/{{ act.capacity }}</span>
+              <span class="signup-count">{{ act.registered }}/{{ act.capacity }} {{ t.people }}</span>
             </div>
-            <button class="signup-btn" :disabled="act.status !== 'open'">
-              {{ act.status === 'open' ? t.register : t.registered }}
-            </button>
           </div>
         </div>
       </article>

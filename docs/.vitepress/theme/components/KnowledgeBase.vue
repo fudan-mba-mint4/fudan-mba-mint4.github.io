@@ -95,6 +95,13 @@ const courses = ref([
     color: '#5856D6',
     icon: '🏢',
   },
+  {
+    id: 'general',
+    name: { zh: '通用资料', en: 'General Resources', th: 'เอกสารทั่วไป' },
+    teacher: { zh: '学院', en: 'School', th: 'โรงเรียน' },
+    color: '#8E8E93',
+    icon: '📋',
+  },
 ])
 
 const documents = ref([
@@ -103,6 +110,10 @@ const documents = ref([
   { id: 3, courseId: 'dmd', type: 'resource', title: { zh: '黄达老师推荐数学读物（3本）', en: 'Recommended Math Readings (3 books)', th: 'หนังสือคณิตศาสตร์ที่แนะนำ (3 เล่ม)' }, author: '黄达', date: '2026-09-10', size: '—' },
   { id: 4, courseId: 'mgmt-econ', type: 'note', title: { zh: '第1讲：供需理论与市场均衡', en: 'Lecture 1: Supply-Demand & Market Equilibrium', th: 'บทที่ 1: อุปสงค์-อุปทานและความสมดุลตลาด' }, author: '智库研究员', date: '2026-09-13', size: '1.8 MB' },
   { id: 5, courseId: 'accounting', type: 'note', title: { zh: '第1讲：财务会计基础', en: 'Lecture 1: Financial Accounting Basics', th: 'บทที่ 1: พื้นฐานการบัญชีการเงิน' }, author: '智库研究员', date: '2026-09-13', size: '2.1 MB' },
+  { id: 6, courseId: 'general', type: 'resource', title: { zh: '复旦大学MBA学生手册', en: 'Fudan MBA Student Handbook', th: 'คู่มือนักศึกษา MBA ม.ฝูด่าน' }, author: '学院', date: '2026-09-01', size: '5.2 MB' },
+  { id: 7, courseId: 'general', type: 'resource', title: { zh: '课程考勤与请假制度', en: 'Course Attendance & Leave Policy', th: 'ระเบียบการเข้าเรียนและการลา' }, author: '学院', date: '2026-09-01', size: '1.1 MB' },
+  { id: 8, courseId: 'general', type: 'resource', title: { zh: '管理学院图书馆使用指南', en: 'School of Management Library Guide', th: 'คู่มือการใช้ห้องสมุดโรงเรียนบริหาร' }, author: '学院', date: '2026-09-01', size: '0.9 MB' },
+  { id: 9, courseId: 'general', type: 'resource', title: { zh: '政立院区设施使用说明', en: 'Zhengli Campus Facilities Guide', th: 'คู่มือสิ่งอำนวยความสะดวก วิทยาเขตเจิ้งหลี่' }, author: '学院', date: '2026-09-01', size: '1.5 MB' },
 ])
 
 /* ========== 搜索与筛选 ========== */

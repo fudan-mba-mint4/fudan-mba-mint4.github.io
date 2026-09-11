@@ -51,7 +51,7 @@ const animateNumbers = () => {
       <!-- 班级标识 -->
       <div class="hero-badge reveal">
         <span class="badge-dot"></span>
-        <span>复旦大学 MBA 2024级 · 薄荷4班</span>
+        <span>复旦大学 MBA 2026级 · 薄荷4班</span>
       </div>
 
       <!-- 主标题 -->

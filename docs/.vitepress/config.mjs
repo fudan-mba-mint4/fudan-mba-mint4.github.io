@@ -42,6 +42,13 @@ const zhNav = [
       { text: '课程资料', link: '/slides/' },
     ],
   },
+  {
+    text: '工具箱',
+    items: [
+      { text: '入学测试知识库', link: '/quiz/' },
+      { text: '实用小工具', link: '/tools/' },
+    ],
+  },
 ]
 
 const zhSidebar = {}
@@ -98,6 +105,13 @@ const enNav = [
       { text: 'Course Materials', link: '/en/slides/' },
     ],
   },
+  {
+    text: 'Tools',
+    items: [
+      { text: 'Entry Quiz KB', link: '/quiz/' },
+      { text: 'Utilities', link: '/en/tools/' },
+    ],
+  },
 ]
 
 const enSidebar = {}
@@ -152,6 +166,13 @@ const thNav = [
       { text: 'ตารางเรียน', link: '/th/schedule' },
       { text: 'คลังความรู้', link: '/th/knowledge/' },
       { text: 'เอกสารรายวิชา', link: '/th/slides/' },
+    ],
+  },
+  {
+    text: 'เครื่องมือ',
+    items: [
+      { text: 'คลังข้อสอบเข้า', link: '/quiz/' },
+      { text: 'เครื่องมือทั่วไป', link: '/th/tools/' },
     ],
   },
 ]

@@ -175,6 +175,8 @@ const formatDate = (dateStr) => {
             </div>
           </div>
 
+          <!-- 课件 + 参考资料 并排 -->
+          <div class="materials-row" v-if="(session.files && session.files.length > 0) || (session.references && session.references.length > 0)">
           <!-- 课件 -->
           <div v-if="session.files && session.files.length > 0" class="files-section">
             <h4 class="files-label">{{ t.slides }}</h4>
@@ -252,6 +254,7 @@ const formatDate = (dateStr) => {
               </template>
             </div>
           </div>
+          </div><!-- /materials-row -->
 
           <!-- 作业 -->
           <div v-if="session.homework" class="homework-section">
@@ -521,12 +524,19 @@ const formatDate = (dateStr) => {
   letter-spacing: 0.5px;
 }
 
-.files-section {
+.materials-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
+.files-section {
+  margin-bottom: 0;
+}
+
 .refs-section {
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .files-grid {
@@ -660,6 +670,10 @@ const formatDate = (dateStr) => {
 }
 
 @media (max-width: 640px) {
+  .materials-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
   .homework-card {
     padding: 14px 16px;
     gap: 12px;

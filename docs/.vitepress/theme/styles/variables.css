@@ -27,6 +27,7 @@
 
   /* 10% 强调交互色（薄荷绿主题色） */
   --c-accent: #2d7a6c;             /* 主强调色 深薄荷绿 */
+  --c-accent-dark: #1f5a4f;        /* 深强调色（渐变终点） */
   --c-accent-hover: #25665a;       /* 悬停态 */
   --c-accent-active: #1f554b;      /* 点击态 */
   --c-accent-light: #e8f4f1;       /* 浅强调背景 */
@@ -219,6 +220,7 @@ html.dark {
 
   /* 10% 强调交互色（亮薄荷绿，深底上更亮） */
   --c-accent: #5ec4ac;              /* 主强调色 */
+  --c-accent-dark: #3d9a85;         /* 深强调色（渐变终点） */
   --c-accent-hover: #7ad1bc;        /* 悬停态 */
   --c-accent-active: #4ab89e;       /* 点击态 */
   --c-accent-light: rgba(94, 196, 172, 0.15);

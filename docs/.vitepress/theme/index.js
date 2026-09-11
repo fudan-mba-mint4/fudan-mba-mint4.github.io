@@ -24,6 +24,8 @@ import ClassVision from './components/ClassVision.vue'
 import OrgStructure from './components/OrgStructure.vue'
 import ClassCommittee from './components/ClassCommittee.vue'
 import Gallery from './components/Gallery.vue'
+import ToolsHub from './components/ToolsHub.vue'
+import QuizHub from './components/QuizHub.vue'
 import './styles/index.css'
 
 export default {
@@ -50,5 +52,7 @@ export default {
     app.component('OrgStructure', OrgStructure)
     app.component('ClassCommittee', ClassCommittee)
     app.component('Gallery', Gallery)
+    app.component('ToolsHub', ToolsHub)
+    app.component('QuizHub', QuizHub)
   }
 }

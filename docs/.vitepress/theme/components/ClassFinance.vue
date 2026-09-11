@@ -22,6 +22,22 @@ const i18n = {
     details: '收支明细',
     noRecords: '暂无收支记录',
     month: '月',
+    activityFinance: '活动财务',
+    activityFinanceDesc: '点击查看活动消费明细',
+    attendees: '人参加',
+    total: '总计',
+    perPerson: '人均',
+    venue: '地点',
+    breakdown: '消费明细',
+    payers: '支付人',
+    sponsors: '特别鸣谢赞助',
+    attendanceNote: '签到说明',
+    perPersonNote: '分摊说明',
+    category: '类别',
+    description: '项目',
+    amount: '金额',
+    payer: '支付人',
+    note: '备注',
     categories: {
       tuition: '班费缴纳',
       activity: '活动支出',
@@ -39,6 +55,22 @@ const i18n = {
     details: 'Transaction History',
     noRecords: 'No transactions yet',
     month: '',
+    activityFinance: 'Activity Finance',
+    activityFinanceDesc: 'Click to view expense breakdown',
+    attendees: 'attendees',
+    total: 'Total',
+    perPerson: 'Per Person',
+    venue: 'Venue',
+    breakdown: 'Expense Breakdown',
+    payers: 'Paid By',
+    sponsors: 'Special Thanks to Sponsors',
+    attendanceNote: 'Attendance',
+    perPersonNote: 'Split Note',
+    category: 'Category',
+    description: 'Item',
+    amount: 'Amount',
+    payer: 'Payer',
+    note: 'Note',
     categories: {
       tuition: 'Class Dues',
       activity: 'Activities',
@@ -56,6 +88,22 @@ const i18n = {
     details: 'รายการธุรกรรม',
     noRecords: 'ยังไม่มีรายการ',
     month: '',
+    activityFinance: 'การเงินกิจกรรม',
+    activityFinanceDesc: 'คลิกเพื่อดูรายละเอียดค่าใช้จ่าย',
+    attendees: 'คนเข้าร่วม',
+    total: 'รวมทั้งหมด',
+    perPerson: 'ต่อคน',
+    venue: 'สถานที่',
+    breakdown: 'รายละเอียดค่าใช้จ่าย',
+    payers: 'ผู้จ่าย',
+    sponsors: 'ขอขอบคุณผู้สนับสนุน',
+    attendanceNote: 'การเข้าร่วม',
+    perPersonNote: 'หมายเหตุการแบ่ง',
+    category: 'หมวดหมู่',
+    description: 'รายการ',
+    amount: 'จำนวนเงิน',
+    payer: 'ผู้จ่าย',
+    note: 'หมายเหตุ',
     categories: {
       tuition: 'ค่าชั้นเรียน',
       activity: 'กิจกรรม',
@@ -68,15 +116,46 @@ const t = computed(() => i18n[currentLang.value])
 
 /* ========== 班费数据（从JSON读取） ========== */
 const transactions = ref([])
+const activityFinances = ref([])
+const activitiesMap = ref({})
+const expandedActivity = ref(null)
+
 onMounted(async () => {
   try {
-    const res = await fetch('/data/finance.json')
-    const data = await res.json()
-    transactions.value = data.transactions
+    const [financeRes, activityRes] = await Promise.all([
+      fetch('/data/finance.json'),
+      fetch('/data/activities.json')
+    ])
+    const financeData = await financeRes.json()
+    const activityData = await activityRes.json()
+    transactions.value = financeData.transactions
+    activityFinances.value = financeData.activityFinances || []
+    activityData.activities.forEach(a => {
+      activitiesMap.value[a.id] = a
+    })
   } catch (e) {
     console.error('Failed to load finance data:', e)
   }
 })
+
+const toggleActivity = (id) => {
+  expandedActivity.value = expandedActivity.value === id ? null : id
+}
+
+const activityTitle = (af) => {
+  const act = activitiesMap.value[af.activityId]
+  return act ? act.title[currentLang.value] : af.activityId
+}
+
+const sortedActivityFinances = computed(() => {
+  return [...activityFinances.value].sort((a, b) => new Date(b.date) - new Date(a.date))
+})
+
+const activityDate = (af) => {
+  const d = new Date(af.date)
+  if (currentLang.value === 'zh') return `${d.getMonth() + 1}月${d.getDate()}日`
+  return d.toLocaleDateString(currentLang.value === 'en' ? 'en-US' : 'th-TH', { month: 'short', day: 'numeric' })
+}
 
 /* ========== 统计计算 ========== */
 const totalIncome = computed(() => transactions.value.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0))
@@ -120,6 +199,110 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
         <div class="stat-col">
           <span class="stat-label">{{ t.expense }}</span>
           <span class="stat-value stat-expense">-¥ {{ formatAmount(totalExpense) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 活动财务区块 -->
+    <div class="activity-finance-section" v-if="activityFinances.length > 0">
+      <div class="section-header">
+        <h3 class="section-title">{{ t.activityFinance }}</h3>
+        <span class="section-desc">{{ t.activityFinanceDesc }}</span>
+      </div>
+      <div class="activity-finance-list">
+        <div
+          v-for="af in sortedActivityFinances"
+          :key="af.activityId"
+          class="activity-finance-card"
+          :class="{ expanded: expandedActivity === af.activityId }"
+        >
+          <!-- 摘要行 -->
+          <div class="af-summary" @click="toggleActivity(af.activityId)">
+            <div class="af-main-info">
+              <span class="af-date">{{ activityDate(af) }}</span>
+              <span class="af-title">{{ activityTitle(af) }}</span>
+              <span class="af-venue" v-if="af.venue">{{ af.venue[currentLang] }}</span>
+            </div>
+            <div class="af-stats">
+              <div class="af-stat">
+                <span class="af-stat-label">{{ t.attendees }}</span>
+                <span class="af-stat-value">{{ af.attendees }}</span>
+              </div>
+              <div class="af-stat">
+                <span class="af-stat-label">{{ t.total }}</span>
+                <span class="af-stat-value">¥{{ formatAmount(af.totalAmount) }}</span>
+              </div>
+              <div class="af-stat af-per-person">
+                <span class="af-stat-label">{{ t.perPerson }}</span>
+                <span class="af-stat-value">¥{{ af.perPerson }}</span>
+              </div>
+              <svg class="af-chevron" :class="{ rotated: expandedActivity === af.activityId }" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 详情展开 -->
+          <div class="af-detail" v-if="expandedActivity === af.activityId">
+            <!-- 分摊说明 -->
+            <div class="af-note-row" v-if="af.perPersonNote">
+              <span class="af-note-label">{{ t.perPersonNote }}</span>
+              <span class="af-note-text">{{ af.perPersonNote[currentLang] }}</span>
+            </div>
+
+            <!-- 消费明细表格 -->
+            <div class="af-breakdown">
+              <h4 class="af-detail-title">{{ t.breakdown }}</h4>
+              <table class="af-table">
+                <thead>
+                  <tr>
+                    <th>{{ t.category }}</th>
+                    <th>{{ t.description }}</th>
+                    <th class="num">{{ t.amount }}</th>
+                    <th>{{ t.payer }}</th>
+                    <th>{{ t.note }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, idx) in af.items" :key="idx">
+                    <td><span class="af-category-tag">{{ item.category }}</span></td>
+                    <td>{{ item.description }}</td>
+                    <td class="num">¥{{ formatAmount(item.amount) }}</td>
+                    <td>{{ item.payer || '—' }}</td>
+                    <td class="af-item-note">{{ item.note || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 支付人汇总 -->
+            <div class="af-payers" v-if="af.payers && af.payers.length > 0">
+              <h4 class="af-detail-title">{{ t.payers }}</h4>
+              <div class="af-payers-list">
+                <span v-for="p in af.payers" :key="p.name" class="af-payer-tag">
+                  {{ p.name }} · ¥{{ formatAmount(p.amount) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 赞助 -->
+            <div class="af-sponsors" v-if="af.sponsors && af.sponsors.length > 0">
+              <h4 class="af-detail-title">{{ t.sponsors }}</h4>
+              <div class="af-sponsors-list">
+                <div v-for="(s, idx) in af.sponsors" :key="idx" class="af-sponsor-item">
+                  <span class="af-sponsor-item">{{ s.item }}</span>
+                  <span class="af-sponsor-qty" v-if="s.quantity && s.quantity !== '/'">{{ s.quantity }}</span>
+                  <span class="af-sponsor-name">{{ s.sponsor }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 签到说明 -->
+            <div class="af-attendance" v-if="af.attendanceNote">
+              <h4 class="af-detail-title">{{ t.attendanceNote }}</h4>
+              <p class="af-attendance-text">{{ af.attendanceNote[currentLang] }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -188,10 +371,10 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
 
 /* 余额卡片 */
 .balance-card {
-  background: linear-gradient(135deg, var(--c-accent) 0%, var(--c-accent-dark) 100%);
-  border-radius: 20px;
-  padding: 28px 32px;
-  color: #fff;
+  background: linear-gradient(135deg, #7ad1bc 0%, #5ec4ac 100%);
+  border-radius: 24px;
+  padding: 32px 36px;
+  color: #1f5a4f;
   margin-bottom: 24px;
   position: relative;
   overflow: hidden;
@@ -199,26 +382,40 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  box-shadow: 0 8px 32px rgba(94, 196, 172, 0.3), 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid rgba(31, 90, 79, 0.15);
 }
 .balance-card::before {
   content: '';
   position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 160px;
-  height: 160px;
-  background: rgba(255,255,255,0.08);
+  top: -50px;
+  right: -30px;
+  width: 200px;
+  height: 200px;
+  background: rgba(31, 90, 79, 0.08);
   border-radius: 50%;
 }
 .balance-card::after {
   content: '';
   position: absolute;
-  bottom: -60px;
-  left: -20px;
-  width: 120px;
-  height: 120px;
-  background: rgba(255,255,255,0.05);
+  bottom: -70px;
+  left: -30px;
+  width: 160px;
+  height: 160px;
+  background: rgba(31, 90, 79, 0.05);
   border-radius: 50%;
+}
+.dark .balance-card {
+  background: linear-gradient(135deg, #2d7a6c 0%, #1f5a4f 100%);
+  color: #fff;
+  box-shadow: 0 8px 32px rgba(45, 122, 108, 0.35), 0 2px 8px rgba(0,0,0,0.15);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.dark .balance-card::before {
+  background: rgba(255,255,255,0.12);
+}
+.dark .balance-card::after {
+  background: rgba(255,255,255,0.08);
 }
 .balance-main {
   position: relative;
@@ -232,9 +429,12 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   margin-bottom: 8px;
 }
 .balance-amount {
-  font-size: 36px;
+  font-size: 44px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
+}
+.dark .balance-amount {
+  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .balance-stats {
   display: flex;
@@ -256,12 +456,230 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   font-size: 18px;
   font-weight: 600;
 }
-.stat-income { color: #a7f3d0; }
-.stat-expense { color: #fecaca; }
+.stat-income { color: #c92a2a; }
+.stat-expense { color: #2f9e44; }
+.dark .stat-income { color: #ff8a8a; }
+.dark .stat-expense { color: #8ce99a; }
 .stat-divider {
   width: 1px;
   height: 32px;
+  background: rgba(31, 90, 79, 0.2);
+}
+.dark .stat-divider {
   background: rgba(255,255,255,0.2);
+}
+
+/* 活动财务区块 */
+.activity-finance-section {
+  margin-bottom: 28px;
+}
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin: 0;
+}
+.section-desc {
+  font-size: 13px;
+  color: var(--c-text-tertiary);
+}
+.activity-finance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.activity-finance-card {
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+.activity-finance-card.expanded {
+  border-color: var(--c-accent-light);
+}
+.af-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  gap: 16px;
+}
+.af-summary:hover {
+  background: var(--c-bg-elevated);
+}
+.af-main-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.af-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-accent);
+  flex-shrink: 0;
+}
+.af-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  flex-shrink: 0;
+}
+.af-venue {
+  font-size: 13px;
+  color: var(--c-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.af-stats {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+}
+.af-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.af-stat-label {
+  font-size: 11px;
+  color: var(--c-text-tertiary);
+}
+.af-stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+.af-per-person .af-stat-value {
+  color: var(--c-accent);
+}
+.af-chevron {
+  color: var(--c-text-tertiary);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.af-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* 活动财务详情 */
+.af-detail {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--c-border);
+}
+.af-note-row {
+  display: flex;
+  gap: 10px;
+  padding: 14px 0;
+  font-size: 13px;
+}
+.af-note-label {
+  font-weight: 600;
+  color: var(--c-text-secondary);
+  flex-shrink: 0;
+}
+.af-note-text {
+  color: var(--c-text-secondary);
+}
+.af-detail-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin: 16px 0 10px;
+}
+.af-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.af-table th {
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--c-bg-elevated);
+  color: var(--c-text-secondary);
+  font-weight: 500;
+  font-size: 12px;
+}
+.af-table th.num, .af-table td.num {
+  text-align: right;
+}
+.af-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-text-primary);
+}
+.af-category-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--c-accent-light);
+  color: var(--c-accent);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.af-item-note {
+  color: var(--c-text-tertiary);
+  font-size: 12px;
+}
+.af-payers-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.af-payer-tag {
+  padding: 6px 12px;
+  background: var(--c-bg-elevated);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--c-text-secondary);
+}
+.af-sponsors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.af-sponsor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 8px 12px;
+  background: var(--c-bg-elevated);
+  border-radius: 8px;
+}
+.af-sponsor-item .af-sponsor-item {
+  flex: 1;
+  color: var(--c-text-primary);
+  padding: 0;
+  background: none;
+}
+.af-sponsor-qty {
+  color: var(--c-text-tertiary);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.af-sponsor-name {
+  font-weight: 600;
+  color: var(--c-accent);
+  flex-shrink: 0;
+}
+.af-attendance-text {
+  font-size: 13px;
+  color: var(--c-text-secondary);
+  margin: 0;
+  line-height: 1.6;
 }
 
 /* 筛选栏 */
@@ -332,12 +750,12 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   flex-shrink: 0;
 }
 .tx-icon.income {
-  background: rgba(52, 199, 89, 0.12);
-  color: #34C759;
-}
-.tx-icon.expense {
   background: rgba(255, 59, 48, 0.10);
   color: #FF3B30;
+}
+.tx-icon.expense {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34C759;
 }
 .tx-info {
   flex: 1;
@@ -374,8 +792,8 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   font-weight: 600;
   flex-shrink: 0;
 }
-.tx-amount.income { color: #34C759; }
-.tx-amount.expense { color: #FF3B30; }
+.tx-amount.income { color: #FF3B30; }
+.tx-amount.expense { color: #34C759; }
 
 /* 空状态 */
 .empty-state {
@@ -416,6 +834,39 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   }
   .tx-desc {
     font-size: 14px;
+  }
+  /* 活动财务移动端 */
+  .af-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .af-main-info {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .af-venue {
+    width: 100%;
+  }
+  .af-stats {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .af-stat {
+    align-items: flex-start;
+  }
+  .af-detail {
+    padding: 0 16px 16px;
+  }
+  .af-table {
+    font-size: 12px;
+    display: block;
+    overflow-x: auto;
+  }
+  .af-table th, .af-table td {
+    padding: 8px 6px;
   }
 }
 </style>

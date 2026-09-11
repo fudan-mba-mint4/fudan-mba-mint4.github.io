@@ -27,7 +27,7 @@ const i18n = {
     backToTop: '回到顶部',
     // 班级身份卡
     className: '薄荷 4 班',
-    classFull: '复旦大学 MBA 2024 级',
+    classFull: '复旦大学 MBA 2026 级',
     slogan: '4 the Best, for the Future.',
     // 课表
     scheduleTitle: '近期课程',
@@ -104,7 +104,7 @@ const i18n = {
     viewAll: 'View All',
     backToTop: 'Back to Top',
     className: 'Mint 4',
-    classFull: 'Fudan University MBA Class of 2024',
+    classFull: 'Fudan University MBA Class of 2026',
     slogan: '4 the Best, for the Future.',
     scheduleTitle: 'Upcoming Classes',
     scheduleSubtitle: 'Synced with academic calendar',
@@ -170,7 +170,7 @@ const i18n = {
     viewAll: 'ดูทั้งหมด',
     backToTop: 'กลับไปด้านบน',
     className: 'มินต์ 4',
-    classFull: 'มหาวิทยาลัยฟูตาน MBA รุ่น 2024',
+    classFull: 'มหาวิทยาลัยฟูตาน MBA รุ่น 2026',
     slogan: '4 the Best, for the Future.',
     scheduleTitle: 'คาบเรียนที่กำลังจะมา',
     scheduleSubtitle: 'ซิงค์กับปฏิทินการศึกษา',
@@ -243,6 +243,53 @@ const scheduleError = ref(false)
 /* ========== 作业数据 ========== */
 const homeworkData = ref([])
 
+/* ========== 活动相册数据（首页展示封面图） ========== */
+const galleryActivities = ref([])
+
+/* ========== 班费数据（从finance.json读取） ========== */
+const financeData = ref({ balance: 0, income: 0, expense: 0 })
+
+async function fetchFinance() {
+  try {
+    const res = await fetch('/data/finance.json')
+    const data = await res.json()
+    const txs = data.transactions || []
+    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+    financeData.value = { balance: income - expense, income, expense }
+  } catch (e) {
+    console.error('加载班费数据失败', e)
+  }
+}
+
+/* ========== 公告数据（从announcements.json读取） ========== */
+const announcementsData = ref([])
+
+async function fetchAnnouncements() {
+  try {
+    const res = await fetch('/data/announcements.json')
+    const data = await res.json()
+    announcementsData.value = (data.announcements || [])
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 3)
+  } catch (e) {
+    console.error('加载公告数据失败', e)
+  }
+}
+
+async function fetchActivities() {
+  try {
+    const res = await fetch('/data/activities.json')
+    const data = await res.json()
+    galleryActivities.value = (data.activities || [])
+      .filter(a => a.tags && a.tags.hasMedia && a.tags.cover)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 4)
+  } catch (e) {
+    console.error('加载活动相册失败', e)
+  }
+}
+
 async function fetchHomework() {
   try {
     const res = await fetch(`${langPrefix.value}/data/homework.json`)
@@ -313,6 +360,9 @@ const retrySchedule = () => {
 onMounted(() => {
   fetchSchedule()
   fetchHomework()
+  fetchActivities()
+  fetchFinance()
+  fetchAnnouncements()
 })
 
 // 获取接下来的2节课
@@ -454,16 +504,16 @@ const statLinks = computed(() => ({
 const quickLinks = computed(() => [
   { key: 'schedule', label: t.value.links.schedule, href: `${langPrefix.value}/schedule`, icon: 'calendar' },
   { key: 'announcements', label: t.value.links.announcements, href: `${langPrefix.value}/announcements/`, icon: 'megaphone' },
-  { key: 'knowledge', label: t.value.links.knowledge, href: `${langPrefix.value}/knowledge/`, icon: 'book' },
+  { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
   { key: 'activities', label: t.value.links.activities, href: `${langPrefix.value}/activities/`, icon: 'party-popper' },
   { key: 'gallery', label: t.value.links.gallery, href: `${langPrefix.value}/gallery/`, icon: 'image' },
-  { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
+  { key: 'knowledge', label: t.value.links.knowledge, href: `${langPrefix.value}/knowledge/`, icon: 'book' },
 ])
 
-/* ========== 传承人列表（真实，前6位） ========== */
+/* ========== 传承人列表（全部13人） ========== */
 const mentorList = computed(() => {
   const leader = activeMembers.value.find(m => m.role === 'mentorLeader')
-  const mentors = activeMembers.value.filter(m => m.role === 'mentor').slice(0, 5)
+  const mentors = activeMembers.value.filter(m => m.role === 'mentor')
   return leader ? [leader, ...mentors] : mentors
 })
 
@@ -651,12 +701,6 @@ onUnmounted(() => {
   window.removeEventListener('scroll', onWindowScroll)
 })
 
-/* ========== 班费数据（Demo） ========== */
-const financeData = {
-  balance: 12580,
-  income: 8400,
-  expense: 3820,
-}
 </script>
 
 <template>
@@ -849,12 +893,11 @@ const financeData = {
         </div>
       </div>
 
-      <!-- 4. 班费公开（1x1，Demo） -->
+      <!-- 4. 班费公开（1x1，真实数据） -->
       <div class="card card--finance" v-tilt role="region" :aria-label="t.financeTitle">
         <div class="card-header">
           <h3 class="card-title card-title--compact">{{ t.financeTitle }}</h3>
           <div class="card-header-right">
-            <span class="demo-badge">{{ t.demoLabel }}</span>
             <a :href="`${langPrefix}/finance/`" class="card-link" :aria-label="`${t.viewAll} ${t.financeTitle}`">
               {{ t.viewAll }}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -880,12 +923,11 @@ const financeData = {
         </div>
       </div>
 
-      <!-- 6. 最新公告（2x1，Demo） -->
+      <!-- 6. 最新公告（2x1，真实数据） -->
       <div class="card card--announcements card--span-2-col" v-tilt role="region" :aria-label="t.announcementsTitle">
         <div class="card-header">
           <h3 class="card-title">{{ t.announcementsTitle }}</h3>
           <div class="card-header-right">
-            <span class="demo-badge">{{ t.demoLabel }}</span>
             <a :href="`${langPrefix}/announcements/`" class="card-link" :aria-label="`${t.viewAll} ${t.announcementsTitle}`">
               {{ t.viewAll }}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -894,20 +936,21 @@ const financeData = {
         </div>
         <div class="announcement-list">
           <a
-            v-for="(item, i) in t.demoAnnouncements"
-            :key="i"
+            v-for="item in announcementsData"
+            :key="item.id"
             :href="`${langPrefix}/announcements/`"
             class="announcement-item"
-            :aria-label="`${item.tag}: ${item.title}, ${item.date}`"
+            :aria-label="`${item.category}: ${item.title[currentLang]}, ${item.date}`"
           >
-            <span class="announcement-indicator" aria-hidden="true"></span>
-            <span class="announcement-tag">{{ item.tag }}</span>
-            <span class="announcement-title">{{ item.title }}</span>
+            <span class="announcement-indicator" :class="{ 'announcement-indicator--pinned': item.pinned }" aria-hidden="true"></span>
+            <span class="announcement-tag">{{ item.category }}</span>
+            <span class="announcement-title">{{ item.title[currentLang] }}</span>
             <span class="announcement-date">{{ item.date }}</span>
             <svg class="announcement-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </a>
+          <div v-if="announcementsData.length === 0" class="announcement-empty">{{ t.noAnnouncements || '暂无公告' }}</div>
         </div>
       </div>
 
@@ -1004,17 +1047,25 @@ const financeData = {
         </div>
       </div>
 
-      <!-- 8. 活动相册（2x1，Demo） -->
+      <!-- 8. 活动相册（2x1，真实封面图） -->
       <div class="card card--gallery card--span-2-col" v-tilt role="region" :aria-label="t.galleryTitle">
         <div class="card-header">
           <h3 class="card-title">{{ t.galleryTitle }}</h3>
-          <span class="demo-badge">{{ t.demoLabel }}</span>
+          <a :href="`${langPrefix}/gallery/`" class="card-link">{{ t.viewAll }}</a>
         </div>
         <div class="gallery-grid">
-          <div class="gallery-item gallery-item--1" aria-hidden="true"></div>
-          <div class="gallery-item gallery-item--2" aria-hidden="true"></div>
-          <div class="gallery-item gallery-item--3" aria-hidden="true"></div>
-          <div class="gallery-item gallery-item--4" aria-hidden="true"></div>
+          <a
+            v-for="(act, idx) in galleryActivities"
+            :key="act.id"
+            :href="`${langPrefix}/gallery/`"
+            class="gallery-item"
+            :class="`gallery-item--${idx + 1}`"
+          >
+            <img :src="act.tags.cover" :alt="act.title[currentLang]" class="gallery-item-img" loading="lazy" />
+            <div class="gallery-item-overlay">
+              <span class="gallery-item-title">{{ act.title[currentLang] }}</span>
+            </div>
+          </a>
           <a :href="`${langPrefix}/gallery/`" class="gallery-item gallery-item--more" :aria-label="`${t.viewAll} ${t.galleryTitle}`">
             <span>{{ t.viewAll }}</span>
           </a>
@@ -2290,14 +2341,14 @@ const financeData = {
 .mentors-avatars {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   flex: 1;
   align-content: flex-start;
 }
 
 .mentor-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--c-accent-light);
   border: 1.5px solid var(--c-bg-card);
@@ -2356,6 +2407,8 @@ const financeData = {
   aspect-ratio: 1;
   transition: transform var(--transition-base),
               box-shadow var(--transition-base);
+  text-decoration: none;
+  display: block;
 }
 
 .gallery-item:hover {
@@ -2363,10 +2416,35 @@ const financeData = {
   box-shadow: var(--shadow-subtle);
 }
 
-.gallery-item--1 { background: linear-gradient(135deg, var(--c-accent-light), var(--c-bg-secondary)); }
-.gallery-item--2 { background: linear-gradient(135deg, var(--c-bg-tertiary), var(--c-bg-secondary)); }
-.gallery-item--3 { background: linear-gradient(135deg, var(--c-bg-secondary), var(--c-accent-light)); }
-.gallery-item--4 { background: linear-gradient(135deg, var(--c-bg-secondary), var(--c-bg-tertiary)); }
+.gallery-item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-item-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 8px 8px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  display: flex;
+  align-items: flex-end;
+}
+
+.gallery-item-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
 
 .gallery-item--more {
   display: flex;

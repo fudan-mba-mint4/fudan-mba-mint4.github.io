@@ -20,7 +20,7 @@ onMounted(() => {
   <div class="page-header-section">
     <div class="page-header-inner">
       <!-- 图标 -->
-      <div v-if="icon" class="page-header-icon">{{ icon }}</div>
+      <div v-if="icon" class="page-header-icon" v-html="icon"></div>
       
       <!-- 标题 -->
       <h1 class="page-header-title">{{ title }}</h1>
