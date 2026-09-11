@@ -57,6 +57,12 @@
   --c-purple: #af52de;
   --c-yellow: #ffcc00;
 
+  /* 提醒色 token（明暗两套，用于截止倒计时等） */
+  --c-amber: #ff9500;
+  --c-amber-light: rgba(255, 149, 0, 0.1);
+  --c-coral: #ff6b6b;
+  --c-coral-light: rgba(255, 107, 107, 0.1);
+
   /* 边框与分割线 */
   --c-border: #e5e5ea;             /* 主边框 苹果分割线灰 */
   --c-border-light: #f0f0f3;       /* 浅边框 */
@@ -237,6 +243,12 @@ html.dark {
   --c-red: #ff453a;
   --c-purple: #bf5af2;
   --c-yellow: #ffd60a;
+
+  /* 提醒色 token（深色模式） */
+  --c-amber: #ff9f0a;
+  --c-amber-light: rgba(255, 159, 10, 0.15);
+  --c-coral: #ff6961;
+  --c-coral-light: rgba(255, 105, 97, 0.15);
 
   /* 边框与分割线 */
   --c-border: #38383a;
