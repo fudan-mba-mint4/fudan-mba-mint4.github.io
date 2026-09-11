@@ -1,22 +1,66 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useLang } from '../composables/useLang.js'
 
-// 班级核心数据
-const stats = ref([
-  { value: 3, suffix: '', label: '核心课程' },
-  { value: 21, suffix: '', label: '本学期课时' },
-  { value: 60, suffix: '+', label: '班级同学' },
-  { value: 24, suffix: '/7', label: '全天在线' },
-])
+/* ========== 多语言文案 ========== */
+const i18n = {
+  zh: {
+    badge: '复旦大学 MBA 2026级 · 薄荷4班',
+    titleLine1: '薄荷4班',
+    titleLine2: '数字家园',
+    slogan: '4 the Best, for the Future.',
+    subtitle: '课表查询 · 公告通知 · 知识沉淀 · 资源共享',
+    subtitle2: '为每一位同学打造高效便捷的学习平台',
+    scheduleBtn: '查看课表',
+    announcementsBtn: '最新公告',
+    stats: [
+      { value: 3, suffix: '', label: '核心课程' },
+      { value: 21, suffix: '', label: '本学期课时' },
+      { value: 60, suffix: '+', label: '班级同学' },
+      { value: 24, suffix: '/7', label: '全天在线' },
+    ],
+  },
+  en: {
+    badge: 'Fudan MBA Class of 2026 · Mint 4',
+    titleLine1: 'Mint 4',
+    titleLine2: 'Digital Hub',
+    slogan: '4 the Best, for the Future.',
+    subtitle: 'Schedule · Announcements · Knowledge · Resources',
+    subtitle2: 'A study platform built for every classmate',
+    scheduleBtn: 'View Schedule',
+    announcementsBtn: 'Latest News',
+    stats: [
+      { value: 3, suffix: '', label: 'Core Courses' },
+      { value: 21, suffix: '', label: 'Sessions' },
+      { value: 60, suffix: '+', label: 'Classmates' },
+      { value: 24, suffix: '/7', label: 'Always On' },
+    ],
+  },
+  th: {
+    badge: 'มหาวิทยาลัยฟูตาน MBA รุ่น 2026 · มินต์4',
+    titleLine1: 'มินต์4',
+    titleLine2: 'ศูนย์ดิจิทัล',
+    slogan: '4 the Best, for the Future.',
+    subtitle: 'ตารางเรียน · ประกาศ · คลังความรู้ · แหล่งเรียนรู้',
+    subtitle2: 'แพลตฟอร์มการเรียนสำหรับเพื่อนร่วมชั้นทุกคน',
+    scheduleBtn: 'ดูตารางเรียน',
+    announcementsBtn: 'ประกาศล่าสุด',
+    stats: [
+      { value: 3, suffix: '', label: 'วิชาหลัก' },
+      { value: 21, suffix: '', label: 'คาบเรียน' },
+      { value: 60, suffix: '+', label: 'เพื่อนร่วมชั้น' },
+      { value: 24, suffix: '/7', label: 'ออนไลน์ตลอด' },
+    ],
+  },
+}
+const { lang, t } = useLang(i18n)
 
+const langPrefix = (lang.value === 'en' ? '/en' : lang.value === 'th' ? '/th' : '')
+
+const stats = ref(t.value.stats.map(s => ({ ...s })))
 const animatedValues = ref(stats.value.map(() => 0))
 const hasAnimated = ref(false)
-
-onMounted(() => {
-  setTimeout(() => {
-    animateNumbers()
-  }, 600)
-})
+let rafTimer = null
 
 const animateNumbers = () => {
   if (hasAnimated.value) return
@@ -34,7 +78,7 @@ const animateNumbers = () => {
       animatedValues.value[index] = Math.floor(target * easeOut)
 
       if (progress < 1) {
-        requestAnimationFrame(update)
+        rafTimer = requestAnimationFrame(update)
       } else {
         animatedValues.value[index] = target
       }
@@ -43,6 +87,10 @@ const animateNumbers = () => {
     requestAnimationFrame(update)
   })
 }
+
+onMounted(() => {
+  setTimeout(animateNumbers, 600)
+})
 </script>
 
 <template>
@@ -51,34 +99,34 @@ const animateNumbers = () => {
       <!-- 班级标识 -->
       <div class="hero-badge reveal">
         <span class="badge-dot"></span>
-        <span>复旦大学 MBA 2026级 · 薄荷4班</span>
+        <span>{{ t.badge }}</span>
       </div>
 
       <!-- 主标题 -->
       <h1 class="hero-title reveal reveal-delay-1">
-        <span class="title-line">薄荷4班</span>
-        <span class="title-line accent">数字家园</span>
+        <span class="title-line">{{ t.titleLine1 }}</span>
+        <span class="title-line accent">{{ t.titleLine2 }}</span>
       </h1>
 
       <!-- 班级口号 -->
       <p class="hero-slogan reveal reveal-delay-2">
-        4 the Best, for the Future.
+        {{ t.slogan }}
       </p>
 
       <!-- 副标题 -->
       <p class="hero-subtitle reveal reveal-delay-3">
-        课表查询 · 公告通知 · 知识沉淀 · 资源共享
+        {{ t.subtitle }}
         <br />
-        为每一位同学打造高效便捷的学习平台
+        {{ t.subtitle2 }}
       </p>
 
       <!-- 按钮组 -->
       <div class="hero-actions reveal reveal-delay-4">
-        <a href="/schedule" class="btn btn-primary">
-          查看课表
+        <a :href="`${langPrefix}/schedule`" class="btn btn-primary">
+          {{ t.scheduleBtn }}
         </a>
-        <a href="/announcements/" class="btn btn-secondary">
-          最新公告
+        <a :href="`${langPrefix}/announcements/`" class="btn btn-secondary">
+          {{ t.announcementsBtn }}
         </a>
       </div>
 

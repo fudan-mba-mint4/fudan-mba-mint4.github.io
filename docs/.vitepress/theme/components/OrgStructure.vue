@@ -1,12 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-})
+import { useLang } from '../composables/useLang'
 
 const i18n = {
   zh: {
@@ -70,10 +63,10 @@ const i18n = {
     modules: [
       { icon: '🎯', name: 'ผู้นำชั้น', count: '1 คน', color: '#2D7A6C', duties: ['ติดต่อโรงเรียน', 'ประสานงานรวม', 'จับคู่ทรัพยากรข้ามกลุ่ม', 'กรองข้อมูล'], link: '/th/announcements/', linkText: 'ประกาศ' },
       { icon: '📋', name: 'รองผู้นำ', count: '2 คน', color: '#3A8F7E', duties: ['งานประจำวัน', 'จัดตั้งคณะกรรมการ', 'ปฏิทินงาน', 'ติดตามความคืบหน้า'], link: '/th/announcements/', linkText: 'ประกาศ' },
-      { icon: '🎉', name: 'เจ้าหน้าที่ประสบการณ์', count: '2+ คน', color: '#45A390', duties: ['孵化กิจกรรม', 'ข้อมูลชีวิต', 'บรรยากาศชั้นเรียน', 'ทุกคนถูกมองเห็น'], link: '/th/activities/', linkText: 'กิจกรรม' },
+      { icon: '🎉', name: 'เจ้าหน้าที่ประสบการณ์', count: '2+ คน', color: '#45A390', duties: ['วางแผนกิจกรรม', 'ข้อมูลชีวิต', 'บรรยากาศชั้นเรียน', 'ทุกคนถูกมองเห็น'], link: '/th/activities/', linkText: 'กิจกรรม' },
       { icon: '💰', name: 'เจ้าหน้าที่การเงิน', count: '2+ คน', color: '#50B7A2', duties: ['ความโปร่งใสของกองทุน', 'เผยแพร่สมุดรายวัน', 'ระบบเหรียญชั้นเรียน', 'งบประมาณและสิ่งจูงใจ'], link: '/th/finance/', linkText: 'การเงิน' },
       { icon: '📸', name: 'ผู้ดูแลความทรงจำ', count: '2+ คน', color: '#5CCBB4', duties: ['ถ่ายภาพและวิดีโอ', 'ผลิตเนื้อหา', 'สร้างแบรนด์', 'ผลิตสื่อ'], link: '/th/gallery/', linkText: 'อัลบั้ม' },
-      { icon: '🔬', name: 'นักวิจัย', count: '2+ คน', color: '#68DFC6', duties: ['แยกย่อยรายวิชา', 'คลังความรู้', 'AI tool', 'ทรัพยากรการเรียนรู้'], link: '/th/knowledge/', linkText: 'ความรู้' },
+      { icon: '🔬', name: 'นักวิจัย', count: '2+ คน', color: '#68DFC6', duties: ['แยกย่อยรายวิชา', 'คลังความรู้', 'เครื่องมือ AI', 'ทรัพยากรการเรียนรู้'], link: '/th/knowledge/', linkText: 'ความรู้' },
     ],
     collaborationTitle: 'ความร่วมมือระหว่างโมดูล',
     collaboration: [
@@ -92,7 +85,7 @@ const i18n = {
   }
 }
 
-const t = computed(() => i18n[currentLang.value])
+const { t } = useLang(i18n)
 </script>
 
 <template>

@@ -1,14 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-
-/* ========== 语言检测 ========== */
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
-})
+import { useLang } from '../composables/useLang.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -112,7 +104,7 @@ const i18n = {
     },
   },
 }
-const t = computed(() => i18n[currentLang.value])
+const { lang: currentLang, t } = useLang(i18n)
 
 /* ========== 班费数据（从JSON读取） ========== */
 const transactions = ref([])
@@ -128,9 +120,9 @@ onMounted(async () => {
     ])
     const financeData = await financeRes.json()
     const activityData = await activityRes.json()
-    transactions.value = financeData.transactions
+    transactions.value = financeData.transactions || []
     activityFinances.value = financeData.activityFinances || []
-    activityData.activities.forEach(a => {
+    ;(activityData.activities || []).forEach(a => {
       activitiesMap.value[a.id] = a
     })
   } catch (e) {
@@ -144,15 +136,15 @@ const toggleActivity = (id) => {
 
 const activityTitle = (af) => {
   const act = activitiesMap.value[af.activityId]
-  return act ? act.title[currentLang.value] : af.activityId
+  return act ? (act.title[currentLang.value] || act.title.zh || af.activityId) : af.activityId
 }
 
 const sortedActivityFinances = computed(() => {
-  return [...activityFinances.value].sort((a, b) => new Date(b.date) - new Date(a.date))
+  return [...activityFinances.value].sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
 })
 
 const activityDate = (af) => {
-  const d = new Date(af.date)
+  const d = new Date(af.date + 'T00:00:00')
   if (currentLang.value === 'zh') return `${d.getMonth() + 1}月${d.getDate()}日`
   return d.toLocaleDateString(currentLang.value === 'en' ? 'en-US' : 'th-TH', { month: 'short', day: 'numeric' })
 }
@@ -168,13 +160,13 @@ const filtered = computed(() => {
   let list = [...transactions.value]
   if (filterType.value === 'income') list = list.filter(t => t.type === 'income')
   if (filterType.value === 'expense') list = list.filter(t => t.type === 'expense')
-  return list.sort((a, b) => new Date(b.date) - new Date(a.date))
+  return list.sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
 })
 
 /* ========== 格式化 ========== */
-const formatAmount = (n) => n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+const formatAmount = (n) => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
+  const d = new Date(dateStr + 'T00:00:00')
   if (currentLang.value === 'zh') return `${d.getMonth() + 1}月${d.getDate()}日`
   if (currentLang.value === 'en') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
@@ -221,7 +213,7 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
             <div class="af-main-info">
               <span class="af-date">{{ activityDate(af) }}</span>
               <span class="af-title">{{ activityTitle(af) }}</span>
-              <span class="af-venue" v-if="af.venue">{{ af.venue[currentLang] }}</span>
+              <span class="af-venue" v-if="af.venue">{{ af.venue[currentLang] || af.venue.zh }}</span>
             </div>
             <div class="af-stats">
               <div class="af-stat">
@@ -247,7 +239,7 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
             <!-- 分摊说明 -->
             <div class="af-note-row" v-if="af.perPersonNote">
               <span class="af-note-label">{{ t.perPersonNote }}</span>
-              <span class="af-note-text">{{ af.perPersonNote[currentLang] }}</span>
+              <span class="af-note-text">{{ af.perPersonNote[currentLang] || af.perPersonNote.zh }}</span>
             </div>
 
             <!-- 消费明细表格 -->
@@ -300,7 +292,7 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
             <!-- 签到说明 -->
             <div class="af-attendance" v-if="af.attendanceNote">
               <h4 class="af-detail-title">{{ t.attendanceNote }}</h4>
-              <p class="af-attendance-text">{{ af.attendanceNote[currentLang] }}</p>
+              <p class="af-attendance-text">{{ af.attendanceNote[currentLang] || af.attendanceNote.zh }}</p>
             </div>
           </div>
         </div>
@@ -456,10 +448,10 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   font-size: 18px;
   font-weight: 600;
 }
-.stat-income { color: #c92a2a; }
-.stat-expense { color: #2f9e44; }
-.dark .stat-income { color: #ff8a8a; }
-.dark .stat-expense { color: #8ce99a; }
+.stat-income { color: #2f9e44; }
+.stat-expense { color: #c92a2a; }
+.dark .stat-income { color: #8ce99a; }
+.dark .stat-expense { color: #ff8a8a; }
 .stat-divider {
   width: 1px;
   height: 32px;
@@ -750,12 +742,12 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   flex-shrink: 0;
 }
 .tx-icon.income {
-  background: rgba(255, 59, 48, 0.10);
-  color: #FF3B30;
-}
-.tx-icon.expense {
   background: rgba(52, 199, 89, 0.12);
   color: #34C759;
+}
+.tx-icon.expense {
+  background: rgba(255, 59, 48, 0.10);
+  color: #FF3B30;
 }
 .tx-info {
   flex: 1;
@@ -792,8 +784,8 @@ const categoryLabel = (cat) => t.value.categories[cat] || cat
   font-weight: 600;
   flex-shrink: 0;
 }
-.tx-amount.income { color: #FF3B30; }
-.tx-amount.expense { color: #34C759; }
+.tx-amount.income { color: #34C759; }
+.tx-amount.expense { color: #FF3B30; }
 
 /* 空状态 */
 .empty-state {

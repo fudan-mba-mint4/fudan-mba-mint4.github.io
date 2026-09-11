@@ -1,5 +1,5 @@
 {
-  "stats": { "totalStudents": 50, "industries": 8, "referrals": 4 },
+  "stats": { "totalStudents": 50, "industries": 7, "referrals": 4 },
   "industries": [
     { "key": "finance",     "name": { "zh": "金融",     "en": "Finance",      "th": "การเงิน" },       "count": 10, "color": "#2d7a6c" },
     { "key": "tech",        "name": { "zh": "科技",     "en": "Tech",         "th": "เทคโนโลยี" },     "count": 9,  "color": "#5ec4ac" },

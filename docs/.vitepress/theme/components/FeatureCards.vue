@@ -1,35 +1,54 @@
 <script setup>
-// 核心功能卡片 —— 线框 SVG 图标 · 克制 hover
-const features = [
-  {
-    icon: 'calendar',
-    title: '课表查询',
-    description: '实时同步的课程安排，时间、教室、教师一目了然。',
-    link: '/schedule',
-    delay: 1,
+import { computed } from 'vue'
+import { useLang } from '../composables/useLang.js'
+
+/* ========== 多语言文案 ========== */
+const i18n = {
+  zh: {
+    eyebrow: '核心功能',
+    title: '一站式学习平台',
+    subtitle: '从课表到课件，从公告到知识，所有学习需求一站满足',
+    features: [
+      { icon: 'calendar', title: '课表查询', description: '实时同步的课程安排，时间、教室、教师一目了然。', link: '/schedule' },
+      { icon: 'bell', title: '公告通知', description: '班级通知、学校公告、作业截止日期，重要信息不再错过。', link: '/announcements/' },
+      { icon: 'book', title: '知识沉淀', description: '课程笔记、重点总结、考题参考，智库共同维护。', link: '/knowledge/' },
+      { icon: 'download', title: '课件下载', description: '按课程分类的课件，随时复习，云端多端访问。', link: '/slides/' },
+    ],
   },
-  {
-    icon: 'bell',
-    title: '公告通知',
-    description: '班级通知、学校公告、作业截止日期，重要信息不再错过。',
-    link: '/announcements/',
-    delay: 2,
+  en: {
+    eyebrow: 'Core Features',
+    title: 'One-Stop Learning Platform',
+    subtitle: 'Schedule, announcements, knowledge and materials — all in one place',
+    features: [
+      { icon: 'calendar', title: 'Schedule', description: 'Real-time class arrangements with time, room and teacher at a glance.', link: '/schedule' },
+      { icon: 'bell', title: 'Announcements', description: 'Class notices, school announcements and homework deadlines, never miss.', link: '/announcements/' },
+      { icon: 'book', title: 'Knowledge', description: 'Course notes, key summaries and past exams, co-maintained.', link: '/knowledge/' },
+      { icon: 'download', title: 'Materials', description: 'Slides organized by course, review anytime from any device.', link: '/slides/' },
+    ],
   },
-  {
-    icon: 'book',
-    title: '知识沉淀',
-    description: '课程笔记、重点总结、考题参考，智库共同维护。',
-    link: '/knowledge/',
-    delay: 3,
+  th: {
+    eyebrow: 'ฟีเจอร์หลัก',
+    title: 'แพลตฟอร์มการเรียนครบวงจร',
+    subtitle: 'ตารางเรียน ประกาศ คลังความรู้ และสื่อการสอนในที่เดียว',
+    features: [
+      { icon: 'calendar', title: 'ตารางเรียน', description: 'ตารางเรียนแบบเรียลไทม์ เวลา ห้อง และอาจารย์ครบถ้วน', link: '/schedule' },
+      { icon: 'bell', title: 'ประกาศ', description: 'ประกาศชั้นเรียน ประกาศโรงเรียน และกำหนดส่งการบ้าน', link: '/announcements/' },
+      { icon: 'book', title: 'คลังความรู้', description: 'โน้ต สรุปสำคัญ และข้อสอบเก่า ร่วมกันดูแล', link: '/knowledge/' },
+      { icon: 'download', title: 'ดาวน์โหลดสื่อ', description: 'สื่อการสอนแยกตามรายวัน ทบทวนได้ทุกที่', link: '/slides/' },
+    ],
   },
-  {
-    icon: 'download',
-    title: '课件下载',
-    description: '按课程分类的课件，随时复习，云端多端访问。',
-    link: '/slides/',
-    delay: 4,
-  },
-]
+}
+const { lang, t } = useLang(i18n)
+
+const langPrefix = lang.value === 'en' ? '/en' : lang.value === 'th' ? '/th' : ''
+
+const features = computed(() =>
+  t.value.features.map((f, i) => ({
+    ...f,
+    href: `${langPrefix}${f.link}`,
+    delay: i + 1,
+  }))
+)
 </script>
 
 <template>
@@ -37,9 +56,9 @@ const features = [
     <div class="container">
       <!-- 区块标题 -->
       <div class="section-header center reveal">
-        <span class="eyebrow">核心功能</span>
-        <h2>一站式学习平台</h2>
-        <p>从课表到课件，从公告到知识，所有学习需求一站满足</p>
+        <span class="eyebrow">{{ t.eyebrow }}</span>
+        <h2>{{ t.title }}</h2>
+        <p>{{ t.subtitle }}</p>
       </div>
 
       <!-- 功能网格 -->
@@ -47,7 +66,7 @@ const features = [
         <a
           v-for="feature in features"
           :key="feature.title"
-          :href="feature.link"
+          :href="feature.href"
           class="feature-card reveal"
           :class="`reveal-delay-${feature.delay}`"
         >

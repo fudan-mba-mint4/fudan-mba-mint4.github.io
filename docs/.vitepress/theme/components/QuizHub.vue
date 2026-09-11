@@ -1,7 +1,7 @@
 <template>
   <div class="quiz-hub">
     <div class="quiz-hero">
-      <a href="/" class="back-btn">&#8592; {{ t.back }}</a>
+      <a :href="homePath" class="back-btn">&#8592; {{ t.back }}</a>
       <div class="quiz-hero-inner">
         <h1 class="quiz-title">{{ t.title }}</h1>
         <p class="quiz-subtitle">{{ totalCount }} {{ t.questions }} · {{ t.subtitle }}</p>
@@ -59,30 +59,37 @@
         </div>
       </main>
     </div>
-    <div class="quiz-footer"><span>FDU 入学教育测试知识库 · 薄荷4班整理</span></div>
+    <div class="quiz-footer"><span>{{ t.footer }}</span></div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-const currentLang = ref('zh')
+import { useLang } from '../composables/useLang'
+
 const searchQuery = ref('')
 const activeCat = ref('all')
 const questions = ref([])
+
+const i18n = {
+  zh: { title: 'FDU 入学教育测试知识库', subtitle: '实时搜索 · 答案直接展示', questions: '道题目', searchPlaceholder: '输入关键词搜索，多个词用空格分隔（如：学籍 休学）...', searchHint: '支持多词模糊搜索 · 按 / 快速聚焦 · 按 Esc 清空', categories: '题目分类', all: '全部题目', results: '条结果', answer: '参考答案', noResults: '没有找到匹配的题目', back: '返回班级主页', clear: '清除', footer: 'FDU 入学教育测试知识库 · 薄荷4班整理', types: { single_choice: '单选题', multiple_choice: '多选题', true_false: '判断题', fill_blank: '填空题' } },
+  en: { title: 'FDU Entry Exam Knowledge Base', subtitle: 'Live search · Answers shown directly', questions: 'questions', searchPlaceholder: 'Search keywords, separate with spaces...', searchHint: 'Multi-word fuzzy search · Press / to focus · Esc to clear', categories: 'Categories', all: 'All Questions', results: 'results', answer: 'Answer', noResults: 'No matching questions found', back: 'Back to Home', clear: 'Clear', footer: 'FDU Entry Exam Knowledge Base · Compiled by Mint 4', types: { single_choice: 'Single Choice', multiple_choice: 'Multiple Choice', true_false: 'True/False', fill_blank: 'Fill in Blank' } },
+  th: { title: 'คลังข้อสอบเข้า FDU', subtitle: 'ค้นหาแบบเรียลไทม์ · แสดงคำตอบเลย', questions: 'ข้อ', searchPlaceholder: 'พิมพ์คำค้นหา คั่นด้วยช่องว่าง...', searchHint: 'ค้นหาหลายคำ · กด / เพื่อโฟกัส · Esc เพื่อล้าง', categories: 'หมวดหมู่', all: 'ทั้งหมด', results: 'ผลลัพธ์', answer: 'คำตอบ', noResults: 'ไม่พบข้อความที่ตรงกัน', back: 'กลับหน้าแรก', clear: 'ล้าง', footer: 'คลังข้อสอบเข้า FDU · จัดทำโดย Mint 4', types: { single_choice: 'เลือกตอบเดียว', multiple_choice: 'เลือกหลายข้อ', true_false: 'ถูก/ผิด', fill_blank: 'เติมคำ' } },
+}
+
+const { lang, t } = useLang(i18n)
+
+const homePath = computed(() => lang.value === 'en' ? '/en/' : lang.value === 'th' ? '/th/' : '/')
+
 onMounted(async () => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
   try {
     const res = await fetch('/data/quiz-questions.json')
-    questions.value = await res.json()
-  } catch (e) { console.error('Failed to load quiz data:', e) }
+    questions.value = await res.json() || []
+  } catch (e) {
+    console.error('Failed to load quiz data:', e)
+    questions.value = []
+  }
 })
-const t = computed(() => ({
-  zh: { title: 'FDU 入学教育测试知识库', subtitle: '实时搜索 · 答案直接展示', questions: '道题目', searchPlaceholder: '输入关键词搜索，多个词用空格分隔（如：学籍 休学）...', searchHint: '支持多词模糊搜索 · 按 / 快速聚焦 · 按 Esc 清空', categories: '题目分类', all: '全部题目', results: '条结果', answer: '参考答案', noResults: '没有找到匹配的题目', back: '返回班级主页', clear: '清除', types: { single_choice: '单选题', multiple_choice: '多选题', true_false: '判断题', fill_blank: '填空题' } },
-  en: { title: 'FDU Entry Exam Knowledge Base', subtitle: 'Live search · Answers shown directly', questions: 'questions', searchPlaceholder: 'Search keywords, separate with spaces...', searchHint: 'Multi-word fuzzy search · Press / to focus · Esc to clear', categories: 'Categories', all: 'All Questions', results: 'results', answer: 'Answer', noResults: 'No matching questions found', back: 'Back to Home', clear: 'Clear', types: { single_choice: 'Single Choice', multiple_choice: 'Multiple Choice', true_false: 'True/False', fill_blank: 'Fill in Blank' } },
-  th: { title: 'คลังข้อสอบเข้า FDU', subtitle: 'ค้นหาแบบเรียลไทม์ · แสดงคำตอบเลย', questions: 'ข้อ', searchPlaceholder: 'พิมพ์คำค้นหา คั่นด้วยช่องว่าง...', searchHint: 'ค้นหาหลายคำ · กด / เพื่อโฟกัส · Esc เพื่อล้าง', categories: 'หมวดหมู่', all: 'ทั้งหมด', results: 'ผลลัพธ์', answer: 'คำตอบ', noResults: 'ไม่พบข้อความที่ตรงกัน', back: 'กลับหน้าแรก', clear: 'ล้าง', types: { single_choice: 'เลือกตอบเดียว', multiple_choice: 'เลือกหลายข้อ', true_false: 'ถูก/ผิด', fill_blank: 'เติมคำ' } },
-}[currentLang.value]))
 const categories = computed(() => {
   const cats = []
   const seen = new Set()
@@ -129,7 +136,7 @@ function clearSearch() { searchQuery.value = '' }
 .cat-list { list-style: none; margin: 0; padding: 0; }
 .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; color: var(--c-text-secondary); margin-bottom: 3px; transition: all .2s cubic-bezier(.4,0,.2,1); font-weight: 500; }
 .cat-item:hover { background: var(--c-bg-card); color: var(--c-text-primary); }
-.cat-item.active { background: linear-gradient(135deg, #2D7A6C 0%, #5EC4AC 100%); color: #fff; font-weight: 600; box-shadow: 0 4px 14px rgba(45,122,108,.3); }
+.cat-item.active { background: linear-gradient(135deg, var(--c-accent-dark) 0%, var(--c-accent) 100%); color: #fff; font-weight: 600; box-shadow: 0 4px 14px var(--c-accent-glow); }
 .cat-count { font-size: 11px; padding: 2px 9px; border-radius: 10px; background: rgba(0,0,0,.06); font-weight: 700; }
 .cat-item.active .cat-count { background: rgba(255,255,255,.25); }
 .quiz-main { flex: 1; min-width: 0; }
@@ -138,26 +145,26 @@ function clearSearch() { searchQuery.value = '' }
 .result-count { font-size: 13px; color: var(--c-text-tertiary); }
 .question-list { display: flex; flex-direction: column; gap: 12px; }
 .q-card { background: var(--c-bg-card); border-radius: 16px; padding: 20px 24px; border-left: 5px solid #E5E5EA; transition: all .25s cubic-bezier(.4,0,.2,1); animation: fadeInUp .4s ease both; }
-.q-card:hover { box-shadow: 0 8px 28px rgba(45,122,108,.12); transform: translateY(-2px); }
-.q-card.single_choice { border-left-color: #2D7A6C; }
-.q-card.multiple_choice { border-left-color: #FF9500; }
-.q-card.true_false { border-left-color: #007AFF; }
-.q-card.fill_blank { border-left-color: #AF52DE; }
+.q-card:hover { box-shadow: 0 8px 28px var(--c-accent-glow); transform: translateY(-2px); }
+.q-card.single_choice { border-left-color: var(--c-accent); }
+.q-card.multiple_choice { border-left-color: var(--c-orange); }
+.q-card.true_false { border-left-color: var(--c-blue); }
+.q-card.fill_blank { border-left-color: var(--c-purple); }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .q-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .q-number { font-size: 12px; color: var(--c-text-tertiary); font-weight: 700; font-variant-numeric: tabular-nums; }
 .q-type-tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 8px; }
-.q-type-tag.single_choice { background: rgba(45,122,108,.1); color: #2D7A6C; }
-.q-type-tag.multiple_choice { background: rgba(255,149,0,.1); color: #FF9500; }
-.q-type-tag.true_false { background: rgba(0,122,255,.1); color: #007AFF; }
-.q-type-tag.fill_blank { background: rgba(175,82,222,.1); color: #AF52DE; }
+.q-type-tag.single_choice { background: var(--c-accent-light); color: var(--c-accent); }
+.q-type-tag.multiple_choice { background: var(--c-orange-light); color: var(--c-orange); }
+.q-type-tag.true_false { background: var(--c-blue-light); color: var(--c-blue); }
+.q-type-tag.fill_blank { background: rgba(175,82,222,.1); color: var(--c-purple); }
 .q-text { font-size: 15px; font-weight: 600; color: var(--c-text-primary); line-height: 1.7; margin: 0 0 12px; }
 .q-options { margin: 0 0 12px 8px; }
 .q-option { display: flex; gap: 8px; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--c-text-secondary); line-height: 1.6; transition: all .2s; }
-.q-option:hover { background: rgba(45,122,108,.06); color: var(--c-text-primary); }
+.q-option:hover { background: var(--c-accent-light); color: var(--c-text-primary); }
 .opt-letter { font-weight: 700; color: var(--c-text-tertiary); min-width: 20px; }
-.q-answer { margin-top: 14px; padding: 14px 18px; background: linear-gradient(135deg, rgba(45,122,108,.06) 0%, rgba(94,196,172,.08) 100%); border-radius: 12px; border-left: 4px solid #2D7A6C; }
-.ans-label { font-size: 11px; font-weight: 800; color: #2D7A6C; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1.5px; }
+.q-answer { margin-top: 14px; padding: 14px 18px; background: linear-gradient(135deg, var(--c-accent-light) 0%, var(--c-accent-glow) 100%); border-radius: 12px; border-left: 4px solid var(--c-accent); }
+.ans-label { font-size: 11px; font-weight: 800; color: var(--c-accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1.5px; }
 .ans-line { font-size: 15px; color: var(--c-text-primary); font-weight: 700; line-height: 1.7; padding: 2px 0; }
 .quiz-empty { text-align: center; padding: 60px 20px; color: var(--c-text-tertiary); }
 .quiz-empty svg { opacity: 0.4; margin-bottom: 12px; }

@@ -1,12 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-})
+import { useLang } from '../composables/useLang'
 
 const i18n = {
   zh: {
@@ -19,6 +12,7 @@ const i18n = {
       { icon: '💚', title: '团结互助', desc: '同学之间真诚相待、彼此支持。无论是学业压力还是生活挑战，我们都是彼此最可靠的伙伴。' },
       { icon: '⭐', title: '追求卓越', desc: '不满足于"差不多"，在每一件事上追求更高标准。卓越不是终点，而是我们共同的生活方式。' },
     ],
+    badgeAlt: '班徽',
     badgeTitle: '班徽含义',
     badgeElements: [
       { element: '圆形徽章', meaning: '象征团结与完整，代表班级是一个紧密相连的整体' },
@@ -48,6 +42,7 @@ const i18n = {
       { icon: '💚', title: 'Unity & Support', desc: 'Classmates treat each other sincerely and support one another through academic pressure and life challenges.' },
       { icon: '⭐', title: 'Pursuit of Excellence', desc: 'Never settle for "good enough." Excellence is not a destination but our shared way of life.' },
     ],
+    badgeAlt: 'Class Badge',
     badgeTitle: 'Badge Meaning',
     badgeElements: [
       { element: 'Circular Badge', meaning: 'Symbolizes unity and completeness, representing the class as a closely connected whole' },
@@ -57,7 +52,7 @@ const i18n = {
       { element: 'MBA 2026', meaning: 'Marks our cohort year, recording our two-year journey together' },
     ],
     nameTitle: 'Origin of Class Name',
-    nameContent: '"Mint" symbolizes freshness, vitality, and growth — just like us, returning to campus at a critical career stage with a thirst for knowledge and hope for the future. Mint green is our theme color: not too flashy, yet full of life, just like our class temperament — low-key but powerful, gentle but directed. "4" is not just a class number; it forms a pun with our slogan "4 the Best,"寓意我们追求最好的自己、最好的班级、最好的未来。',
+    nameContent: '"Mint" symbolizes freshness, vitality, and growth — just like us, returning to campus at a critical career stage with a thirst for knowledge and hope for the future. Mint green is our theme color: not too flashy, yet full of life, just like our class temperament — low-key but powerful, gentle but directed. "4" is not just a class number; it forms a pun with our slogan "4 the Best," symbolizing our pursuit of the best selves, the best class, and the best future.',
     atmosphereTitle: 'Class Atmosphere',
     atmosphereTags: [
       { tag: 'Sincere', desc: 'No pretense, just genuine connection' },
@@ -77,6 +72,7 @@ const i18n = {
       { icon: '💚', title: 'ความสามัคคีและการสนับสนุน', desc: 'เพื่อนร่วมชั้นปฏิบัติต่อกันด้วยความจริงใจและสนับสนุนซึ่งกันและกัน ไม่ว่าจะเป็นความกดดันทางการเรียนหรือความท้าทายในชีวิต' },
       { icon: '⭐', title: 'การแสวงหาความเป็นเลิศ', desc: 'ไม่พอใจกับ "พอใช้" ความเป็นเลิศไม่ใช่จุดหมายแต่เป็นวิถีชีวิตร่วมกันของเรา' },
     ],
+    badgeAlt: 'เครื่องหมายชั้น',
     badgeTitle: 'ความหมายของเครื่องหมายชั้น',
     badgeElements: [
       { element: 'เข็มกลัดวงกลม', meaning: 'สื่อถึงความสามัคคีและความสมบูรณ์ แทนชั้นเรียนที่เชื่อมต่อแน่นแฟ้น' },
@@ -98,7 +94,7 @@ const i18n = {
   },
 }
 
-const t = computed(() => i18n[currentLang.value])
+const { t } = useLang(i18n)
 </script>
 
 <template>
@@ -126,7 +122,7 @@ const t = computed(() => i18n[currentLang.value])
       <h2 class="section-title">{{ t.badgeTitle }}</h2>
       <div class="badge-section">
         <div class="badge-display">
-          <img src="/images/logo.png" alt="班徽" class="badge-img-large" />
+          <img src="/images/logo.png" :alt="t.badgeAlt" class="badge-img-large" />
         </div>
         <div class="badge-elements">
           <div v-for="(b, i) in t.badgeElements" :key="i" class="badge-element">

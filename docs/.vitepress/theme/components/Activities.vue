@@ -145,6 +145,9 @@ const isTodayDivider = (idx) => {
   const nxt = sortedEvents.value[idx + 1]
   return isUpcoming(cur) && (!nxt || !isUpcoming(nxt))
 }
+
+// 按当前语言构造相册链接（避免从 en/th 页跳到中文 /gallery/）
+const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang.value}/gallery/`))
 </script>
 
 <template>
@@ -257,7 +260,7 @@ const isTodayDivider = (idx) => {
                   <a
                     v-if="act.tags && act.tags.hasMedia"
                     class="tl-review-item tl-review-link"
-                    href="/gallery/"
+                    :href="galleryLink"
                   >📸 {{ t.album }}</a>
                   <span v-if="act.tags && act.tags.involvesFinance" class="tl-review-item">💰 {{ t.involvesFinance }}</span>
                   <p v-if="act.reviewSummary" class="tl-review-summary">📝 {{ act.reviewSummary[lang] }}</p>

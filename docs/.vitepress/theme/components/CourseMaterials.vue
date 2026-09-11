@@ -1,17 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useLang } from '../composables/useLang.js'
 
 const materialsData = ref(null)
 const loading = ref(true)
 const activeCourse = ref(0)
 
-// 当前语言
-const currentLang = ref('zh')
 onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
   loadData()
 })
 
@@ -19,8 +14,9 @@ const loadData = async () => {
   try {
     const res = await fetch('/data/course-materials.json')
     materialsData.value = await res.json()
+    const courses = (materialsData.value && materialsData.value.courses) || []
     // 默认选中第一个有课件的课程
-    const idx = materialsData.value.courses.findIndex(c => c.sessions.length > 0)
+    const idx = courses.findIndex(c => (c.sessions || []).length > 0)
     activeCourse.value = idx >= 0 ? idx : 0
   } catch (e) {
     console.error('加载课件数据失败', e)
@@ -49,7 +45,8 @@ const i18n = {
     time: '时间',
     updated: '数据更新',
     tip: '文件较大，建议右键「另存为」下载',
-    externalSource: '教务网站'
+    externalSource: '教务网站',
+    sessionsShort: '讲'
   },
   en: {
     label: 'Knowledge Base',
@@ -70,7 +67,8 @@ const i18n = {
     time: 'Time',
     updated: 'Updated',
     tip: 'Large files — right-click and "Save As" to download',
-    externalSource: 'School Portal'
+    externalSource: 'School Portal',
+    sessionsShort: 'sessions'
   },
   th: {
     label: 'คลังความรู้',
@@ -91,15 +89,31 @@ const i18n = {
     time: 'เวลา',
     updated: 'อัปเดต',
     tip: 'ไฟล์ขนาดใหญ่ แนะนำให้คลิกขวาแล้วบันทึกเป็น',
-    externalSource: 'เว็บไซต์วิชาการ'
+    externalSource: 'เว็บไซต์วิชาการ',
+    sessionsShort: 'คาบ'
   }
 }
 
-const t = computed(() => i18n[currentLang.value])
-const currentCourse = computed(() => materialsData.value?.courses[activeCourse.value] || null)
+const { lang: currentLang, t } = useLang(i18n)
+const currentCourse = computed(() => (materialsData.value?.courses || [])[activeCourse.value] || null)
+
+const courseName = computed(() => {
+  if (!currentCourse.value) return ''
+  if (currentLang.value === 'en' && currentCourse.value.name_en) return currentCourse.value.name_en
+  return currentCourse.value.name || currentCourse.value.name_en || ''
+})
+
+const courseNameOf = (course) => {
+  if (currentLang.value === 'en' && course.name_en) return course.name_en
+  return course.name || course.name_en || ''
+}
+
 const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+  if (!dateStr) return ''
+  const d = new Date(dateStr + 'T00:00:00')
+  if (currentLang.value === 'zh') return `${d.getMonth() + 1}月${d.getDate()}日`
+  if (currentLang.value === 'en') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
 }
 </script>
 
@@ -123,14 +137,14 @@ const formatDate = (dateStr) => {
       <!-- 课程标签 -->
       <div class="course-tabs">
         <button
-          v-for="(course, idx) in materialsData.courses"
+          v-for="(course, idx) in (materialsData.courses || [])"
           :key="course.id"
           class="course-tab"
-          :class="{ active: activeCourse === idx, empty: course.sessions.length === 0 }"
+          :class="{ active: activeCourse === idx, empty: (course.sessions || []).length === 0 }"
           @click="activeCourse = idx"
         >
-          <span class="tab-name">{{ course.name }}</span>
-          <span class="tab-count" v-if="course.sessions.length > 0">{{ course.sessions.length }} {{ t.sessionUnit || '讲' }}</span>
+          <span class="tab-name">{{ courseNameOf(course) }}</span>
+          <span class="tab-count" v-if="(course.sessions || []).length > 0">{{ (course.sessions || []).length }} {{ t.sessionsShort }}</span>
           <span class="tab-count tab-count--empty" v-else>—</span>
         </button>
       </div>
@@ -152,7 +166,7 @@ const formatDate = (dateStr) => {
       </div>
 
       <!-- 无课件提示 -->
-      <div v-if="currentCourse && currentCourse.sessions.length === 0" class="empty-state">
+      <div v-if="currentCourse && (currentCourse.sessions || []).length === 0" class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
@@ -162,7 +176,7 @@ const formatDate = (dateStr) => {
       <!-- 节次列表 -->
       <div v-else class="sessions-list">
         <div
-          v-for="session in currentCourse.sessions"
+          v-for="session in (currentCourse.sessions || [])"
           :key="session.session"
           class="session-block"
         >
@@ -197,7 +211,7 @@ const formatDate = (dateStr) => {
                 </div>
                 <div class="file-info">
                   <span class="file-name">{{ file.name }}</span>
-                  <span class="file-meta">{{ file.external ? (t.externalSource || '教务网站') : (file.size + ' · PDF') }}</span>
+                  <span class="file-meta">{{ file.external ? (t.externalSource || '教务网站') : (file.size ? (file.size + ' · PDF') : 'PDF') }}</span>
                 </div>
                 <div class="file-download">
                   <svg v-if="file.external" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -231,7 +245,7 @@ const formatDate = (dateStr) => {
                   <div class="file-info">
                     <span class="file-name">{{ ref.name }}</span>
                     <span class="file-meta" v-if="ref.desc">{{ ref.desc }}</span>
-                    <span class="file-meta">{{ ref.size }} · PDF</span>
+                    <span class="file-meta" v-if="ref.size">{{ ref.size }} · PDF</span>
                   </div>
                   <div class="file-download">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -292,7 +306,7 @@ const formatDate = (dateStr) => {
 
       <!-- 底部 -->
       <div class="materials-footer">
-        <span>{{ t.updated }}：{{ materialsData.last_updated }}</span>
+        <span>{{ t.updated }}：{{ materialsData.last_updated || '—' }}</span>
       </div>
     </template>
   </div>

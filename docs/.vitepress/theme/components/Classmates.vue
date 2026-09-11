@@ -1,20 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useData } from 'vitepress'
+import { ref, computed } from 'vue'
 import classData from '../../../public/data/class-members.json'
+import { useLang } from '../composables/useLang'
 
-const { page } = useData()
 const searchQuery = ref('')
-
-// 当前语言（SSR默认中文，客户端mount后根据URL路径判断）
-const currentLang = ref('zh')
-
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
-})
 
 // 多语言文案
 const i18n = {
@@ -74,11 +63,11 @@ const i18n = {
   }
 }
 
-const t = computed(() => i18n[currentLang.value])
+const { t } = useLang(i18n)
 
-// 过滤掉退学的同学
+// 过滤掉退学/休学的同学
 const activeMembers = computed(() =>
-  classData.members.filter(m => m.status !== 'withdrawn')
+  (classData.members || []).filter(m => m.status !== 'withdrawn' && m.status !== 'suspended')
 )
 
 // 按角色分类

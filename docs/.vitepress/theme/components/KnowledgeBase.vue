@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 
 /* ========== 多语言文案 ========== */
@@ -97,12 +97,12 @@ const filteredDocs = computed(() => {
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(d =>
-      (d.title[lang.value] || '').toLowerCase().includes(q) ||
-      d.title.zh.toLowerCase().includes(q) ||
-      d.title.en.toLowerCase().includes(q)
+      ((d.title[lang.value] || '').toLowerCase().includes(q)) ||
+      ((d.title.zh || '').toLowerCase().includes(q)) ||
+      ((d.title.en || '').toLowerCase().includes(q))
     )
   }
-  return list.sort((a, b) => new Date(b.date) - new Date(a.date))
+  return list.sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
 })
 
 const courseDocCount = (courseId) => documents.value.filter(d => d.courseId === courseId).length
@@ -110,7 +110,7 @@ const courseById = (id) => courses.value.find(c => c.id === id)
 
 /* ========== 格式化 ========== */
 const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
+  const d = new Date((dateStr || '1970-01-01') + 'T00:00:00')
   if (lang.value === 'zh') return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
   return d.toLocaleDateString(lang.value === 'en' ? 'en-US' : 'th-TH', { year: 'numeric', month: 'short', day: 'numeric' })
 }
@@ -130,6 +130,10 @@ onMounted(async () => {
   } catch (e) {
     console.warn('knowledge base data load failed', e)
   }
+})
+
+onUnmounted(() => {
+  clearTimeout(toastTimer)
 })
 </script>
 

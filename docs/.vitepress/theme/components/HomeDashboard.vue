@@ -1,30 +1,15 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { useLang } from '../composables/useLang.js'
 import classData from '../../../public/data/class-members.json'
-
-/* ========== 语言检测 ========== */
-const currentLang = ref('zh')
-
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
-})
-
-const langPrefix = computed(() => {
-  if (currentLang.value === 'en') return '/en'
-  if (currentLang.value === 'th') return '/th'
-  return ''
-})
 
 /* ========== 多语言文案 ========== */
 const i18n = {
   zh: {
     // 通用
-    demoLabel: '示例',
     viewAll: '查看全部',
     backToTop: '回到顶部',
+    noAnnouncements: '暂无公告',
     // 班级身份卡
     className: '薄荷 4 班',
     classFull: '复旦大学 MBA 2026 级',
@@ -51,14 +36,6 @@ const i18n = {
       gallery: '相册',
       finance: '班费',
     },
-    // 班级统计
-    statsTitle: '班级概览',
-    stats: {
-      members: '在读同学',
-      courses: '本学期课程',
-      groups: '小组',
-      mentors: '传承人',
-    },
     // 倒计时
     countdownTitle: '距离下次上课',
     semesterProgress: '学期进度',
@@ -70,16 +47,10 @@ const i18n = {
     // 传承人
     mentorsTitle: '传承人',
     mentorsSubtitle: '感谢每一位的付出',
-    mentorLeader: '张志鹏',
     viewDirectory: '查看名录',
     // 公告
     announcementsTitle: '最新公告',
     announcementsSubtitle: '班级通知与动态',
-    demoAnnouncements: [
-      { title: '关于期中教学安排的通知', date: '9月12日', tag: '教学' },
-      { title: '班级团建活动报名开启', date: '9月8日', tag: '活动' },
-      { title: '课件资料已更新至知识库', date: '9月5日', tag: '资料' },
-    ],
     // 相册
     galleryTitle: '活动相册',
     gallerySubtitle: '记录班级精彩瞬间',
@@ -92,17 +63,17 @@ const i18n = {
     balance: '当前余额',
     income: '本学期收入',
     expense: '本学期支出',
-    incomeDetail: '学费结余 ¥8,000 + 利息 ¥400',
-    expenseDetail: '团建活动 ¥2,500 + 教材印刷 ¥1,320',
+    incomeDetail: '班费缴纳 ¥21,702.30',
+    expenseDetail: '见面会 ¥11,761.40 + 团建聚餐 ¥9,940.90',
     // 空状态
     scheduleEmpty: '本学期课程已结束',
     noUpcoming: '暂无即将开始的课程',
     loadingSchedule: '加载课表中',
   },
   en: {
-    demoLabel: 'Demo',
     viewAll: 'View All',
     backToTop: 'Back to Top',
+    noAnnouncements: 'No announcements yet',
     className: 'Mint 4',
     classFull: 'Fudan University MBA Class of 2026',
     slogan: '4 the Best, for the Future.',
@@ -126,13 +97,6 @@ const i18n = {
       gallery: 'Gallery',
       finance: 'Finance',
     },
-    statsTitle: 'Class Overview',
-    stats: {
-      members: 'Students',
-      courses: 'Courses',
-      groups: 'Groups',
-      mentors: 'Mentors',
-    },
     countdownTitle: 'Next Class In',
     semesterProgress: 'Semester Progress',
     days: 'days',
@@ -141,15 +105,9 @@ const i18n = {
     day: 'day',
     mentorsTitle: 'Mentors',
     mentorsSubtitle: 'With gratitude for your dedication',
-    mentorLeader: 'Zhang Zhipeng',
     viewDirectory: 'View Directory',
     announcementsTitle: 'Announcements',
     announcementsSubtitle: 'Class news and updates',
-    demoAnnouncements: [
-      { title: 'Mid-term teaching schedule notice', date: 'Sep 12', tag: 'Academic' },
-      { title: 'Class team-building registration open', date: 'Sep 8', tag: 'Event' },
-      { title: 'Course slides updated in knowledge base', date: 'Sep 5', tag: 'Materials' },
-    ],
     galleryTitle: 'Photo Gallery',
     gallerySubtitle: 'Capturing class moments',
     cultureTitle: 'Class Culture',
@@ -159,16 +117,16 @@ const i18n = {
     balance: 'Balance',
     income: 'Income',
     expense: 'Expense',
-    incomeDetail: 'Tuition balance ¥8,000 + Interest ¥400',
-    expenseDetail: 'Team building ¥2,500 + Materials ¥1,320',
+    incomeDetail: 'Class dues ¥21,702.30',
+    expenseDetail: 'Welcome dinner ¥11,761.40 + Teambuilding ¥9,940.90',
     scheduleEmpty: 'Semester classes ended',
     noUpcoming: 'No upcoming classes',
     loadingSchedule: 'Loading schedule',
   },
   th: {
-    demoLabel: 'ตัวอย่าง',
     viewAll: 'ดูทั้งหมด',
     backToTop: 'กลับไปด้านบน',
+    noAnnouncements: 'ไม่มีประกาศ',
     className: 'มินต์ 4',
     classFull: 'มหาวิทยาลัยฟูตาน MBA รุ่น 2026',
     slogan: '4 the Best, for the Future.',
@@ -192,13 +150,6 @@ const i18n = {
       gallery: 'อัลบั้ม',
       finance: 'การเงิน',
     },
-    statsTitle: 'ภาพรวมชั้นเรียน',
-    stats: {
-      members: 'นักศึกษา',
-      courses: 'วิชา',
-      groups: 'กลุ่ม',
-      mentors: 'ผู้ให้คำปรึกษา',
-    },
     countdownTitle: 'อีกกี่วันถึงคาบเรียนถัดไป',
     semesterProgress: 'ความคืบหน้าเทอม',
     days: 'วัน',
@@ -207,15 +158,9 @@ const i18n = {
     day: 'วัน',
     mentorsTitle: 'ผู้ให้คำปรึกษา',
     mentorsSubtitle: 'ขอบคุณสำหรับความอุทิศตน',
-    mentorLeader: 'จาง จือผิง',
     viewDirectory: 'ดูสารบัญ',
     announcementsTitle: 'ประกาศล่าสุด',
     announcementsSubtitle: 'ข่าวสารและอัปเดตของชั้น',
-    demoAnnouncements: [
-      { title: 'แจ้งประวัติการสอนกลางภาค', date: '12 ก.ย.', tag: 'การศึกษา' },
-      { title: 'เปิดลงทะเบียนกิจกรรมสร้างความสัมพันธ์', date: '8 ก.ย.', tag: 'กิจกรรม' },
-      { title: 'ไฟล์บรรยายอัปเดตในคลังความรู้', date: '5 ก.ย.', tag: 'เอกสาร' },
-    ],
     galleryTitle: 'อัลบั้มรูป',
     gallerySubtitle: 'บันทึกช่วงเวลาที่ยอดเยี่ยม',
     cultureTitle: 'วัฒนธรรมชั้นเรียน',
@@ -225,15 +170,21 @@ const i18n = {
     balance: 'ยอดคงเหลือ',
     income: 'รายรับ',
     expense: 'รายจ่าย',
-    incomeDetail: 'เงินทอน ¥8,000 + ดอกเบี้ย ¥400',
-    expenseDetail: 'กิจกรรม ¥2,500 + เอกสาร ¥1,320',
+    incomeDetail: 'ค่าชั้นเรียน ¥21,702.30',
+    expenseDetail: 'งานต้อนรับ ¥11,761.40 + กิจกรรมสร้างทีม ¥9,940.90',
     scheduleEmpty: 'คาบเรียนเทมนี้จบแล้ว',
     noUpcoming: 'ไม่มีคาบเรียนที่กำลังจะมา',
     loadingSchedule: 'กำลังโหลดตารางเรียน',
   },
 }
 
-const t = computed(() => i18n[currentLang.value])
+const { lang: currentLang, t } = useLang(i18n)
+
+const langPrefix = computed(() => {
+  if (currentLang.value === 'en') return '/en'
+  if (currentLang.value === 'th') return '/th'
+  return ''
+})
 
 /* ========== 课表数据（真实） ========== */
 const scheduleData = ref(null)
@@ -270,7 +221,7 @@ async function fetchAnnouncements() {
     const res = await fetch('/data/announcements.json')
     const data = await res.json()
     announcementsData.value = (data.announcements || [])
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
       .slice(0, 3)
   } catch (e) {
     console.error('加载公告数据失败', e)
@@ -283,7 +234,7 @@ async function fetchActivities() {
     const data = await res.json()
     galleryActivities.value = (data.activities || [])
       .filter(a => a.tags && a.tags.hasMedia && a.tags.cover)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
       .slice(0, 4)
   } catch (e) {
     console.error('加载活动相册失败', e)
@@ -320,15 +271,14 @@ const pendingHomework = computed(() => {
   return homeworkData.value
     .filter(hw => hw.status === 'pending')
     .map(hw => {
-      const deadline = new Date(hw.deadline)
-      deadline.setHours(0, 0, 0, 0)
+      const deadline = new Date((hw.deadline || '1970-01-01') + 'T00:00:00')
       const daysLeft = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
-      const courseShort = courseShortNames[hw.course_id] || hw.course.slice(0, 4)
+      const courseShort = courseShortNames[hw.course_id] || (hw.course || '').slice(0, 4) || '—'
       const titleShort = currentLang.value === 'zh' ? hw.title :
-                         currentLang.value === 'en' ? hw.title_en : hw.title_th
-      const deadlineText = currentLang.value === 'zh' ? `截止 ${hw.deadline.slice(5)}` :
-                           currentLang.value === 'en' ? `Due ${hw.deadline.slice(5)}` :
-                           `กำหนด ${hw.deadline.slice(5)}`
+                         currentLang.value === 'en' ? (hw.title_en || hw.title) : (hw.title_th || hw.title)
+      const deadlineText = currentLang.value === 'zh' ? `截止 ${(hw.deadline || '').slice(5)}` :
+                           currentLang.value === 'en' ? `Due ${(hw.deadline || '').slice(5)}` :
+                           `กำหนด ${(hw.deadline || '').slice(5)}`
       return { ...hw, daysLeft, courseShort, titleShort, deadlineText }
     })
     .sort((a, b) => a.daysLeft - b.daysLeft)
@@ -367,11 +317,11 @@ onMounted(() => {
 
 // 获取接下来的2节课
 const upcomingClasses = computed(() => {
-  if (!scheduleData.value) return []
+  if (!scheduleData.value || !scheduleData.value.schedule) return []
   const now = new Date()
   const allClasses = []
-  scheduleData.value.schedule.forEach(day => {
-    day.courses.forEach(course => {
+  ;(scheduleData.value.schedule || []).forEach(day => {
+    ;(day.courses || []).forEach(course => {
       const classDate = new Date(`${course.date}T${course.time_start}:00`)
       if (classDate > now) {
         allClasses.push({ ...course, weekday: day.weekday, datetime: classDate })
@@ -386,19 +336,18 @@ const daysToNextClass = computed(() => {
   if (upcomingClasses.value.length === 0) return null
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const target = new Date(upcomingClasses.value[0].date)
-  target.setHours(0, 0, 0, 0)
+  const target = new Date(upcomingClasses.value[0].date + 'T00:00:00')
   return Math.ceil((target - today) / (1000 * 60 * 60 * 24))
 })
 
 // 学期进度（已过课程 / 总课程）
 const semesterProgress = computed(() => {
-  if (!scheduleData.value) return 0
+  if (!scheduleData.value || !scheduleData.value.schedule) return 0
   const now = new Date()
   let completed = 0
   let total = 0
-  scheduleData.value.schedule.forEach(day => {
-    day.courses.forEach(course => {
+  ;(scheduleData.value.schedule || []).forEach(day => {
+    ;(day.courses || []).forEach(course => {
       total++
       const classDate = new Date(`${course.date}T${course.time_end}:00`)
       if (classDate < now) completed++
@@ -421,8 +370,7 @@ const formatCourseDays = (course) => {
   if (!course || !course.date) return '—'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const target = new Date(course.date)
-  target.setHours(0, 0, 0, 0)
+  const target = new Date(course.date + 'T00:00:00')
   const d = Math.ceil((target - today) / (1000 * 60 * 60 * 24))
   if (d <= 0) return t.value.today
   if (d === 1) return t.value.tomorrow
@@ -434,7 +382,7 @@ const isCountdownUrgent = computed(() => daysToNextClass.value !== null && daysT
 
 /* ========== 班级统计（真实，从 class-members.json 计算） ========== */
 const activeMembers = computed(() =>
-  classData.members.filter(m => m.status !== 'withdrawn')
+  (classData.members || []).filter(m => m.status !== 'withdrawn')
 )
 
 const classStats = computed(() => {
@@ -447,58 +395,6 @@ const classStats = computed(() => {
     mentors: mentors,
   }
 })
-
-// 统计数字滚动动画
-const animatedStats = ref({ members: 0, courses: 0, groups: 0, mentors: 0 })
-let statsAnimated = false
-const statRafIds = []
-
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
-
-function animateStat(key, target, delay = 0) {
-  if (typeof requestAnimationFrame === 'undefined') return
-  setTimeout(() => {
-    const duration = 1300
-    const startTime = performance.now()
-    const step = (now) => {
-      const progress = Math.min((now - startTime) / duration, 1)
-      animatedStats.value[key] = Math.round(easeOutCubic(progress) * target)
-      if (progress < 1) {
-        const id = requestAnimationFrame(step)
-        statRafIds.push(id)
-      }
-    }
-    const id = requestAnimationFrame(step)
-    statRafIds.push(id)
-  }, delay)
-}
-
-watch(classStats, (vals) => {
-  if (typeof requestAnimationFrame === 'undefined') {
-    // SSR 环境直接赋值
-    Object.keys(vals).forEach(key => { animatedStats.value[key] = vals[key] })
-    return
-  }
-  // 等待课表数据加载完成后再启动动画，避免 courses 先动画到 fallback 值 3 再跳变
-  if (!scheduleData.value) return
-  if (!statsAnimated && vals.members > 0) {
-    statsAnimated = true
-    const keys = ['members', 'courses', 'groups', 'mentors']
-    keys.forEach((key, i) => animateStat(key, vals[key], i * 140))
-  } else if (statsAnimated) {
-    Object.keys(vals).forEach(key => {
-      animatedStats.value[key] = vals[key]
-    })
-  }
-}, { immediate: true, deep: true })
-
-// 统计项跳转链接
-const statLinks = computed(() => ({
-  members: `${langPrefix.value}/directory/`,
-  courses: `${langPrefix.value}/schedule`,
-  groups: `${langPrefix.value}/directory/`,
-  mentors: `${langPrefix.value}/directory/`,
-}))
 
 /* ========== 快速入口配置 ========== */
 const quickLinks = computed(() => [
@@ -525,11 +421,6 @@ const toggleCourse = (index) => {
 }
 
 /* ========== 工具函数 ========== */
-const formatDateShort = (dateStr) => {
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
-
 const formatWeekday = (weekday) => {
   if (currentLang.value === 'en') {
     const map = { '周一': 'Mon', '周二': 'Tue', '周三': 'Wed', '周四': 'Thu', '周五': 'Fri', '周六': 'Sat', '周日': 'Sun' }
@@ -543,7 +434,7 @@ const formatWeekday = (weekday) => {
 }
 
 const formatMonth = (dateStr) => {
-  const d = new Date(dateStr)
+  const d = new Date(dateStr + 'T00:00:00')
   if (currentLang.value === 'en') {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return months[d.getMonth()]
@@ -555,7 +446,9 @@ const formatMonth = (dateStr) => {
   return `${d.getMonth() + 1}月`
 }
 
-const formatNumber = (n) => n.toLocaleString('en-US')
+const formatNumber = (n) => (n || 0).toLocaleString(
+  currentLang.value === 'th' ? 'th-TH' : currentLang.value === 'en' ? 'en-US' : 'zh-CN'
+)
 
 /* ========== 3D Tilt 自定义指令 ========== */
 // 在 setup 顶层同步检测，确保自定义指令 mounted 钩子执行时已有正确值
@@ -674,7 +567,6 @@ onMounted(async () => {
 onUnmounted(() => {
   if (cardObserver.value) cardObserver.value.disconnect()
   if (spotlightRafId) cancelAnimationFrame(spotlightRafId)
-  statRafIds.forEach(id => cancelAnimationFrame(id))
 })
 
 /* ========== 回到顶部 ========== */
@@ -815,7 +707,7 @@ onUnmounted(() => {
           >
             <div class="schedule-item-main">
               <div class="schedule-date">
-                <span class="schedule-day">{{ new Date(course.date).getDate() }}</span>
+                <span class="schedule-day">{{ new Date(course.date + 'T00:00:00').getDate() }}</span>
                 <span class="schedule-month">{{ formatMonth(course.date) }}</span>
               </div>
               <div class="schedule-info">
@@ -940,17 +832,17 @@ onUnmounted(() => {
             :key="item.id"
             :href="`${langPrefix}/announcements/`"
             class="announcement-item"
-            :aria-label="`${item.category}: ${item.title[currentLang]}, ${item.date}`"
+            :aria-label="`${item.category}: ${(item.title[currentLang] || item.title.zh || '')}, ${item.date}`"
           >
             <span class="announcement-indicator" :class="{ 'announcement-indicator--pinned': item.pinned }" aria-hidden="true"></span>
             <span class="announcement-tag">{{ item.category }}</span>
-            <span class="announcement-title">{{ item.title[currentLang] }}</span>
+            <span class="announcement-title">{{ item.title[currentLang] || item.title.zh }}</span>
             <span class="announcement-date">{{ item.date }}</span>
             <svg class="announcement-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
           </a>
-          <div v-if="announcementsData.length === 0" class="announcement-empty">{{ t.noAnnouncements || '暂无公告' }}</div>
+          <div v-if="announcementsData.length === 0" class="announcement-empty">{{ t.noAnnouncements }}</div>
         </div>
       </div>
 
@@ -1061,9 +953,9 @@ onUnmounted(() => {
             class="gallery-item"
             :class="`gallery-item--${idx + 1}`"
           >
-            <img :src="act.tags.cover" :alt="act.title[currentLang]" class="gallery-item-img" loading="lazy" />
+            <img :src="act.tags.cover" :alt="(act.title[currentLang] || act.title.zh || '')" class="gallery-item-img" loading="lazy" />
             <div class="gallery-item-overlay">
-              <span class="gallery-item-title">{{ act.title[currentLang] }}</span>
+              <span class="gallery-item-title">{{ act.title[currentLang] || act.title.zh }}</span>
             </div>
           </a>
           <a :href="`${langPrefix}/gallery/`" class="gallery-item gallery-item--more" :aria-label="`${t.viewAll} ${t.galleryTitle}`">

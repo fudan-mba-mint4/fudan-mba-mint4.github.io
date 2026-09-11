@@ -1,12 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-})
+import { useLang } from '../composables/useLang'
 
 const i18n = {
   zh: {
@@ -46,7 +39,7 @@ const i18n = {
     formulaDesc: 'This is our core formula for defining a "class that makes hearts beat." Three elements multiplied together, none dispensable: only when seen does the individual feel existence; only when needed does ability find value; only when remembered does friendship find continuity.',
     pillarsTitle: 'Four Pillars of Class Building',
     pillars: [
-      { icon: '🚀', title: 'Potential Unlocking · Individual Growth', desc: 'Build platforms that激发 students\' learning potential, cultivate lifelong learning ability, and create practical opportunities for various explorations related to individual development.' },
+      { icon: '🚀', title: 'Potential Unlocking · Individual Growth', desc: 'Build platforms that ignite students\' learning potential, cultivate lifelong learning ability, and create practical opportunities for various explorations related to individual development.' },
       { icon: '🤝', title: 'Cohesion Building · Class Ecosystem', desc: 'Promote the construction of an ecological class organization structure, build venues for in-depth exchange among students, and enable the class to have sustainable development potential in the future.' },
       { icon: '🌐', title: 'Open Co-creation · External Links', desc: 'Establish link channels with other classes and various student organizations, provide opportunities to integrate external resources, and better empower class members.' },
       { icon: '💡', title: 'Innovation Driving · Tech Future', desc: 'Integrate tech innovation-related elements in class building, establish innovative thinking, enhance industry insight, and cultivate and advocate a class culture of innovation and change.' },
@@ -98,7 +91,7 @@ const i18n = {
   }
 }
 
-const t = computed(() => i18n[currentLang.value])
+const { t } = useLang(i18n)
 </script>
 
 <template>

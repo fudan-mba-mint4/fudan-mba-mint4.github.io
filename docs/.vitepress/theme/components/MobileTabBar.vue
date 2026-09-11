@@ -1,24 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useData } from 'vitepress'
+import { useLang } from '../composables/useLang'
 
 const { page } = useData()
-
-/* ========== 语言检测 ========== */
-const currentLang = ref('zh')
-
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
-})
-
-const langPrefix = computed(() => {
-  if (currentLang.value === 'en') return '/en'
-  if (currentLang.value === 'th') return '/th'
-  return ''
-})
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -42,7 +27,13 @@ const i18n = {
   },
 }
 
-const t = computed(() => i18n[currentLang.value])
+const { lang, t } = useLang(i18n)
+
+const langPrefix = computed(() => {
+  if (lang.value === 'en') return '/en'
+  if (lang.value === 'th') return '/th'
+  return ''
+})
 
 // 底部 4 个固定 Tab：首页 / 课表 / 公告 / 课件
 const tabs = computed(() => [

@@ -36,7 +36,7 @@
       "attendees": 52,
       "totalAmount": 11761.40,
       "perPerson": 226.2,
-      "perPersonNote": { "zh": "传承人和班主任被请客，按实际参加同学均摊，酒水均摊", "en": "Mentors and head teacher were treated; split among attending classmates, drinks shared equally", "th": "ผู้ให้คำปรึกษาและครูที่ปรึกษาถูกเลี้ยง แบ่ง among เพื่อนร่วมชั้นที่เข้าร่วม เครื่องดื่มแบ่งเท่าๆ กัน" },
+      "perPersonNote": { "zh": "传承人和班主任被请客，按实际参加同学均摊，酒水均摊", "en": "Mentors and head teacher were treated; split among attending classmates, drinks shared equally", "th": "ผู้ให้คำปรึกษาและครูที่ปรึกษาถูกเลี้ยง แบ่งให้เพื่อนร่วมชั้นที่เข้าร่วม เครื่องดื่มแบ่งเท่าๆ กัน" },
       "attendanceNote": { "zh": "除王抒星、贺婧、叶宏颖、杜曼丽外均参加", "en": "All attended except Wang Shuxing, He Jing, Ye Hongying, Du Manli", "th": "ทุกคนเข้าร่วม ยกเว้น Wang Shuxing, He Jing, Ye Hongying, Du Manli" },
       "items": [
         { "category": "餐饮", "description": "晚饭", "amount": 9848.00, "payer": "李浩鹏", "note": "鲈鱼花生米免费，原价10048，大众点评券后9848" },

@@ -1,456 +1,380 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useLang } from '../composables/useLang'
+import { useLang } from '../composables/useLang.js'
 
-const props = defineProps({
-  scheduleData: { type: Object, default: null }
-})
-const emit = defineEmits(['jump-date'])
-
-// 课程主题色（与 NextUpPill 保持一致）
-const courseTheme = {
-  '数据、模型与决策': '#8b9cf0',
-  '管理经济学': '#4fd1c5',
-  '会计学': '#d4af37'
-}
-const fallbackColor = 'var(--c-accent)'
-function themeColor(name) {
-  return courseTheme[name] || fallbackColor
-}
-
-// ============ i18n ============
+/* ========== i18n ========== */
 const i18n = {
   zh: {
-    semesterProgress: '学期进度',
-    weekXOfN: (w, n) => `第${w}周 / 共${n}周`,
-    doneCount: (m, total) => `已完成 ${m}/${total} 节`,
-    past: '已完成',
-    today: '今天',
-    upcoming: '未开始'
+    highwayTitle: '学期进度',
+    highwaySub: '每门课的上课节点，已过的路灯已熄灭',
+    of: '共',
+    done: '已上',
+    teacher: '老师',
   },
   en: {
-    semesterProgress: 'Semester progress',
-    weekXOfN: (w, n) => `Week ${w} of ${n}`,
-    doneCount: (m, total) => `${m} of ${total} ${m === 1 ? 'class' : 'classes'} done`,
-    past: 'Done',
-    today: 'Today',
-    upcoming: 'Upcoming'
+    highwayTitle: 'Semester Highway',
+    highwaySub: 'Each light is a class session — past lights are dimmed',
+    of: 'of',
+    done: 'done',
+    teacher: 'Prof.',
   },
   th: {
-    semesterProgress: 'ความคืบหน้าภาคเรียน',
-    weekXOfN: (w, n) => `สัปดาห์ที่ ${w} / ${n}`,
-    doneCount: (m, total) => `เสร็จแล้ว ${m}/${total} คาบ`,
-    past: 'เสร็จแล้ว',
-    today: 'วันนี้',
-    upcoming: 'จะถึง'
-  }
+    highwayTitle: 'เส้นทางตลอดเทอม',
+    highwaySub: 'แต่ละไฟคือคาบเรียน คาบที่ผ่านไปแล้วจะหรี่ลง',
+    of: 'จาก',
+    done: 'เรียนแล้ว',
+    teacher: 'อาจารย์',
+  },
 }
-const { t } = useLang(i18n)
+const { lang, t } = useLang(i18n)
 
-// ============ 时钟（分钟级刷新，与日期状态一致） ============
+/* ========== Props ========== */
+const props = defineProps({
+  // schedule.json 的 courses[]
+  courses: { type: Array, default: () => [] },
+  // 完整 scheduleData，用于取节点 location
+  data: { type: Object, default: null },
+})
+
+/* ========== 实时时钟（每分钟刷新） ========== */
 const now = ref(new Date())
 let timer = null
-onMounted(() => {
-  timer = setInterval(() => { now.value = new Date() }, 60000)
-})
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
+onMounted(() => { timer = setInterval(() => { now.value = new Date() }, 60 * 1000) })
+onUnmounted(() => clearInterval(timer))
 
-const DAY_MS = 24 * 60 * 60 * 1000
-const WEEK_MS = 7 * DAY_MS
+/* 节点详情展开状态：Map<"courseIndex-sessionIndex", true> */
+const expanded = ref(new Set())
+const toggleNode = (key) => {
+  if (expanded.value.has(key)) expanded.value.delete(key)
+  else expanded.value.add(key)
+}
+const isOpen = (key) => expanded.value.has(key)
 
-// ============ 学期时间范围 ============
-const semesterRange = computed(() => {
-  const data = props.scheduleData
-  if (!data || !Array.isArray(data.courses) || data.courses.length === 0) return null
-  let min = null
-  let max = null
-  for (const course of data.courses) {
-    if (!Array.isArray(course.sessions)) continue
-    for (const s of course.sessions) {
-      if (!s || !s.date || !s.time_start) continue
+/* 合并后的车道模型 */
+const lanes = computed(() => {
+  return props.courses.map((course, cIdx) => {
+    const sessions = (course.sessions || []).map((s, sIdx) => {
       const start = new Date(`${s.date}T${s.time_start}:00`)
       const end = new Date(`${s.date}T${s.time_end}:00`)
-      if (isNaN(start) || isNaN(end)) continue
-      if (!min || start < min) min = start
-      if (!max || end > max) max = end
-    }
-  }
-  if (!min || !max || max <= min) return null
-  return { semStart: min, semEnd: max }
-})
-
-// ============ 三条车道 ============
-const lanes = computed(() => {
-  const data = props.scheduleData
-  const range = semesterRange.value
-  if (!data || !range) return []
-  const span = range.semEnd - range.semStart
-  if (span <= 0) return []
-
-  const todayStr = now.value.toDateString()
-
-  return data.courses
-    .filter(c => Array.isArray(c.sessions) && c.sessions.length > 0)
-    .map(course => {
-      const nodes = course.sessions
-        .filter(s => s && s.date && s.time_start)
-        .map(s => {
-          const start = new Date(`${s.date}T${s.time_start}:00`)
-          const end = new Date(`${s.date}T${s.time_end}:00`)
-          // clamp 到 [1.5, 98.5]，避免首尾节点 translate(-50%,-50%) 后半个圆点溢出轨道被裁剪
-          const rawPct = span > 0 ? ((start - range.semStart) / span) * 100 : 0
-          const pct = Math.min(98.5, Math.max(1.5, rawPct))
-          let status = 'upcoming'
-          if (end < now.value) status = 'past'
-          else if (start.toDateString() === todayStr) status = 'today'
-          return {
-            date: s.date,
-            timeStart: s.time_start,
-            start,
-            end,
-            pct,
-            status
-          }
-        })
-        .sort((a, b) => a.start - b.start)
       return {
-        name: course.name,
-        teacher: course.teacher,
-        color: themeColor(course.name),
-        nodes
+        ...s,
+        start, end,
+        key: `${cIdx}-${sIdx}`,
+        isPast: end < now.value,
+        // 最近一个未结束的节点
+        isNext: start <= now.value && now.value <= end,
       }
     })
-})
-
-// ============ 顶部进度牌 ============
-const totalSessions = computed(() => {
-  const data = props.scheduleData
-  if (data && typeof data.total_sessions === 'number') return data.total_sessions
-  let sum = 0
-  for (const l of lanes.value) sum += l.nodes.length
-  return sum
-})
-
-const doneCount = computed(() => {
-  let m = 0
-  for (const l of lanes.value) {
-    for (const n of l.nodes) {
-      if (n.end < now.value) m++
+    const doneCount = sessions.filter(s => s.isPast).length
+    // 脉动节点：第一个未结束的节点
+    const nextIdx = sessions.findIndex(s => !s.isPast)
+    sessions.forEach((s, i) => { s.isPulsing = i === nextIdx })
+    return {
+      name: course.name,
+      teacher: course.teacher,
+      location: course.location,
+      colorClass: `course-${cIdx}`,
+      sessions,
+      doneCount,
+      total: sessions.length,
+      percent: sessions.length ? Math.round((doneCount / sessions.length) * 100) : 0,
     }
-  }
-  return m
+  })
 })
 
-const totalWeeks = computed(() => {
-  const range = semesterRange.value
-  if (!range) return 1
-  return Math.max(1, Math.floor((range.semEnd - range.semStart) / WEEK_MS) + 1)
-})
-
-const currentWeek = computed(() => {
-  const range = semesterRange.value
-  if (!range) return 1
-  const w = Math.ceil((now.value - range.semStart) / WEEK_MS) + 1
-  return Math.max(1, Math.min(totalWeeks.value, w))
-})
-
-const hasData = computed(() => lanes.value.length > 0 && semesterRange.value)
-
-function onNodeClick(node) {
-  emit('jump-date', node.date)
+/* 节点 tooltip/详情日期格式化 */
+const fmtNodeDate = (d) => {
+  const locale = lang.value === 'th' ? 'th-TH-u-ca-buddhist' : lang.value === 'en' ? 'en-US' : 'zh-CN'
+  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', weekday: 'short' }).format(d)
 }
 </script>
 
 <template>
-  <section v-if="hasData" class="semester-highway">
-    <!-- 顶部进度牌 -->
-    <div class="hw-header">
-      <span class="hw-title">{{ t.semesterProgress }}</span>
-      <span class="hw-stats">
-        <span class="hw-week">{{ t.weekXOfN(currentWeek, totalWeeks) }}</span>
-        <span class="hw-dot">·</span>
-        <span class="hw-done">{{ t.doneCount(doneCount, totalSessions) }}</span>
-      </span>
+  <div class="highway" v-if="lanes.length">
+    <div class="highway-head">
+      <h3>{{ t.highwayTitle }}</h3>
+      <p>{{ t.highwaySub }}</p>
     </div>
 
-    <!-- 横向滚动轨道 -->
-    <div class="hw-scroll">
-      <div class="hw-inner">
-        <div
-          v-for="lane in lanes"
-          :key="lane.name"
-          class="lane"
-        >
-          <div class="lane-label" :style="{ color: lane.color }">
-            <span class="lane-swatch" :style="{ background: lane.color }"></span>
+    <div v-for="(lane, cIdx) in lanes" :key="lane.name" class="lane" :class="lane.colorClass">
+      <!-- 车道头：课程名+老师 / 进度 -->
+      <div class="lane-head">
+        <div class="lane-title">
+          <span class="lane-dot" aria-hidden="true"></span>
+          <div class="lane-title-text">
             <span class="lane-name">{{ lane.name }}</span>
-          </div>
-          <div class="lane-track">
-            <div class="lane-line" :style="{ background: lane.color }"></div>
-            <button
-              v-for="node in lane.nodes"
-              :key="node.date + node.timeStart"
-              type="button"
-              class="lane-node"
-              :class="node.status"
-              :style="{ left: node.pct + '%', '--node-color': lane.color }"
-              :title="`${node.date} ${node.timeStart}`"
-              @click="onNodeClick(node)"
-            >
-              <span class="node-dot"></span>
-            </button>
+            <span class="lane-teacher">{{ t.teacher }} {{ lane.teacher }}</span>
           </div>
         </div>
+        <div class="lane-progress">
+          <span class="lane-count">{{ lane.doneCount }}/{{ lane.total }}</span>
+          <div class="progress-track"><div class="progress-fill" :style="{ width: lane.percent + '%' }"></div></div>
+          <span class="lane-percent">{{ lane.percent }}%</span>
+        </div>
+      </div>
 
-        <!-- 图例 -->
-        <div class="hw-legend">
-          <span class="lg-item"><span class="lg-dot solid"></span>{{ t.past }}</span>
-          <span class="lg-item"><span class="lg-dot today"></span>{{ t.today }}</span>
-          <span class="lg-item"><span class="lg-dot hollow"></span>{{ t.upcoming }}</span>
+      <!-- 车道轨道：节点横向排列 -->
+      <div class="lane-track">
+        <div
+          v-for="(s, sIdx) in lane.sessions"
+          :key="s.key"
+          class="node-wrap"
+        >
+          <button
+            class="node"
+            :class="{ past: s.isPast, next: s.isNext, pulsing: s.isPulsing, open: isOpen(s.key) }"
+            :title="`${fmtNodeDate(s.start)} ${s.time_start}-${s.time_end}`"
+            @click="toggleNode(s.key)"
+          >
+            <span class="node-dot"></span>
+            <span class="node-label">{{ s.start.getDate() }}</span>
+          </button>
+
+          <!-- 展开详情 -->
+          <transition name="node-detail">
+            <div v-if="isOpen(s.key)" class="node-detail">
+              <strong>{{ fmtNodeDate(s.start) }}</strong>
+              <span class="node-detail-time">{{ s.time_start }} – {{ s.time_end }}</span>
+              <span class="node-detail-loc">{{ lane.location }}</span>
+            </div>
+          </transition>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
-.semester-highway {
+.highway {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
-  border-radius: var(--radius-2xl);
-  padding: var(--space-5) var(--space-5) var(--space-4);
-  margin-bottom: var(--space-6);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-8);
 }
 
-.hw-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+.highway-head {
+  margin-bottom: var(--space-5);
 }
-
-.hw-title {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--c-accent);
-}
-
-.hw-stats {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--c-text-secondary);
-}
-
-.hw-week {
+.highway-head h3 {
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--c-text-primary);
+  margin: 0 0 2px;
+}
+.highway-head p {
+  font-size: var(--text-sm);
+  color: var(--c-text-tertiary);
+  margin: 0;
 }
 
-.hw-dot {
-  color: var(--c-text-quaternary);
+/* ========== 单条车道 ========== */
+.lane {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--c-border-light);
+}
+.lane:first-of-type { border-top: none; padding-top: 0; }
+
+.lane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
-.hw-done {
-  font-variant-numeric: tabular-nums;
+.lane-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
 }
-
-/* 横向滚动容器 */
-.hw-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--space-1);
+.lane-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--course-text, var(--c-accent));
+  flex-shrink: 0;
 }
-
-.hw-inner {
-  min-width: 640px;
+.lane-title-text {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding-right: var(--space-2);
+  min-width: 0;
 }
-
-/* 车道行 */
-.lane {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.lane-label {
-  width: 108px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.lane-swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .lane-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--c-text-primary);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.lane-track {
-  position: relative;
-  flex: 1;
-  height: 24px;
-}
-
-.lane-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 3px;
-  transform: translateY(-50%);
-  border-radius: var(--radius-full);
-  opacity: 0.35;
-}
-
-/* 节点：热区 ≥24×24，圆心用 translate 定位 */
-.lane-node {
-  position: absolute;
-  top: 50%;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.node-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: transparent;
-  border: 2px solid var(--node-color);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-/* 已过：实心 */
-.lane-node.past .node-dot {
-  background: var(--node-color);
-  opacity: 0.55;
-}
-
-/* 未到：空心 */
-.lane-node.upcoming .node-dot {
-  background: transparent;
-}
-
-/* 今天：呼吸光晕 */
-.lane-node.today .node-dot {
-  background: var(--node-color);
-  box-shadow: 0 0 0 3px var(--c-bg-card), 0 0 0 5px var(--node-color),
-              0 0 14px var(--node-color);
-  animation: hwPulse 2s ease-in-out infinite;
-}
-
-@keyframes hwPulse {
-  0%, 100% { box-shadow: 0 0 0 3px var(--c-bg-card), 0 0 0 5px var(--node-color), 0 0 10px var(--node-color); }
-  50% { box-shadow: 0 0 0 3px var(--c-bg-card), 0 0 0 7px var(--node-color), 0 0 22px var(--node-color); }
-}
-
-.lane-node:hover .node-dot {
-  transform: scale(1.2);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lane-node.today .node-dot {
-    animation: none;
-    box-shadow: 0 0 0 3px var(--c-bg-card), 0 0 0 6px var(--node-color);
-  }
-  .lane-node:hover .node-dot {
-    transform: none;
-  }
-}
-
-/* 图例 */
-.hw-legend {
-  display: flex;
-  gap: var(--space-4);
-  margin-top: var(--space-2);
-  padding-left: 112px;
-}
-
-.lg-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.lane-teacher {
   font-size: var(--text-xs);
   color: var(--c-text-tertiary);
 }
 
-.lg-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.lane-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.lane-count {
+  font-size: var(--text-xs);
+  color: var(--c-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.progress-track {
+  width: 72px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--c-bg-secondary);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--course-text, var(--c-accent));
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+.lane-percent {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--c-text-secondary);
+  font-variant-numeric: tabular-nums;
+  width: 3em;
+  text-align: right;
 }
 
-.lg-dot.solid {
-  background: var(--c-text-tertiary);
-  opacity: 0.55;
+/* ========== 车道轨道 ========== */
+.lane-track {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  overflow-x: auto;
+  padding: var(--space-2) 0 var(--space-3);
+}
+/* 虚线连接线：贯穿轨道 */
+.lane-track::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 8px;
+  right: 8px;
+  border-top: 2px dashed var(--c-border);
 }
 
-.lg-dot.today {
-  background: var(--c-accent);
-  box-shadow: 0 0 6px var(--c-accent);
+.node-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 0 auto;
+  min-width: 44px;
+  z-index: 1;
 }
 
-.lg-dot.hollow {
+.node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   background: transparent;
-  border: 2px solid var(--c-text-quaternary);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.node-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--course-text, var(--c-accent));
+  border: 2px solid var(--c-bg-card);
+  box-shadow: 0 0 0 1px var(--course-text, var(--c-accent));
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+.node-label {
+  font-size: 10px;
+  color: var(--c-text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
-/* 移动端适配 */
+/* 已过去的节点变暗 */
+.node.past .node-dot { opacity: 0.3; }
+.node.past .node-label { opacity: 0.5; }
+
+/* 当前进行中的节点 */
+.node.next .node-dot {
+  background: var(--c-accent);
+  box-shadow: 0 0 0 3px var(--c-accent-light);
+}
+
+/* 最近的未来节点脉动 */
+.node.pulsing .node-dot {
+  animation: nodePulse 2s ease-in-out infinite;
+}
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--c-accent-glow); }
+  50%      { box-shadow: 0 0 0 8px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .node.pulsing .node-dot { animation: none; }
+}
+
+.node:hover .node-dot { transform: scale(1.25); }
+.node.open .node-dot {
+  box-shadow: 0 0 0 3px var(--c-accent-light), 0 0 0 1px var(--c-accent);
+}
+
+/* 节点详情展开 */
+.node-detail {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+.node-detail strong {
+  font-size: var(--text-xs);
+  color: var(--c-text-primary);
+}
+.node-detail-time {
+  font-size: var(--text-xs);
+  color: var(--c-text-secondary);
+  font-family: var(--font-mono);
+}
+.node-detail-loc {
+  font-size: 10px;
+  color: var(--c-text-tertiary);
+}
+.node-detail-enter-active, .node-detail-leave-active {
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+.node-detail-enter-from, .node-detail-leave-to {
+  opacity: 0; transform: translateY(-4px);
+}
+
+/* ========== 课程色板（与 NextUpPill / ScheduleView 一致） ========== */
+.course-0 { --course-text: #8b9cf0; }
+.course-1 { --course-text: #3d9a85; }
+.course-2 { --course-text: #d4a017; }
+:global(html.dark) .course-0 { --course-text: #aab4f5; }
+:global(html.dark) .course-1 { --course-text: #5ec4ac; }
+:global(html.dark) .course-2 { --course-text: #e8b93b; }
+
+/* ========== 移动端 ========== */
 @media (max-width: 640px) {
-  .semester-highway {
-    padding: var(--space-4) var(--space-4) var(--space-3);
-  }
-
-  .hw-inner {
-    min-width: 560px;
-  }
-
-  .lane-label {
-    width: 84px;
-    font-size: 11px;
-  }
-
-  .lane-name {
-    max-width: 76px;
-  }
-
-  .node-dot {
-    width: 14px;
-    height: 14px;
-  }
-
-  .hw-legend {
-    padding-left: 90px;
-    gap: var(--space-3);
-  }
+  .highway { padding: var(--space-4); }
+  .lane-head { flex-wrap: wrap; }
+  .lane-progress { width: 100%; justify-content: flex-start; }
+  .progress-track { flex: 1; width: auto; }
 }
 </style>

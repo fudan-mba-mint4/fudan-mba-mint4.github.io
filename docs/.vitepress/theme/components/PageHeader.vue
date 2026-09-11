@@ -1,18 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-
 defineProps({
   title: { type: String, required: true },
   description: { type: String, default: '' },
   slogan: { type: String, default: '' },
   icon: { type: String, default: '' }
-})
-
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
 })
 </script>
 
@@ -20,7 +11,7 @@ onMounted(() => {
   <div class="page-header-section">
     <div class="page-header-inner">
       <!-- 图标 -->
-      <div v-if="icon" class="page-header-icon" v-html="icon"></div>
+      <div v-if="icon" class="page-header-icon">{{ icon }}</div>
       
       <!-- 标题 -->
       <h1 class="page-header-title">{{ title }}</h1>

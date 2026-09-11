@@ -17,8 +17,8 @@
             <span>{{ category.emoji }}</span>
           </div>
           <div class="category-info">
-            <h3 class="category-title">{{ category.name[currentLang] }}</h3>
-            <p class="category-desc">{{ category.desc[currentLang] }}</p>
+            <h3 class="category-title">{{ category.name[lang] }}</h3>
+            <p class="category-desc">{{ category.desc[lang] }}</p>
           </div>
           <span class="category-count">{{ category.tools.length }} {{ t.tools }}</span>
         </div>
@@ -35,8 +35,8 @@
               <span>{{ tool.emoji }}</span>
             </div>
             <div class="tool-info">
-              <h4 class="tool-name">{{ tool.name[currentLang] }}</h4>
-              <p class="tool-desc">{{ tool.desc[currentLang] }}</p>
+              <h4 class="tool-name">{{ tool.name[lang] }}</h4>
+              <p class="tool-desc">{{ tool.desc[lang] }}</p>
             </div>
             <div class="tool-status">
               <span v-if="tool.available" class="status-badge status--online">{{ t.online }}</span>
@@ -54,20 +54,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref } from 'vue'
 import PageHeader from './PageHeader.vue'
-
-const currentLang = ref('zh')
-
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-})
+import { useLang } from '../composables/useLang'
 
 const icon = '🔧'
 
-const t = computed(() => ({
+const i18n = {
   zh: {
     title: '实用小工具',
     subtitle: '同学们日常学习与生活的效率工具箱',
@@ -85,14 +78,16 @@ const t = computed(() => ({
     footerText: 'More tools under development. Suggestions welcome in class group chat.',
   },
   th: {
-    title: 'เครื่องมือ实用',
+    title: 'เครื่องมือที่มีประโยชน์',
     subtitle: 'กล่องเครื่องมือเพื่อการเรียนรู้และชีวิตประจำวัน',
     tools: 'เครื่องมือ',
     online: 'พร้อมใช้',
     comingSoon: 'กำลังพัฒนา',
     footerText: 'เครื่องมือเพิ่มเติมกำลังอยู่ในการพัฒนา',
   },
-}[currentLang.value]))
+}
+
+const { lang, t } = useLang(i18n)
 
 const toolCategories = [
   {
@@ -308,13 +303,13 @@ function handleToolClick(tool) {
 }
 
 .status--online {
-  background: rgba(52, 199, 89, 0.12);
-  color: #34C759;
+  background: var(--c-green-light, rgba(52, 199, 89, 0.12));
+  color: var(--c-green);
 }
 
 .status--soon {
-  background: rgba(255, 149, 0, 0.12);
-  color: #FF9500;
+  background: var(--c-orange-light, rgba(255, 149, 0, 0.12));
+  color: var(--c-orange);
 }
 
 .tools-footer {

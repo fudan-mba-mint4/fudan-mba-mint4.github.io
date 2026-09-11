@@ -1,4 +1,6 @@
 <script setup>
+import { useLang } from '../composables/useLang'
+
 defineProps({
   icon: {
     type: String,
@@ -17,6 +19,13 @@ defineProps({
     default: () => []
   }
 })
+
+const i18n = {
+  zh: { footer: '薄荷4班 · 智库研究员共同维护' },
+  en: { footer: 'Mint 4 · Maintained by Research Fellows' },
+  th: { footer: 'Mint 4 · ดูแลโดยนักวิจัย' },
+}
+const { t } = useLang(i18n)
 </script>
 
 <template>
@@ -42,7 +51,7 @@ defineProps({
 
       <!-- 底部 -->
       <div class="placeholder-footer">
-        <p>薄荷4班 · 智库研究员共同维护</p>
+        <p>{{ t.footer }}</p>
       </div>
     </div>
   </div>

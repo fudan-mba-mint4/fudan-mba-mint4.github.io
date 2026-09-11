@@ -2,7 +2,7 @@
 import DefaultTheme from 'vitepress/theme'
 import MobileTabBar from './components/MobileTabBar.vue'
 import { useScrollReveal } from './composables/useScrollReveal'
-import { onMounted, watch, nextTick } from 'vue'
+import { onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useData } from 'vitepress'
 
 const { page } = useData()
@@ -10,12 +10,16 @@ const { page } = useData()
 // 初始化滚动渐入动画
 const { refresh } = useScrollReveal()
 
+// 保存定时器句柄，避免快速导航时多个 setTimeout 竞态
+let scrollTimer = null
+
 // 页面切换后：重新初始化滚动动画 + 滚动到顶部
 watch(
   () => page.value.relativePath,
   async () => {
     await nextTick()
-    setTimeout(() => {
+    if (scrollTimer) clearTimeout(scrollTimer)
+    scrollTimer = setTimeout(() => {
       refresh()
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }, 200)
@@ -35,8 +39,9 @@ onMounted(() => {
 
   // 导航栏滚动效果（滚动超过50px时切换毛玻璃强度）
   const nav = document.querySelector('.VPNav')
+  let handleScroll = null
   if (nav) {
-    const handleScroll = () => {
+    handleScroll = () => {
       if (window.scrollY > 50) {
         nav.classList.add('scrolled')
       } else {
@@ -46,6 +51,13 @@ onMounted(() => {
     handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
   }
+
+  // 组件卸载时清理监听器，避免内存泄漏
+  onUnmounted(() => {
+    mediaQuery.removeEventListener('change', applySystemTheme)
+    if (handleScroll) window.removeEventListener('scroll', handleScroll, { passive: true })
+    if (scrollTimer) clearTimeout(scrollTimer)
+  })
 })
 </script>
 

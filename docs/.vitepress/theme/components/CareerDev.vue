@@ -5,6 +5,7 @@ import { useLang, formatDate } from '../composables/useLang.js'
 /* ========== 多语言文案 ========== */
 const i18n = {
   zh: {
+    title: '💼 职业发展',
     subtitle: '班级职业资源中心',
     students: '位同学',
     industries: '个行业',
@@ -33,6 +34,7 @@ const i18n = {
     noData: '数据加载中…',
   },
   en: {
+    title: '💼 Career Development',
     subtitle: 'Class Career Resource Center',
     students: 'students',
     industries: 'industries',
@@ -61,6 +63,7 @@ const i18n = {
     noData: 'Loading…',
   },
   th: {
+    title: '💼 การพัฒนาอาชีพ',
     subtitle: 'ศูนย์รวมทรัพยากรอาชีพประจำชั้น',
     students: 'คน',
     industries: 'อุตสาหกรรม',
@@ -130,7 +133,7 @@ onMounted(async () => {
       fetch('/data/activities.json').catch(() => null),
     ])
     const cd = await cdRes.json()
-    stats.value = cd.stats
+    stats.value = cd.stats || { totalStudents: 0, industries: 0, referrals: 0 }
     industries.value = cd.industries || []
     referrals.value = cd.referrals || []
     resources.value = cd.resources || []
@@ -150,7 +153,7 @@ onMounted(async () => {
   <div class="career-page">
     <!-- 模块A：页面头部 -->
     <header class="career-hero">
-      <h1 class="hero-title">💼 {{ lang === 'zh' ? '职业发展' : lang === 'en' ? 'Career Development' : 'การพัฒนาอาชีพ' }}</h1>
+      <h1 class="hero-title">{{ t.title }}</h1>
       <p class="hero-sub">{{ t.subtitle }}</p>
       <div class="hero-stats">
         <div class="stat">
@@ -199,7 +202,7 @@ onMounted(async () => {
           <ul class="ring-legend">
             <li v-for="seg in ringSegments" :key="seg.key" class="legend-item">
               <span class="legend-dot" :style="{ background: seg.color }"></span>
-              <span class="legend-name">{{ seg.name[lang] }}</span>
+              <span class="legend-name">{{ seg.name[lang] || seg.name.zh }}</span>
               <span class="legend-count">{{ seg.count }}</span>
               <span class="legend-pct">{{ percent(seg.count) }}%</span>
             </li>
@@ -214,10 +217,10 @@ onMounted(async () => {
         <div class="referral-grid">
           <article v-for="ref in referrals" :key="ref.id" class="referral-card">
             <div class="ref-top">
-              <span class="ref-company">{{ ref.company[lang] }}</span>
+              <span class="ref-company">{{ ref.company[lang] || ref.company.zh }}</span>
               <span class="ref-badge" :class="ref.status">{{ ref.status === 'open' ? t.open : t.closed }}</span>
             </div>
-            <h3 class="ref-role">{{ ref.role[lang] }}</h3>
+            <h3 class="ref-role">{{ ref.role[lang] || ref.role.zh }}</h3>
             <div class="ref-meta">
               <span>{{ t.referrerLabel }} · {{ ref.referrer }}</span>
               <span>{{ t.deadline }} {{ ref.expires }}</span>
@@ -241,8 +244,8 @@ onMounted(async () => {
             rel="noopener"
           >
             <span class="resource-cat">{{ catLabel(res.category) }}</span>
-            <h3 class="resource-title">{{ res.title[lang] }}</h3>
-            <p class="resource-desc">{{ res.desc[lang] }}</p>
+            <h3 class="resource-title">{{ res.title[lang] || res.title.zh }}</h3>
+            <p class="resource-desc">{{ res.desc[lang] || res.desc.zh }}</p>
             <span class="resource-cta">{{ t.viewResource }} →</span>
           </a>
         </div>
@@ -255,9 +258,9 @@ onMounted(async () => {
         <div v-if="careerEvents.length" class="event-row">
           <article v-for="ev in careerEvents" :key="ev.id" class="event-card">
             <span class="event-date">{{ formatDate(ev.date) }}</span>
-            <h3 class="event-title">{{ ev.title[lang] }}</h3>
-            <p class="event-location">{{ ev.location[lang] }}</p>
-            <p class="event-organizer">{{ ev.organizer[lang] }}</p>
+            <h3 class="event-title">{{ ev.title[lang] || ev.title.zh }}</h3>
+            <p class="event-location">{{ ev.location[lang] || ev.location.zh }}</p>
+            <p class="event-organizer">{{ ev.organizer[lang] || ev.organizer.zh }}</p>
           </article>
         </div>
         <div v-else class="events-empty">

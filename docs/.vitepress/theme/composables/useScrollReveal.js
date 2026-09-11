@@ -7,8 +7,17 @@ import { onMounted, onUnmounted } from 'vue'
 
 export function useScrollReveal() {
   let observer = null
+  let initTimer = null
 
   const initObserver = () => {
+    // 尊重 prefers-reduced-motion：直接显示所有元素，不创建 observer
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('.reveal').forEach(el => {
+        el.classList.add('is-visible')
+      })
+      return
+    }
+
     // 检查是否支持 IntersectionObserver
     if (!('IntersectionObserver' in window)) {
       // 不支持则直接显示所有元素
@@ -50,12 +59,14 @@ export function useScrollReveal() {
 
   onMounted(() => {
     // 延迟初始化，确保DOM渲染完成
-    setTimeout(initObserver, 100)
+    initTimer = setTimeout(initObserver, 100)
   })
 
   onUnmounted(() => {
+    if (initTimer) clearTimeout(initTimer)
     if (observer) {
       observer.disconnect()
+      observer = null
     }
   })
 

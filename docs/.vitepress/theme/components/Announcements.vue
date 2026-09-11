@@ -1,9 +1,8 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import DeadlinePill from './DeadlinePill.vue'
-import { useLang, formatDate } from '../composables/useLang'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useLang } from '../composables/useLang.js'
 
-/* ========== 多语言文案 ========== */
+/* ========== i18n ========== */
 const i18n = {
   zh: {
     all: '全部',
@@ -16,7 +15,12 @@ const i18n = {
     noAnnouncements: '暂无公告',
     postedOn: '发布于',
     new: '新',
-    deadlineOn: '截止',
+    searchPlaceholder: '搜索公告标题或内容…',
+    pinnedTitle: '置顶公告',
+    dueIn: '截止',
+    expired: '已截止',
+    daysUnit: '天',
+    hoursUnit: '小时',
   },
   en: {
     all: 'All',
@@ -29,7 +33,12 @@ const i18n = {
     noAnnouncements: 'No announcements',
     postedOn: 'Posted',
     new: 'New',
-    deadlineOn: 'Due',
+    searchPlaceholder: 'Search announcements…',
+    pinnedTitle: 'Pinned',
+    dueIn: 'Due',
+    expired: 'Closed',
+    daysUnit: 'd',
+    hoursUnit: 'h',
   },
   th: {
     all: 'ทั้งหมด',
@@ -42,12 +51,21 @@ const i18n = {
     noAnnouncements: 'ไม่มีประกาศ',
     postedOn: 'เผยแพร่',
     new: 'ใหม่',
-    deadlineOn: 'กำหนดส่ง',
+    searchPlaceholder: 'ค้นหาประกาศ…',
+    pinnedTitle: 'ปักหมุด',
+    dueIn: 'กำหนดส่ง',
+    expired: 'ปิดรับแล้ว',
+    daysUnit: 'วัน',
+    hoursUnit: 'ชม.',
   },
 }
 const { lang, t } = useLang(i18n)
 
-/* ========== 分类标签 ========== */
+const locale = computed(() =>
+  lang.value === 'th' ? 'th-TH-u-ca-buddhist' : lang.value === 'en' ? 'en-US' : 'zh-CN'
+)
+
+/* ========== 分类 ========== */
 const categories = computed(() => [
   { key: 'all', label: t.value.all },
   { key: 'important', label: t.value.important },
@@ -55,28 +73,44 @@ const categories = computed(() => [
   { key: 'activity', label: t.value.activity },
   { key: 'academic', label: t.value.academic },
 ])
-
 const activeCategory = ref('all')
+const searchQuery = ref('')
 
-/* ========== 公告数据（从JSON读取） ========== */
+/* ========== 数据 ========== */
 const announcements = ref([])
 onMounted(async () => {
   try {
     const res = await fetch('/data/announcements.json')
     const data = await res.json()
-    announcements.value = data.announcements || []
+    announcements.value = data.announcements
   } catch (e) {
     console.error('Failed to load announcements:', e)
   }
 })
 
-/* ========== 筛选逻辑 ========== */
+/* ========== 实时时钟（倒计时用，每分钟刷新） ========== */
+const now = ref(new Date())
+let timer = null
+onMounted(() => { timer = setInterval(() => { now.value = new Date() }, 60 * 1000) })
+onUnmounted(() => clearInterval(timer))
+
+/* ========== 筛选：分类 + 搜索 ========== */
 const filtered = computed(() => {
   let list = [...announcements.value]
   if (activeCategory.value !== 'all') {
     list = list.filter(a => a.category === activeCategory.value)
   }
-  // 置顶的排前面，然后按日期倒序
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(a => {
+      const hay = [a.title, a.summary, a.content]
+        .filter(Boolean)
+        .map(o => (typeof o === 'object' ? o[lang.value] : o))
+        .join(' ')
+        .toLowerCase()
+      return hay.includes(q)
+    })
+  }
   return list.sort((a, b) => {
     if (a.pinned && !b.pinned) return -1
     if (!a.pinned && b.pinned) return 1
@@ -84,102 +118,172 @@ const filtered = computed(() => {
   })
 })
 
+/* 置顶巨幕：最多 2 条 */
+const pinnedHero = computed(() => filtered.value.filter(a => a.pinned).slice(0, 2))
+/* 时间线：非置顶，按日期倒序 */
+const timeline = computed(() =>
+  filtered.value.filter(a => !a.pinned).sort((a, b) => new Date(b.date) - new Date(a.date))
+)
+
 /* ========== 展开/收起 ========== */
 const expanded = ref(new Set())
 const toggle = (id) => {
-  if (expanded.value.has(id)) {
-    expanded.value.delete(id)
-  } else {
-    expanded.value.add(id)
-  }
+  if (expanded.value.has(id)) expanded.value.delete(id)
+  else expanded.value.add(id)
 }
 const isExpanded = (id) => expanded.value.has(id)
+
+/* ========== 日期格式化 ========== */
+const formatDate = (dateStr) =>
+  new Intl.DateTimeFormat(locale.value, { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(dateStr))
+const formatNodeDate = (dateStr) =>
+  new Intl.DateTimeFormat(locale.value, { month: 'short', day: 'numeric' }).format(new Date(dateStr))
+const isTodayNode = (dateStr) => {
+  const today = now.value
+  return today.toDateString() === new Date(dateStr).toDateString()
+}
+
+/* ========== 截止倒计时药丸 ========== */
+const deadlineState = (item) => {
+  if (!item.deadline) return null
+  const dl = new Date(item.deadline)
+  const diff = dl - now.value
+  if (diff <= 0) return { tier: 'expired', label: t.value.expired }
+
+  const days = diff / (1000 * 60 * 60 * 24)
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const daysInt = Math.floor(days)
+
+  if (diff < 24 * 60 * 60 * 1000) {
+    // <24h 珊瑚色
+    return { tier: 'urgent', label: `${t.value.dueIn} ${hours}${t.value.hoursUnit}` }
+  }
+  if (days <= 3) {
+    // 1-3 天 琥珀色
+    return { tier: 'warn', label: `${t.value.dueIn} ${daysInt}${t.value.daysUnit}` }
+  }
+  // >3 天 灰色
+  return { tier: 'calm', label: `${t.value.dueIn} ${daysInt}${t.value.daysUnit}` }
+}
 
 /* ========== 分类颜色 ========== */
 const categoryStyle = (cat) => {
   const map = {
-    important: 'background: var(--c-red-light); color: var(--c-red);',
-    normal: 'background: var(--c-blue-light); color: var(--c-blue);',
+    important: 'background: var(--c-coral-light); color: var(--c-coral);',
+    normal: 'background: var(--c-blue); color: #fff; opacity: 0.9;',
     activity: 'background: var(--c-accent-light); color: var(--c-accent);',
-    academic: 'background: var(--c-orange-light); color: var(--c-orange);',
+    academic: 'background: var(--c-amber-light); color: var(--c-amber);',
   }
   return map[cat] || map.normal
 }
-
-/* ========== 视觉权重配色 ==========
-   仅 pinned=true 用强调色渐变卡片（与班费余额一致）
-   其余所有公告（含 important）统一白底卡片，不再按类别区分底色 */
-const weightClass = (item) => {
-  if (item.pinned) return 'announcement-card--pinned'
-  return ''
-}
+const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label || cat
 </script>
 
 <template>
   <div class="announcements-page">
-    <!-- 分类筛选 -->
-    <div class="category-bar">
-      <button
-        v-for="cat in categories"
-        :key="cat.key"
-        class="category-btn"
-        :class="{ active: activeCategory === cat.key }"
-        @click="activeCategory = cat.key"
-      >
-        {{ cat.label }}
-      </button>
+    <!-- 分类筛选 + 搜索 -->
+    <div class="toolbar">
+      <div class="category-bar">
+        <button
+          v-for="cat in categories"
+          :key="cat.key"
+          class="category-btn"
+          :class="{ active: activeCategory === cat.key }"
+          @click="activeCategory = cat.key"
+        >
+          {{ cat.label }}
+        </button>
+      </div>
+      <div class="search-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input v-model="searchQuery" type="search" :placeholder="t.searchPlaceholder" />
+      </div>
     </div>
 
-    <!-- 公告列表 -->
-    <div class="announcement-list" v-if="filtered.length > 0">
+    <!-- 置顶巨幕卡（最多 2 条） -->
+    <section v-if="pinnedHero.length" class="pinned-hero">
+      <div class="pinned-grid">
+        <article
+          v-for="item in pinnedHero"
+          :key="item.id"
+          class="hero-card"
+          :class="`hero-${item.category}`"
+        >
+          <div class="hero-meta">
+            <span class="announcement-category" :style="categoryStyle(item.category)">
+              {{ categoryLabel(item.category) }}
+            </span>
+            <span class="pinned-badge">📌 {{ t.pinnedTitle }}</span>
+            <span
+              v-if="deadlineState(item)"
+              class="deadline-pill"
+              :class="deadlineState(item).tier"
+            >{{ deadlineState(item).label }}</span>
+          </div>
+          <h3 class="hero-title">{{ item.title[lang] }}</h3>
+          <p class="hero-summary">{{ item.summary[lang] }}</p>
+          <div class="hero-foot">
+            <span class="announcement-date">{{ t.postedOn }} {{ formatDate(item.date) }}</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 非置顶时间线 -->
+    <div v-if="timeline.length" class="timeline">
       <article
-        v-for="item in filtered"
+        v-for="item in timeline"
         :key="item.id"
-        class="announcement-card"
-        :class="[weightClass(item), { expanded: isExpanded(item.id) }]"
+        class="tl-item"
       >
-        <div class="announcement-header" @click="toggle(item.id)">
-          <!-- 第一行：标题 + 标签（右） -->
-          <div class="announcement-toprow">
-            <h3 class="announcement-title">{{ item.title[lang] }}</h3>
-            <div class="announcement-tags">
-              <span v-if="item.pinned" class="pinned-badge">📌</span>
-              <span class="announcement-category" :style="categoryStyle(item.category)">
-                {{ categories.find(c => c.key === item.category)?.label }}
-              </span>
-            </div>
+        <!-- 左侧日期节点 -->
+        <div class="tl-node-col">
+          <div class="tl-node" :class="{ today: isTodayNode(item.date) }">
+            <span class="tl-node-day">{{ new Date(item.date).getDate() }}</span>
+            <span class="tl-node-month">{{ formatNodeDate(item.date).replace(/\s*\d+\s*/, ' ') }}</span>
           </div>
-          <!-- 第二行：摘要（精简） -->
-          <p class="announcement-summary">{{ item.summary[lang] }}</p>
-          <!-- 第三行：日期 + 截止药丸（左） + 展开按钮（右） -->
-          <div class="announcement-bottomrow">
-            <div class="announcement-meta">
-              <span class="announcement-date">{{ formatDate(item.date) }}</span>
-              <DeadlinePill v-if="item.deadline" :deadline="item.deadline" size="sm" />
-            </div>
-            <button class="expand-btn" @click.stop="toggle(item.id)">
-              {{ isExpanded(item.id) ? t.collapse : t.expand }}
-              <svg class="expand-icon" :class="{ rotated: isExpanded(item.id) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
-          </div>
+          <div class="tl-line"></div>
         </div>
-        <transition name="content-expand">
-          <div v-if="isExpanded(item.id)" class="announcement-content">
-            <div v-if="item.deadline" class="deadline-static-chip">
-              <span class="deadline-static-label">{{ t.deadlineOn }}</span>
-              <span>{{ formatDate(item.deadline) }}</span>
-            </div>
-            <div class="content-divider"></div>
-            <p>{{ item.content[lang] }}</p>
+
+        <!-- 右侧公告卡片 -->
+        <div
+          class="announcement-card"
+          :class="{ expanded: isExpanded(item.id) }"
+          @click="toggle(item.id)"
+        >
+          <div class="announcement-meta">
+            <span class="announcement-category" :style="categoryStyle(item.category)">
+              {{ categoryLabel(item.category) }}
+            </span>
+            <span
+              v-if="deadlineState(item)"
+              class="deadline-pill"
+              :class="deadlineState(item).tier"
+            >{{ deadlineState(item).label }}</span>
+            <span class="announcement-date">{{ formatDate(item.date) }}</span>
           </div>
-        </transition>
+          <h3 class="announcement-title">{{ item.title[lang] }}</h3>
+          <p class="announcement-summary">{{ item.summary[lang] }}</p>
+          <button class="expand-btn" @click.stop="toggle(item.id)">
+            {{ isExpanded(item.id) ? t.collapse : t.expand }}
+            <svg class="expand-icon" :class="{ rotated: isExpanded(item.id) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+          <transition name="content-expand">
+            <div v-if="isExpanded(item.id)" class="announcement-content" @click.stop>
+              <div class="content-divider"></div>
+              <p>{{ item.content[lang] }}</p>
+            </div>
+          </transition>
+        </div>
       </article>
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="empty-state">
+    <div v-else-if="!pinnedHero.length" class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -193,271 +297,296 @@ const weightClass = (item) => {
 .announcements-page {
   max-width: 960px;
   margin: 0 auto;
-  padding: 0 24px 60px;
+  padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
 }
 
-/* 分类筛选栏 */
+/* ========== 工具栏：分类 + 搜索 ========== */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
 .category-bar {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 .category-btn {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--c-border);
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   background: var(--c-bg-secondary);
   color: var(--c-text-secondary);
-  font-size: 14px;
+  font-size: var(--text-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   font-family: inherit;
 }
-.category-btn:hover {
-  border-color: var(--c-accent);
-  color: var(--c-accent);
+.category-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.category-btn.active { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-text-inverse); }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-full);
+  color: var(--c-text-tertiary);
+  transition: border-color var(--transition-fast);
 }
-.category-btn.active {
-  background: var(--c-accent);
-  border-color: var(--c-accent);
-  color: #fff;
+.search-box:focus-within { border-color: var(--c-accent); }
+.search-box input {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--c-text-primary);
+  width: 200px;
+  font-family: inherit;
+}
+.search-box input::placeholder { color: var(--c-text-quaternary); }
+
+/* ========== 置顶巨幕 ========== */
+.pinned-hero { margin-bottom: var(--space-10); }
+.pinned-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+.hero-card {
+  position: relative;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-accent);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  overflow: hidden;
+}
+.hero-card.hero-important { border-left-color: var(--c-coral); }
+.hero-card.hero-activity { border-left-color: var(--c-accent); }
+.hero-card.hero-academic { border-left-color: var(--c-amber); }
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.pinned-badge {
+  font-size: var(--text-xs);
+  color: var(--c-text-tertiary);
+}
+.hero-title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0 0 var(--space-2);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.hero-summary {
+  font-size: var(--text-base);
+  color: var(--c-text-secondary);
+  margin: 0 0 var(--space-4);
+  line-height: var(--line-height-relaxed);
+}
+.hero-foot {
+  display: flex;
+  align-items: center;
 }
 
-/* 公告卡片（默认白底，紧凑） */
+/* ========== 时间线 ========== */
+.timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.tl-item {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: var(--space-4);
+}
+.tl-node-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.tl-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  z-index: 1;
+}
+.tl-node.today {
+  border-color: var(--c-accent);
+  background: var(--c-accent-light);
+}
+.tl-node-day {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--c-text-primary);
+  line-height: 1;
+}
+.tl-node.today .tl-node-day { color: var(--c-accent); }
+.tl-node-month {
+  font-size: 9px;
+  color: var(--c-text-tertiary);
+  text-transform: lowercase;
+}
+.tl-line {
+  flex: 1;
+  width: 2px;
+  background: var(--c-border);
+  margin: var(--space-1) 0;
+}
+
+/* ========== 公告卡片 ========== */
 .announcement-card {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
-  border-radius: 14px;
-  margin-bottom: 10px;
-  overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.announcement-card:hover {
-  border-color: var(--c-border-accent);
-}
-
-/* 置顶公告：强调色渐变卡片（与班费余额一致，全站统一） */
-.announcement-card--pinned {
-  background: var(--c-card-accent-bg);
-  border-color: transparent;
-}
-.announcement-card--pinned:hover {
-  border-color: transparent;
-}
-.announcement-card--pinned .announcement-title {
-  color: var(--c-card-accent-text);
-}
-.announcement-card--pinned .announcement-summary {
-  color: var(--c-card-accent-subtext);
-}
-.announcement-card--pinned .announcement-date {
-  color: var(--c-card-accent-subtext);
-}
-.announcement-card--pinned .expand-btn {
-  color: var(--c-card-accent-text);
-}
-.announcement-card--pinned .expand-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-.announcement-card--pinned .content-divider {
-  background: var(--c-card-accent-border);
-}
-.announcement-card--pinned .announcement-content p {
-  color: var(--c-card-accent-text);
-  opacity: 0.92;
-}
-.announcement-card--pinned .deadline-static-chip {
-  border-color: var(--c-card-accent-border);
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--c-card-accent-text);
-}
-.announcement-card--pinned .announcement-category {
-  background: rgba(255, 255, 255, 0.2) !important;
-  color: var(--c-card-accent-text) !important;
-}
-
-.announcement-header {
-  padding: 14px 18px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
   cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
+.announcement-card:hover { border-color: var(--c-border-accent); }
 
-/* 第一行：标题 + 标签 */
-.announcement-toprow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-.announcement-tags {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-/* 第三行：日期+截止药丸 + 展开按钮 */
-.announcement-bottomrow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 8px;
-}
 .announcement-meta {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
   flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
 }
 .announcement-category {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-xs);
   font-weight: 500;
-  white-space: nowrap;
-}
-.pinned-badge {
-  font-size: 13px;
 }
 .announcement-date {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--c-text-tertiary);
-  white-space: nowrap;
 }
-
 .announcement-title {
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--c-text-primary);
-  margin: 0;
-  line-height: 1.4;
-  flex: 1;
-  min-width: 0;
+  margin: 0 0 var(--space-2);
+  line-height: var(--line-height-tight);
 }
-
 .announcement-summary {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--c-text-secondary);
-  margin: 0;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin: 0 0 var(--space-3);
+  line-height: var(--line-height-relaxed);
 }
 
 .expand-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
+  padding: var(--space-1) var(--space-3);
   border: none;
   background: transparent;
   color: var(--c-accent);
-  font-size: 13px;
+  font-size: var(--text-xs);
   font-weight: 500;
   cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.2s ease;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
   font-family: inherit;
 }
-.expand-btn:hover {
-  background: var(--c-accent-light);
-}
-.expand-icon {
-  transition: transform 0.2s ease;
-}
-.expand-icon.rotated {
-  transform: rotate(180deg);
-}
+.expand-btn:hover { background: var(--c-accent-light); }
+.expand-icon { transition: transform var(--transition-fast); }
+.expand-icon.rotated { transform: rotate(180deg); }
 
-/* 展开内容 */
-.announcement-content {
-  padding: 0 18px 14px;
-}
-/* 展开态静态截止 chip（高亮截止日期） */
-.deadline-static-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 14px;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--c-border);
-  background: var(--c-accent-light);
-  color: var(--c-accent);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-}
-.deadline-static-label {
-  opacity: 0.7;
-}
-.content-divider {
-  height: 1px;
-  background: var(--c-border);
-  margin-bottom: 16px;
-}
+.announcement-content { padding-top: var(--space-3); }
+.content-divider { height: 1px; background: var(--c-border); margin-bottom: var(--space-3); }
 .announcement-content p {
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: var(--text-sm);
+  line-height: var(--line-height-relaxed);
   color: var(--c-text-secondary);
   margin: 0;
 }
 
-/* 展开动画 */
-.content-expand-enter-active,
-.content-expand-leave-active {
-  transition: opacity 0.25s ease, max-height 0.25s ease;
+.content-expand-enter-active, .content-expand-leave-active {
+  transition: opacity var(--transition-fast), max-height var(--transition-fast);
   overflow: hidden;
 }
-.content-expand-enter-from,
-.content-expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-.content-expand-enter-to,
-.content-expand-leave-from {
-  max-height: 500px;
-}
+.content-expand-enter-from, .content-expand-leave-to { opacity: 0; max-height: 0; }
+.content-expand-enter-to, .content-expand-leave-from { max-height: 600px; }
 
-/* 空状态 */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
+/* ========== 截止倒计时药丸 ========== */
+.deadline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.deadline-pill.calm {
+  background: var(--c-bg-tertiary);
   color: var(--c-text-tertiary);
 }
-.empty-state svg {
-  margin-bottom: 16px;
-  opacity: 0.5;
+.deadline-pill.warn {
+  background: var(--c-amber-light);
+  color: var(--c-amber);
 }
-.empty-state p {
-  font-size: 15px;
-  margin: 0;
+.deadline-pill.urgent {
+  background: var(--c-coral-light);
+  color: var(--c-coral);
+  animation: coralPulse 2s ease-in-out infinite;
+}
+.deadline-pill.expired {
+  background: var(--c-bg-tertiary);
+  color: var(--c-text-quaternary);
+  text-decoration: line-through;
+}
+@keyframes coralPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--c-coral-light); }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .deadline-pill.urgent { animation: none; }
 }
 
-/* 响应式 */
+/* ========== 空状态 ========== */
+.empty-state {
+  text-align: center;
+  padding: var(--space-16) var(--space-5);
+  color: var(--c-text-tertiary);
+}
+.empty-state svg { margin-bottom: var(--space-4); opacity: 0.5; }
+.empty-state p { font-size: var(--text-base); margin: 0; }
+
+/* ========== 移动端 ========== */
 @media (max-width: 640px) {
-  .announcements-page {
-    padding: 0 16px 80px;
-  }
-  .announcement-header {
-    padding: 12px 14px;
-  }
-  .announcement-content {
-    padding: 0 14px 12px;
-  }
-  .announcement-title {
-    font-size: 14px;
-  }
-  .announcement-summary {
-    font-size: 12px;
-  }
-  .announcement-toprow {
-    gap: 6px;
-  }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .search-box input { width: 100%; }
+  .pinned-grid { grid-template-columns: 1fr; }
+  .hero-card { padding: var(--space-4); }
+  .hero-title { font-size: var(--text-lg); }
+  .tl-item { grid-template-columns: 44px 1fr; gap: var(--space-3); }
+  .tl-node { width: 40px; height: 40px; }
+  .announcement-card { padding: var(--space-4); margin-bottom: var(--space-4); }
 }
 </style>

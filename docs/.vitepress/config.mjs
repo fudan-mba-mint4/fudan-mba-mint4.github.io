@@ -108,7 +108,7 @@ const enNav = [
   {
     text: 'Tools',
     items: [
-      { text: 'Entry Quiz KB', link: '/quiz/' },
+      { text: 'Entry Quiz KB', link: '/en/quiz/' },
       { text: 'Utilities', link: '/en/tools/' },
     ],
   },
@@ -171,7 +171,7 @@ const thNav = [
   {
     text: 'เครื่องมือ',
     items: [
-      { text: 'คลังข้อสอบเข้า', link: '/quiz/' },
+      { text: 'คลังข้อสอบเข้า', link: '/th/quiz/' },
       { text: 'เครื่องมือทั่วไป', link: '/th/tools/' },
     ],
   },
