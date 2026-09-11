@@ -1,120 +1,89 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-
-/* ========== 语言检测 ========== */
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
-})
+import { useLang } from '../composables/useLang.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
   zh: {
     search: '搜索笔记、总结、考题…',
     allCourses: '全部课程',
-    notes: '笔记',
-    summaries: '总结',
-    exams: '考题参考',
     lastUpdated: '更新于',
     noResults: '未找到相关内容',
     view: '查看',
-    download: '下载',
+    noLink: '暂无下载链接',
+    clearHistory: '清除阅读记录',
+    localOnly: '仅本机保存',
     typeLabels: { note: '课程笔记', summary: '重点总结', exam: '考题参考', resource: '学习资源' },
   },
   en: {
     search: 'Search notes, summaries, exams…',
     allCourses: 'All Courses',
-    notes: 'Notes',
-    summaries: 'Summaries',
-    exams: 'Past Exams',
     lastUpdated: 'Updated',
     noResults: 'No results found',
     view: 'View',
-    download: 'Download',
+    noLink: 'No download link yet',
+    clearHistory: 'Clear history',
+    localOnly: 'Stored on this device only',
     typeLabels: { note: 'Course Notes', summary: 'Key Summary', exam: 'Past Exam', resource: 'Resource' },
   },
   th: {
     search: 'ค้นหาโน้ต สรุป ข้อสอบ…',
     allCourses: 'ทุกวิชา',
-    notes: 'โน้ต',
-    summaries: 'สรุป',
-    exams: 'ข้อสอบเก่า',
     lastUpdated: 'อัปเดต',
     noResults: 'ไม่พบผลลัพธ์',
     view: 'ดู',
-    download: 'ดาวน์โหลด',
+    noLink: 'ยังไม่มีลิงก์ดาวน์โหลด',
+    clearHistory: 'ล้างประวัติการอ่าน',
+    localOnly: 'บันทึกเฉพาะเครื่องนี้',
     typeLabels: { note: 'โน้ตวิชา', summary: 'สรุปสำคัญ', exam: 'ข้อสอบเก่า', resource: 'ทรัพยากร' },
   },
 }
-const t = computed(() => i18n[currentLang.value])
+const { lang, t } = useLang(i18n)
 
-/* ========== Demo数据（待替换为真实数据） ========== */
-const courses = ref([
-  {
-    id: 'dmd',
-    name: { zh: '数据模型与决策', en: 'Data Modeling & Decision', th: 'การสร้างแบบจำลองข้อมูลและการตัดสินใจ' },
-    teacher: { zh: '黄达', en: 'Huang Da', th: 'หวง ต้า' },
-    color: '#5EC4AC',
-    icon: '📊',
-  },
-  {
-    id: 'mgmt-econ',
-    name: { zh: '管理经济学', en: 'Managerial Economics', th: 'เศรษฐศาสตร์การบริหาร' },
-    teacher: { zh: '罗云辉', en: 'Luo Yunhui', th: 'หลัว หยุนฮุย' },
-    color: '#007AFF',
-    icon: '📈',
-  },
-  {
-    id: 'accounting',
-    name: { zh: '会计学', en: 'Accounting', th: 'การบัญชี' },
-    teacher: { zh: '钟覃琳', en: 'Zhong Qinlin', th: 'จง ชินหลิน' },
-    color: '#FF9500',
-    icon: '📒',
-  },
-  {
-    id: 'marketing',
-    name: { zh: '营销管理', en: 'Marketing Management', th: 'การจัดการการตลาด' },
-    teacher: { zh: '待定', en: 'TBD', th: 'ยังไม่ระบุ' },
-    color: '#AF52DE',
-    icon: '🎯',
-  },
-  {
-    id: 'strategy',
-    name: { zh: '战略管理', en: 'Strategic Management', th: 'การบริหารเชิงกลยุทธ์' },
-    teacher: { zh: '待定', en: 'TBD', th: 'ยังไม่ระบุ' },
-    color: '#FF3B30',
-    icon: '♟️',
-  },
-  {
-    id: 'org-behavior',
-    name: { zh: '组织行为学', en: 'Organizational Behavior', th: 'พฤติกรรมองค์กร' },
-    teacher: { zh: '待定', en: 'TBD', th: 'ยังไม่ระบุ' },
-    color: '#5856D6',
-    icon: '🏢',
-  },
-  {
-    id: 'general',
-    name: { zh: '通用资料', en: 'General Resources', th: 'เอกสารทั่วไป' },
-    teacher: { zh: '学院', en: 'School', th: 'โรงเรียน' },
-    color: '#8E8E93',
-    icon: '📋',
-  },
-])
+/* ========== 数据（JSON 驱动） ========== */
+const courses = ref([])
+const documents = ref([])
 
-const documents = ref([
-  { id: 1, courseId: 'dmd', type: 'note', title: { zh: '第1讲：决策分析基础', en: 'Lecture 1: Decision Analysis Basics', th: 'บทที่ 1: พื้นฐานการวิเคราะห์การตัดสินใจ' }, author: '智库研究员', date: '2026-09-10', size: '2.3 MB' },
-  { id: 2, courseId: 'dmd', type: 'summary', title: { zh: 'DMD核心公式速查表', en: 'DMD Formula Cheat Sheet', th: 'ตารางสูตรสำคัญ DMD' }, author: '智库研究员', date: '2026-09-10', size: '0.8 MB' },
-  { id: 3, courseId: 'dmd', type: 'resource', title: { zh: '黄达老师推荐数学读物（3本）', en: 'Recommended Math Readings (3 books)', th: 'หนังสือคณิตศาสตร์ที่แนะนำ (3 เล่ม)' }, author: '黄达', date: '2026-09-10', size: '—' },
-  { id: 4, courseId: 'mgmt-econ', type: 'note', title: { zh: '第1讲：供需理论与市场均衡', en: 'Lecture 1: Supply-Demand & Market Equilibrium', th: 'บทที่ 1: อุปสงค์-อุปทานและความสมดุลตลาด' }, author: '智库研究员', date: '2026-09-13', size: '1.8 MB' },
-  { id: 5, courseId: 'accounting', type: 'note', title: { zh: '第1讲：财务会计基础', en: 'Lecture 1: Financial Accounting Basics', th: 'บทที่ 1: พื้นฐานการบัญชีการเงิน' }, author: '智库研究员', date: '2026-09-13', size: '2.1 MB' },
-  { id: 6, courseId: 'general', type: 'resource', title: { zh: '复旦大学MBA学生手册', en: 'Fudan MBA Student Handbook', th: 'คู่มือนักศึกษา MBA ม.ฝูด่าน' }, author: '学院', date: '2026-09-01', size: '5.2 MB' },
-  { id: 7, courseId: 'general', type: 'resource', title: { zh: '课程考勤与请假制度', en: 'Course Attendance & Leave Policy', th: 'ระเบียบการเข้าเรียนและการลา' }, author: '学院', date: '2026-09-01', size: '1.1 MB' },
-  { id: 8, courseId: 'general', type: 'resource', title: { zh: '管理学院图书馆使用指南', en: 'School of Management Library Guide', th: 'คู่มือการใช้ห้องสมุดโรงเรียนบริหาร' }, author: '学院', date: '2026-09-01', size: '0.9 MB' },
-  { id: 9, courseId: 'general', type: 'resource', title: { zh: '政立院区设施使用说明', en: 'Zhengli Campus Facilities Guide', th: 'คู่มือสิ่งอำนวยความสะดวก วิทยาเขตเจิ้งหลี่' }, author: '学院', date: '2026-09-01', size: '1.5 MB' },
-])
+/* ========== 阅读进度（localStorage） ========== */
+const STORAGE_KEY = 'mint4:kb:v1'
+const readIds = ref([])
+const toast = ref('')
+let toastTimer = null
+
+const loadReadIds = () => {
+  try {
+    readIds.value = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []
+  } catch {
+    readIds.value = []
+  }
+}
+const saveReadIds = () => {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(readIds.value)) } catch {}
+}
+const isRead = (id) => readIds.value.includes(id)
+
+const showToast = (msg) => {
+  toast.value = msg
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = ''), 2200)
+}
+
+const openDoc = (doc) => {
+  if (!isRead(doc.id)) {
+    readIds.value.push(doc.id)
+    saveReadIds()
+  }
+  if (doc.url) {
+    window.open(doc.url, '_blank', 'noopener')
+  } else {
+    showToast(t.value.noLink)
+  }
+}
+
+const clearHistory = () => {
+  readIds.value = []
+  saveReadIds()
+}
 
 /* ========== 搜索与筛选 ========== */
 const searchQuery = ref('')
@@ -128,6 +97,7 @@ const filteredDocs = computed(() => {
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(d =>
+      (d.title[lang.value] || '').toLowerCase().includes(q) ||
       d.title.zh.toLowerCase().includes(q) ||
       d.title.en.toLowerCase().includes(q)
     )
@@ -136,22 +106,41 @@ const filteredDocs = computed(() => {
 })
 
 const courseDocCount = (courseId) => documents.value.filter(d => d.courseId === courseId).length
+const courseById = (id) => courses.value.find(c => c.id === id)
 
 /* ========== 格式化 ========== */
 const formatDate = (dateStr) => {
   const d = new Date(dateStr)
-  if (currentLang.value === 'zh') return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
-  return d.toLocaleDateString(currentLang.value === 'en' ? 'en-US' : 'th-TH', { year: 'numeric', month: 'short', day: 'numeric' })
+  if (lang.value === 'zh') return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
+  return d.toLocaleDateString(lang.value === 'en' ? 'en-US' : 'th-TH', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 const typeIcon = (type) => {
-  const map = { note: '📝', summary: '📋', exam: '📄', resource: '📚' }
+  const map = { note: '📝', summary: '📋', exam: '📄', resource: '📦' }
   return map[type] || '📄'
 }
+
+onMounted(async () => {
+  loadReadIds()
+  try {
+    const res = await fetch('/data/knowledge-base.json')
+    const data = await res.json()
+    courses.value = data.courses || []
+    documents.value = data.documents || []
+  } catch (e) {
+    console.warn('knowledge base data load failed', e)
+  }
+})
 </script>
 
 <template>
   <div class="knowledge-page">
+    <!-- 工具行：清除阅读记录 -->
+    <div class="kb-toolbar">
+      <span class="local-note">🔒 {{ t.localOnly }}</span>
+      <button class="clear-btn" @click="clearHistory">{{ t.clearHistory }}</button>
+    </div>
+
     <!-- 搜索框 -->
     <div class="search-box">
       <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -165,7 +154,7 @@ const typeIcon = (type) => {
       />
     </div>
 
-    <!-- 课程分类标签 -->
+    <!-- 课程分类标签（横向滚动 chip） -->
     <div class="course-tabs">
       <button
         class="course-tab"
@@ -182,37 +171,41 @@ const typeIcon = (type) => {
         @click="activeCourse = course.id"
       >
         <span class="tab-icon">{{ course.icon }}</span>
-        <span class="tab-name">{{ course.name[currentLang] }}</span>
+        <span class="tab-name">{{ course.name[lang] }}</span>
         <span class="tab-count">{{ courseDocCount(course.id) }}</span>
       </button>
     </div>
 
-    <!-- 文档列表 -->
+    <!-- 文档卡片网格 -->
     <div class="doc-list" v-if="filteredDocs.length > 0">
-      <div
+      <article
         v-for="doc in filteredDocs"
         :key="doc.id"
         class="doc-card"
+        :class="{ read: isRead(doc.id) }"
+        @click="openDoc(doc)"
       >
         <div class="doc-icon">{{ typeIcon(doc.type) }}</div>
         <div class="doc-info">
           <span class="doc-type">{{ t.typeLabels[doc.type] }}</span>
-          <h4 class="doc-title">{{ doc.title[currentLang] }}</h4>
+          <h4 class="doc-title">{{ doc.title[lang] }}</h4>
           <div class="doc-meta">
+            <span v-if="courseById(doc.courseId)" class="doc-course" :style="{ '--chip-color': courseById(doc.courseId).color }">
+              {{ courseById(doc.courseId).name[lang] }}
+            </span>
             <span>{{ doc.author }}</span>
             <span class="meta-dot">·</span>
-            <span>{{ t.lastUpdated }} {{ formatDate(doc.date) }}</span>
+            <span>{{ formatDate(doc.date) }}</span>
             <span v-if="doc.size !== '—'" class="meta-dot">·</span>
             <span v-if="doc.size !== '—'">{{ doc.size }}</span>
           </div>
         </div>
-        <button class="doc-action">
-          {{ t.view }}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </button>
-      </div>
+        <!-- 阅读进度环 -->
+        <svg class="read-ring" width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="8" fill="none" stroke="var(--c-border)" stroke-width="2"
+            :class="{ filled: isRead(doc.id) }" />
+        </svg>
+      </article>
     </div>
 
     <!-- 空状态 -->
@@ -222,6 +215,11 @@ const typeIcon = (type) => {
       </svg>
       <p>{{ t.noResults }}</p>
     </div>
+
+    <!-- 轻提示 -->
+    <transition name="kb-toast">
+      <div v-if="toast" class="kb-toast">{{ toast }}</div>
+    </transition>
   </div>
 </template>
 
@@ -232,10 +230,34 @@ const typeIcon = (type) => {
   padding: 0 24px 60px;
 }
 
+/* 工具行 */
+.kb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.local-note {
+  font-size: var(--text-xs);
+  color: var(--c-text-tertiary);
+}
+.clear-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--text-xs);
+  color: var(--c-text-tertiary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color var(--transition-fast);
+}
+.clear-btn:hover { color: var(--c-coral); }
+
 /* 搜索框 */
 .search-box {
   position: relative;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 .search-icon {
   position: absolute;
@@ -265,7 +287,7 @@ const typeIcon = (type) => {
   color: var(--c-text-tertiary);
 }
 
-/* 课程分类标签 */
+/* 课程分类标签（chip 横向滚动） */
 .course-tabs {
   display: flex;
   gap: 8px;
@@ -273,6 +295,7 @@ const typeIcon = (type) => {
   overflow-x: auto;
   padding-bottom: 4px;
   scrollbar-width: none;
+  flex-wrap: nowrap;
 }
 .course-tabs::-webkit-scrollbar { display: none; }
 .course-tab {
@@ -281,8 +304,8 @@ const typeIcon = (type) => {
   gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--c-border);
-  border-radius: 20px;
-  background: var(--c-bg-secondary);
+  border-radius: var(--radius-full);
+  background: var(--c-bg-card);
   color: var(--c-text-secondary);
   font-size: 13px;
   cursor: pointer;
@@ -298,7 +321,7 @@ const typeIcon = (type) => {
 .course-tab.active {
   background: var(--c-accent);
   border-color: var(--c-accent);
-  color: #fff;
+  color: var(--c-text-inverse);
 }
 .tab-icon { font-size: 14px; }
 .tab-name { font-weight: 500; }
@@ -325,14 +348,15 @@ const typeIcon = (type) => {
   align-items: center;
   gap: 16px;
   padding: 18px 20px;
-  background: var(--c-bg-secondary);
+  background: var(--c-bg-card);
   border: 1px solid var(--c-border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 .doc-card:hover {
-  border-color: var(--c-accent-light);
-  transform: translateY(-1px);
+  border-color: var(--c-border-accent);
+  transform: translateY(-2px);
 }
 .doc-icon {
   width: 44px;
@@ -365,6 +389,10 @@ const typeIcon = (type) => {
   color: var(--c-text-primary);
   margin: 0 0 6px 0;
   line-height: 1.4;
+  transition: color var(--transition-base);
+}
+.doc-card.read .doc-title {
+  color: var(--c-text-tertiary);
 }
 .doc-meta {
   display: flex;
@@ -375,27 +403,51 @@ const typeIcon = (type) => {
   flex-wrap: wrap;
 }
 .meta-dot { opacity: 0.5; }
-
-.doc-action {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 14px;
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--c-text-secondary);
-  font-size: 13px;
+.doc-course {
+  color: var(--chip-color, var(--c-accent));
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  font-family: inherit;
 }
-.doc-action:hover {
-  border-color: var(--c-accent);
-  color: var(--c-accent);
-  background: var(--c-accent-light);
+
+/* 阅读进度环 */
+.read-ring {
+  flex-shrink: 0;
+}
+.read-ring circle {
+  transition: stroke-dashoffset var(--transition-base), stroke var(--transition-base);
+  stroke: var(--c-border);
+}
+.read-ring circle.filled {
+  stroke: var(--c-accent);
+  /* 整圆填满：dasharray = 周长 ≈ 50.27 */
+  stroke-dasharray: 50.27;
+  stroke-dashoffset: 0;
+}
+
+/* 轻提示 */
+.kb-toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--c-bg-glass-strong);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--c-text-primary);
+  font-size: var(--text-sm);
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow-float);
+  z-index: var(--z-toast);
+}
+.kb-toast-enter-active,
+.kb-toast-leave-active {
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+.kb-toast-enter-from,
+.kb-toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
 }
 
 /* 空状态 */
@@ -433,10 +485,5 @@ const typeIcon = (type) => {
     height: 38px;
     font-size: 18px;
   }
-  .doc-action {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-  .doc-action svg { display: none; }
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import DeadlinePill from './DeadlinePill.vue'
 
 /* ========== 语言检测 ========== */
 const currentLang = ref('zh')
@@ -23,6 +24,7 @@ const i18n = {
     noAnnouncements: '暂无公告',
     postedOn: '发布于',
     new: '新',
+    deadlineOn: '截止',
   },
   en: {
     all: 'All',
@@ -35,6 +37,7 @@ const i18n = {
     noAnnouncements: 'No announcements',
     postedOn: 'Posted',
     new: 'New',
+    deadlineOn: 'Due',
   },
   th: {
     all: 'ทั้งหมด',
@@ -47,6 +50,7 @@ const i18n = {
     noAnnouncements: 'ไม่มีประกาศ',
     postedOn: 'เผยแพร่',
     new: 'ใหม่',
+    deadlineOn: 'กำหนดส่ง',
   },
 }
 const t = computed(() => i18n[currentLang.value])
@@ -121,6 +125,17 @@ const categoryStyle = (cat) => {
   }
   return map[cat] || map.normal
 }
+
+/* ========== 三级视觉权重配色（方案2.1） ==========
+   level-1 一级：pinned=true 或 category=important → 深薄荷实心底 + 白字
+   level-2 二级：normal / academic → 白底 + 左侧4px薄荷竖条
+   level-3 三级：activity → 浅灰描边卡
+   仅升级卡片底色/边框，与现有 categoryStyle chip 共存，不删除 chip */
+const weightClass = (item) => {
+  if (item.pinned || item.category === 'important') return 'announcement-card--level-1'
+  if (item.category === 'activity') return 'announcement-card--level-3'
+  return 'announcement-card--level-2'
+}
 </script>
 
 <template>
@@ -144,7 +159,7 @@ const categoryStyle = (cat) => {
         v-for="item in filtered"
         :key="item.id"
         class="announcement-card"
-        :class="{ pinned: item.pinned, expanded: isExpanded(item.id) }"
+        :class="[weightClass(item), { pinned: item.pinned, expanded: isExpanded(item.id) }]"
       >
         <div class="announcement-header" @click="toggle(item.id)">
           <div class="announcement-meta">
@@ -152,6 +167,7 @@ const categoryStyle = (cat) => {
               {{ categories.find(c => c.key === item.category)?.label }}
             </span>
             <span v-if="item.pinned" class="pinned-badge">📌</span>
+            <DeadlinePill v-if="item.deadline" :deadline="item.deadline" size="sm" />
             <span class="announcement-date">{{ formatDate(item.date) }}</span>
           </div>
           <h3 class="announcement-title">{{ item.title[currentLang] }}</h3>
@@ -165,6 +181,10 @@ const categoryStyle = (cat) => {
         </div>
         <transition name="content-expand">
           <div v-if="isExpanded(item.id)" class="announcement-content">
+            <div v-if="item.deadline" class="deadline-static-chip">
+              <span class="deadline-static-label">{{ t.deadlineOn }}</span>
+              <span>{{ formatDate(item.deadline) }}</span>
+            </div>
             <div class="content-divider"></div>
             <p>{{ item.content[currentLang] }}</p>
           </div>
@@ -234,6 +254,59 @@ const categoryStyle = (cat) => {
   border-left: 3px solid var(--c-accent);
 }
 
+/* ========== 方案2.1：三级视觉权重配色 ========== */
+/* 一级：深薄荷实心底 + 白字 */
+.announcement-card--level-1 {
+  background: var(--c-accent-dark);
+  border-color: var(--c-accent-dark);
+}
+.announcement-card--level-1:hover {
+  border-color: var(--c-accent-dark);
+}
+.announcement-card--level-1 .announcement-title {
+  color: var(--c-text-inverse);
+}
+.announcement-card--level-1 .announcement-summary {
+  color: var(--c-text-inverse);
+  opacity: 0.85;
+}
+.announcement-card--level-1 .announcement-date {
+  color: var(--c-text-inverse);
+  opacity: 0.75;
+}
+.announcement-card--level-1 .expand-btn {
+  color: var(--c-text-inverse);
+}
+.announcement-card--level-1 .expand-btn:hover {
+  background: var(--c-accent-glow);
+}
+.announcement-card--level-1 .content-divider {
+  background: var(--c-text-inverse);
+  opacity: 0.25;
+}
+.announcement-card--level-1 .announcement-content p {
+  color: var(--c-text-inverse);
+  opacity: 0.9;
+}
+.announcement-card--level-1 .deadline-static-chip {
+  border-color: var(--c-text-inverse);
+  background: transparent;
+  color: var(--c-text-inverse);
+}
+
+/* 二级：白底 + 左侧4px薄荷竖条 */
+.announcement-card--level-2 {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-accent);
+}
+
+/* 三级：浅灰描边卡 */
+.announcement-card--level-3 {
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+}
+
 .announcement-header {
   padding: 20px 24px;
   cursor: pointer;
@@ -242,6 +315,7 @@ const categoryStyle = (cat) => {
 .announcement-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -302,6 +376,23 @@ const categoryStyle = (cat) => {
 /* 展开内容 */
 .announcement-content {
   padding: 0 24px 20px;
+}
+/* 展开态静态截止 chip（高亮截止日期） */
+.deadline-static-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-accent-light);
+  color: var(--c-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+.deadline-static-label {
+  opacity: 0.7;
 }
 .content-divider {
   height: 1px;

@@ -1,0 +1,94 @@
+{
+  "stats": { "totalStudents": 50, "industries": 8, "referrals": 4 },
+  "industries": [
+    { "key": "finance",     "name": { "zh": "金融",     "en": "Finance",      "th": "การเงิน" },       "count": 10, "color": "#2d7a6c" },
+    { "key": "tech",        "name": { "zh": "科技",     "en": "Tech",         "th": "เทคโนโลยี" },     "count": 9,  "color": "#5ec4ac" },
+    { "key": "consulting",  "name": { "zh": "咨询",     "en": "Consulting",   "th": "ที่ปรึกษา" },     "count": 6,  "color": "#007aff" },
+    { "key": "manufacture", "name": { "zh": "制造",     "en": "Manufacturing","th": "การผลิต" },       "count": 5,  "color": "#ff9500" },
+    { "key": "healthcare",  "name": { "zh": "医疗",     "en": "Healthcare",   "th": "การแพทย์" },      "count": 4,  "color": "#af52de" },
+    { "key": "consumer",    "name": { "zh": "消费",     "en": "Consumer",     "th": "สินค้าอุปโภค" },  "count": 4,  "color": "#ff6b6b" },
+    { "key": "other",       "name": { "zh": "其他",     "en": "Others",       "th": "อื่นๆ" },         "count": 12, "color": "#8e8e93" }
+  ],
+  "referrals": [
+    {
+      "id": "ref-001",
+      "company": { "zh": "星舟科技", "en": "StellarTech", "th": "สตาร์ลาร์เทค" },
+      "role": { "zh": "高级产品经理", "en": "Senior Product Manager", "th": "ผู้จัดการผลิตภัณฑ์อาวุโส" },
+      "referrer": "老王",
+      "contact": "laowang@example.com",
+      "expires": "2026-10-01",
+      "status": "open"
+    },
+    {
+      "id": "ref-002",
+      "company": { "zh": "恒信资本", "en": "Hengxin Capital", "th": "เฮิงซิน แคปปิตอล" },
+      "role": { "zh": "投资经理", "en": "Investment Manager", "th": "ผู้จัดการฝ่ายการลงทุน" },
+      "referrer": "Ada",
+      "contact": "ada@example.com",
+      "expires": "2026-09-25",
+      "status": "open"
+    },
+    {
+      "id": "ref-003",
+      "company": { "zh": "明睿咨询", "en": "Mingrui Consulting", "th": "มิงรุ่ย คอนซัลติ้ง" },
+      "role": { "zh": "战略顾问（Associate）", "en": "Strategy Associate", "th": "ที่ปรึกษากลยุทธ์" },
+      "referrer": "Echo",
+      "contact": "echo@example.com",
+      "expires": "2026-09-20",
+      "status": "open"
+    },
+    {
+      "id": "ref-004",
+      "company": { "zh": "云启智能", "en": "CloudPilot AI", "th": "คลาวด์ไพลอต เอไอ" },
+      "role": { "zh": "商业化分析师", "en": "Commercialization Analyst", "th": "นักวิเคราะห์การตลาดเชิงพาณิชย์" },
+      "referrer": "Leo",
+      "contact": "leo@example.com",
+      "expires": "2026-08-31",
+      "status": "closed"
+    }
+  ],
+  "resources": [
+    {
+      "id": "res-001",
+      "title": { "zh": "MBA 简历模板（咨询/金融方向）", "en": "MBA Resume Template (Consulting/Finance)", "th": "เทมเพลตเรซูเม่ MBA (ที่ปรึกษา/การเงิน)" },
+      "desc": { "zh": "班级学长学姐整理的简历模板，按咨询与金融方向分类。", "en": "Resume templates curated by alumni, split by consulting and finance tracks.", "th": "เทมเพลตเรซูเม่ที่ศิษย์เก่าจัดทำ แยกตามสายที่ปรึกษาและการเงิน" },
+      "category": "resume",
+      "url": "https://example.com/resume-template"
+    },
+    {
+      "id": "res-002",
+      "title": { "zh": "行为面试（BEI）问答库", "en": "Behavioral Interview Question Bank", "th": "คลังคำถามสัมภาษณ์เชิงพฤติกรรม" },
+      "desc": { "zh": "STAR 法则实战问答，覆盖领导力、团队冲突、失败复盘等高频题。", "en": "STAR-method practice questions covering leadership, conflict, and failure stories.", "th": "คำถามฝึกฝนตามหลัก STAR ครอบคลุมภาวะผู้นำ ความขัดแย้ง และบทเรียนจากความล้มเหลว" },
+      "category": "interview",
+      "url": "https://example.com/bei-questions"
+    },
+    {
+      "id": "res-003",
+      "title": { "zh": "2026 中国金融行业报告合集", "en": "China Finance Industry Report Collection 2026", "th": "รวมรายงานอุตสาหกรรมการเงินจีน 2569" },
+      "desc": { "zh": "券商研报精华汇编，覆盖银行、券商、资管三条主线。", "en": "Curated sell-side research highlights across banking, securities, and asset management.", "th": "รวมบทวิจัยจากโบรกเกอร์ ครอบคลุมธนาคาร หลักทรัพย์ และการบริหารสินทรัพย์" },
+      "category": "report",
+      "url": "https://example.com/finance-reports"
+    },
+    {
+      "id": "res-004",
+      "title": { "zh": "2026 科技行业趋势洞察", "en": "Tech Industry Trend Insights 2026", "th": "ภาพรวมแนวโน้มอุตสาหกรรมเทคโนโลยี 2569" },
+      "desc": { "zh": "AI 应用、出海、硬科技投资一线观察笔记。", "en": "Frontline notes on AI applications, going-global, and hard-tech investing.", "th": "บันทึกภาคสนามเรื่องแอปพลิเคชัน AI การขยายสู่ตลาดโลก และการลงทุนฮาร์ดเทค" },
+      "category": "report",
+      "url": "https://example.com/tech-insights"
+    },
+    {
+      "id": "res-005",
+      "title": { "zh": "上海应届生落户政策解读", "en": "Shanghai Fresh-Graduate Household Registration Guide", "th": "คู่มือนโยบายการลงทะเบียนถิ่นที่อยู่เซี่ยงไฮ้สำหรับบัณฑิตจบใหม่" },
+      "desc": { "zh": "2026 年最新落户评分细则与 MBA 加分项梳理。", "en": "Latest 2026 scoring rules and MBA bonus points explained.", "th": "อธิบายเกณฑ์คะแนนปี 2569 และส่วนเพิ่มสำหรับ MBA" },
+      "category": "policy",
+      "url": "https://example.com/shanghai-hukou"
+    },
+    {
+      "id": "res-006",
+      "title": { "zh": "群面案例讨论入门指南", "en": "Group Case Interview Primer", "th": "คู่มือเริ่มต้นสัมภาษณ์กรณีศึกษาแบบกลุ่ม" },
+      "desc": { "zh": "无领导小组讨论的角色分工与推进话术。", "en": "Role division and facilitation scripts for leaderless group discussions.", "th": "การแบ่งบทบาทและบทพูดนำกลุ่มสำหรับการอภิปรายแบบไม่มีหัวหน้ากลุ่ม" },
+      "category": "interview",
+      "url": "https://example.com/group-case"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 <script setup>
 import DefaultTheme from 'vitepress/theme'
 import MobileTabBar from './components/MobileTabBar.vue'
+import TodayFooterPill from './components/TodayFooterPill.vue'
 import { useScrollReveal } from './composables/useScrollReveal'
 import { onMounted, watch, nextTick } from 'vue'
 import { useData } from 'vitepress'
@@ -52,6 +53,8 @@ onMounted(() => {
 <template>
   <DefaultTheme.Layout>
     <template #layout-bottom>
+      <!-- 全站"今天"页脚胶囊（C1） -->
+      <TodayFooterPill />
       <!-- 移动端底部 Tab Bar（仅 <768px 显示） -->
       <MobileTabBar />
     </template>

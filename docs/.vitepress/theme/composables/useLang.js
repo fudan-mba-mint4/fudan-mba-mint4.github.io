@@ -11,10 +11,12 @@ let detected = false
 export function useLang(i18nDict) {
   if (!detected) {
     detected = true
-    const path = window.location.pathname
-    if (path.startsWith('/en/')) lang.value = 'en'
-    else if (path.startsWith('/th/')) lang.value = 'th'
-    else lang.value = 'zh'
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname
+      if (path.startsWith('/en/')) lang.value = 'en'
+      else if (path.startsWith('/th/')) lang.value = 'th'
+      else lang.value = 'zh'
+    }
   }
 
   const t = computed(() => {

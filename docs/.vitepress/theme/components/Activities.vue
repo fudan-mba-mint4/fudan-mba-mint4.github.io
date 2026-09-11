@@ -1,64 +1,59 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-
-/* ========== 语言检测 ========== */
-const currentLang = ref('zh')
-onMounted(() => {
-  const path = window.location.pathname
-  if (path.startsWith('/en/')) currentLang.value = 'en'
-  else if (path.startsWith('/th/')) currentLang.value = 'th'
-  else currentLang.value = 'zh'
-})
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useLang, formatDate, formatRelative } from '../composables/useLang'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
   zh: {
-    upcoming: '即将到来',
-    past: '往期活动',
-    all: '全部',
+    nextEvent: '下一场活动',
+    countdownLabel: '距离开始',
+    days: '天',
+    hours: '小时',
+    spotsLeft: '剩余名额',
+    full: '已满员',
+    noUpcoming: '近期无活动 · 关注公告',
+    todayDivider: '今天',
     register: '报名',
-    registered: '已报名',
     ended: '已结束',
-    location: '地点',
-    organizer: '主办',
     noActivities: '暂无活动',
-    daysLeft: '天后',
-    today: '今天',
-    tomorrow: '明天',
     people: '人',
+    album: '相册',
+    involvesFinance: '涉及班费',
   },
   en: {
-    upcoming: 'Upcoming',
-    past: 'Past Events',
-    all: 'All',
+    nextEvent: 'Next event',
+    countdownLabel: 'Starts in',
+    days: 'd',
+    hours: 'h',
+    spotsLeft: 'Spots left',
+    full: 'Full',
+    noUpcoming: 'No upcoming events · Check announcements',
+    todayDivider: 'Today',
     register: 'Register',
-    registered: 'Registered',
     ended: 'Ended',
-    location: 'Location',
-    organizer: 'Organizer',
     noActivities: 'No activities',
-    daysLeft: 'days left',
-    today: 'Today',
-    tomorrow: 'Tomorrow',
     people: 'people',
+    album: 'Photo album',
+    involvesFinance: 'Class fund involved',
   },
   th: {
-    upcoming: 'กิจกรรมที่กำลังจะมาถึง',
-    past: 'กิจกรรมที่ผ่านมา',
-    all: 'ทั้งหมด',
+    nextEvent: 'กิจกรรมถัดไป',
+    countdownLabel: 'เริ่มใน',
+    days: 'วัน',
+    hours: 'ชม.',
+    spotsLeft: 'ที่ว่าง',
+    full: 'เต็มแล้ว',
+    noUpcoming: 'ไม่มีกิจกรรมที่จะมาถึง · ดูประกาศ',
+    todayDivider: 'วันนี้',
     register: 'ลงทะเบียน',
-    registered: 'ลงทะเบียนแล้ว',
     ended: 'จบแล้ว',
-    location: 'สถานที่',
-    organizer: 'ผู้จัด',
     noActivities: 'ไม่มีกิจกรรม',
-    daysLeft: 'วัน',
-    today: 'วันนี้',
-    tomorrow: 'พรุ่งนี้',
     people: 'คน',
+    album: 'อัลบั้มภาพ',
+    involvesFinance: 'เกี่ยวกองทุนชั้นเรียน',
   },
 }
-const t = computed(() => i18n[currentLang.value])
+const { lang, t } = useLang(i18n)
 
 /* ========== 活动数据（从JSON读取） ========== */
 const activities = ref([])
@@ -72,116 +67,208 @@ onMounted(async () => {
   }
 })
 
-/* ========== 筛选 ========== */
-const filter = ref('upcoming')
-const today = new Date()
-today.setHours(0, 0, 0, 0)
+/* ========== 时钟（每分钟刷新一次，倒计时不秒跳） ========== */
+const now = ref(new Date())
+let clockTimer = null
+onMounted(() => {
+  clockTimer = setInterval(() => { now.value = new Date() }, 60000)
+})
+onUnmounted(() => { if (clockTimer) clearInterval(clockTimer) })
 
-const isUpcoming = (act) => new Date(act.date) >= today
-const filtered = computed(() => {
-  let list = [...activities.value]
-  if (filter.value === 'upcoming') list = list.filter(isUpcoming)
-  if (filter.value === 'past') list = list.filter(a => !isUpcoming(a))
-  return list.sort((a, b) => {
-    if (filter.value === 'past') return new Date(b.date) - new Date(a.date)
-    return new Date(a.date) - new Date(b.date)
-  })
+const todayStart = computed(() => {
+  const d = new Date(now.value)
+  d.setHours(0, 0, 0, 0)
+  return d
 })
 
-/* ========== 格式化 ========== */
-const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
-  const weekdays = currentLang.value === 'zh'
-    ? ['周日','周一','周二','周三','周四','周五','周六']
-    : currentLang.value === 'en'
-    ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-    : ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.']
-  if (currentLang.value === 'zh') return `${d.getMonth()+1}月${d.getDate()}日 ${weekdays[d.getDay()]}`
-  if (currentLang.value === 'en') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })
-  return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric', weekday: 'short' })
-}
+const isUpcoming = (act) =>
+  new Date(act.date) >= todayStart.value && act.status !== 'ended'
 
-const daysUntil = (dateStr) => {
-  const diff = Math.ceil((new Date(dateStr) - today) / (1000 * 60 * 60 * 24))
-  if (diff === 0) return t.value.today
-  if (diff === 1) return t.value.tomorrow
-  return `${diff} ${t.value.daysLeft}`
-}
+/* ========== 方案4.3：下一场活动 Hero 巨幕倒计时 ========== */
+const nextEvent = computed(() => {
+  const upcoming = activities.value
+    .filter(a => isUpcoming(a))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+  return upcoming[0] || null
+})
 
-const registrationProgress = (act) => Math.min(100, Math.round((act.registered / act.capacity) * 100))
+/* 30 天内才升级为 Hero，否则占位 */
+const heroEvent = computed(() => {
+  if (!nextEvent.value) return null
+  const diff = new Date(nextEvent.value.date) - now.value
+  if (diff > 30 * 24 * 60 * 60 * 1000) return null
+  return nextEvent.value
+})
+
+const heroCountdown = computed(() => {
+  if (!heroEvent.value) return { days: 0, hours: 0 }
+  const diff = new Date(heroEvent.value.date) - now.value
+  if (diff <= 0) return { days: 0, hours: 0 }
+  return {
+    days: Math.floor(diff / 86400000),
+    hours: Math.floor((diff % 86400000) / 3600000),
+  }
+})
+
+/* Hero 报名进度环 */
+const RING_R = 26
+const RING_C = 2 * Math.PI * RING_R
+const ringOffset = computed(() => {
+  if (!heroEvent.value) return RING_C
+  const p = Math.min(1, heroEvent.value.registered / heroEvent.value.capacity)
+  return RING_C * (1 - p)
+})
+const heroFull = computed(
+  () => !!heroEvent.value && heroEvent.value.registered >= heroEvent.value.capacity
+)
+
+/* ========== 方案4.1：垂直脊柱时间线（按日期倒序） ========== */
+const sortedEvents = computed(() =>
+  [...activities.value].sort((a, b) => new Date(b.date) - new Date(a.date))
+)
+
+const registrationProgress = (act) =>
+  Math.min(100, Math.round((act.registered / act.capacity) * 100))
+
+/* 是否为"今天"分割点：当前未来活动，且下一个已非未来活动 */
+const isTodayDivider = (idx) => {
+  const cur = sortedEvents.value[idx]
+  const nxt = sortedEvents.value[idx + 1]
+  return isUpcoming(cur) && (!nxt || !isUpcoming(nxt))
+}
 </script>
 
 <template>
   <div class="activities-page">
-    <!-- 筛选标签 -->
-    <div class="filter-tabs">
-      <button
-        v-for="opt in [{key:'upcoming',label:t.upcoming},{key:'past',label:t.past}]"
-        :key="opt.key"
-        class="filter-tab"
-        :class="{ active: filter === opt.key }"
-        @click="filter = opt.key"
-      >
-        {{ opt.label }}
-      </button>
-    </div>
+    <!-- ===== Hero 巨幕倒计时 ===== -->
+    <section
+      class="hero"
+      :class="{ 'hero--cover': heroEvent && heroEvent.tags && heroEvent.tags.cover }"
+    >
+      <div
+        v-if="heroEvent && heroEvent.tags && heroEvent.tags.cover"
+        class="hero-bg"
+        :style="{ backgroundImage: `url(${heroEvent.tags.cover})` }"
+      ></div>
+      <div class="hero-scrim"></div>
 
-    <!-- 活动列表 -->
-    <div class="activity-list" v-if="filtered.length > 0">
-      <article
-        v-for="act in filtered"
-        :key="act.id"
-        class="activity-card"
-        :class="{ ended: act.status === 'ended' }"
-      >
-        <!-- 左侧日期块 -->
-        <div class="activity-date-block">
-          <span class="date-month">{{ new Date(act.date).toLocaleDateString(currentLang === 'zh' ? 'zh-CN' : currentLang === 'en' ? 'en-US' : 'th-TH', { month: 'short' }) }}</span>
-          <span class="date-day">{{ new Date(act.date).getDate() }}</span>
-          <span class="date-badge" v-if="isUpcoming(act) && act.status === 'open'">{{ daysUntil(act.date) }}</span>
+      <div v-if="heroEvent" class="hero-body">
+        <!-- 左：倒计时 -->
+        <div class="hero-left">
+          <span class="hero-eyebrow">{{ t.nextEvent }}</span>
+          <div class="hero-countdown">
+            <span class="hero-cd-block">
+              <span class="hero-cd-num">{{ heroCountdown.days }}</span>
+              <span class="hero-cd-unit">{{ t.days }}</span>
+            </span>
+            <span class="hero-cd-block">
+              <span class="hero-cd-num">{{ heroCountdown.hours }}</span>
+              <span class="hero-cd-unit">{{ t.hours }}</span>
+            </span>
+          </div>
+          <span class="hero-countdown-label">{{ t.countdownLabel }}</span>
         </div>
 
-        <!-- 右侧内容 -->
-        <div class="activity-content">
-          <div class="activity-header">
-            <h3 class="activity-title">{{ act.title[currentLang] }}</h3>
-            <span class="activity-status" :class="act.status">
-              {{ act.status === 'open' ? t.register : act.status === 'ended' ? t.ended : t.registered }}
-            </span>
+        <!-- 中：标题与地点 -->
+        <div class="hero-main">
+          <h2 class="hero-title">{{ heroEvent.title[lang] }}</h2>
+          <div class="hero-meta">
+            <span class="hero-meta-item">🕒 {{ heroEvent.time }}</span>
+            <span class="hero-meta-item">📍 {{ heroEvent.location[lang] }}</span>
           </div>
+        </div>
 
-          <div class="activity-meta">
-            <span class="meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              {{ act.time }}
-            </span>
-            <span class="meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              {{ act.location[currentLang] }}
-            </span>
-            <span class="meta-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              {{ act.organizer[currentLang] }}
-            </span>
+        <!-- 右：剩余名额进度环 -->
+        <div class="hero-right">
+          <div class="hero-ring-wrap">
+            <svg class="hero-ring" viewBox="0 0 60 60" width="64" height="64">
+              <circle cx="30" cy="30" :r="RING_R" fill="none"
+                stroke="rgba(255,255,255,0.28)" stroke-width="5" />
+              <circle cx="30" cy="30" :r="RING_R" fill="none"
+                stroke="#ffffff" stroke-width="5" stroke-linecap="round"
+                :stroke-dasharray="RING_C" :stroke-dashoffset="ringOffset"
+                transform="rotate(-90 30 30)" />
+            </svg>
+            <span class="hero-ring-text" v-if="heroFull">✓</span>
+            <span class="hero-ring-text hero-ring-count" v-else>{{ heroEvent.registered }}/{{ heroEvent.capacity }}</span>
           </div>
+          <span class="hero-ring-label" v-if="heroFull">{{ t.full }}</span>
+          <span class="hero-ring-label" v-else>{{ t.spotsLeft }}</span>
+        </div>
+      </div>
 
-          <p class="activity-desc">{{ act.description[currentLang] }}</p>
+      <!-- 无未来活动兜底 -->
+      <div v-else class="hero-body hero-body--empty">
+        <p class="hero-empty-text">{{ t.noUpcoming }}</p>
+      </div>
+    </section>
 
-          <!-- 报名进度（信息展示，无交互按钮） -->
-          <div class="signup-section" v-if="act.status !== 'ended'">
-            <div class="signup-progress">
-              <div class="progress-bar"><div class="progress-fill" :style="{ width: registrationProgress(act) + '%' }"></div></div>
-              <span class="signup-count">{{ act.registered }}/{{ act.capacity }} {{ t.people }}</span>
+    <!-- ===== 垂直脊柱时间线 ===== -->
+    <div class="timeline" v-if="sortedEvents.length">
+      <template v-for="(act, idx) in sortedEvents" :key="act.id">
+        <div class="timeline-item" :class="{ future: isUpcoming(act), past: !isUpcoming(act) }">
+          <span class="timeline-dot"></span>
+          <article class="tl-card">
+            <div class="tl-card-head">
+              <!-- 日期块 -->
+              <div class="tl-date-block">
+                <span class="tl-month">{{ formatDate(act.date, { month: 'short' }) }}</span>
+                <span class="tl-day">{{ new Date(act.date).getDate() }}</span>
+              </div>
+
+              <div class="tl-main">
+                <div class="tl-title-row">
+                  <h3 class="tl-title">{{ act.title[lang] }}</h3>
+                  <span v-if="isUpcoming(act)" class="tl-soon">{{ formatRelative(act.date) }}</span>
+                  <span v-else class="tl-ended">{{ t.ended }}</span>
+                </div>
+
+                <div class="tl-meta">
+                  <span class="tl-meta-item">🕒 {{ act.time }}</span>
+                  <span class="tl-meta-item">📍 {{ act.location[lang] }}</span>
+                  <span class="tl-meta-item">👤 {{ act.organizer[lang] }}</span>
+                </div>
+
+                <p class="tl-desc">{{ act.description[lang] }}</p>
+
+                <!-- 报名进度（未来活动） -->
+                <div class="tl-progress" v-if="isUpcoming(act)">
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: registrationProgress(act) + '%' }"></div>
+                  </div>
+                  <span class="progress-count">{{ act.registered }}/{{ act.capacity }} {{ t.people }}</span>
+                </div>
+
+                <!-- 回顾摘要条（往期活动，字段缺失则不渲染） -->
+                <div
+                  v-if="!isUpcoming(act) &&
+                    ((act.tags && (act.tags.hasMedia || act.tags.involvesFinance)) || act.reviewSummary)"
+                  class="tl-review"
+                >
+                  <a
+                    v-if="act.tags && act.tags.hasMedia"
+                    class="tl-review-item tl-review-link"
+                    href="/gallery/"
+                  >📸 {{ t.album }}</a>
+                  <span v-if="act.tags && act.tags.involvesFinance" class="tl-review-item">💰 {{ t.involvesFinance }}</span>
+                  <p v-if="act.reviewSummary" class="tl-review-summary">📝 {{ act.reviewSummary[lang] }}</p>
+                </div>
+              </div>
             </div>
-          </div>
+          </article>
         </div>
-      </article>
+
+        <!-- 今天分割线（固定在未来/过去分界） -->
+        <div v-if="isTodayDivider(idx)" class="today-divider">
+          <span class="today-divider-label">{{ t.todayDivider }}</span>
+        </div>
+      </template>
     </div>
 
-    <!-- 空状态 -->
+    <!-- 无任何活动空态 -->
     <div v-else class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
       </svg>
       <p>{{ t.noActivities }}</p>
     </div>
@@ -195,170 +282,254 @@ const registrationProgress = (act) => Math.min(100, Math.round((act.registered /
   padding: 0 24px 60px;
 }
 
-/* 筛选标签 */
-.filter-tabs {
+/* ================= Hero 巨幕 ================= */
+.hero {
+  position: relative;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  margin-bottom: 44px;
+  min-height: 220px;
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
 }
-.filter-tab {
-  padding: 8px 20px;
-  border: 1px solid var(--c-border);
-  border-radius: 20px;
-  background: var(--c-bg-secondary);
-  color: var(--c-text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
 }
-.filter-tab:hover {
-  border-color: var(--c-accent);
-  color: var(--c-accent);
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(135deg, var(--c-accent-dark), var(--c-accent));
 }
-.filter-tab.active {
+.hero--cover .hero-scrim {
+  background: linear-gradient(135deg, rgba(31, 90, 79, 0.94), rgba(45, 122, 108, 0.80));
+}
+.hero-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  width: 100%;
+  padding: 36px 40px;
+  color: #ffffff;
+}
+.hero-left { flex-shrink: 0; }
+.hero-eyebrow {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+.hero-countdown { display: flex; align-items: baseline; gap: 8px; }
+.hero-cd-block { display: flex; align-items: baseline; gap: 4px; }
+.hero-cd-num {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.hero-cd-unit { font-size: 18px; font-weight: 600; opacity: 0.85; }
+.hero-countdown-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+.hero-main { flex: 1; min-width: 0; }
+.hero-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.hero-meta { display: flex; flex-wrap: wrap; gap: 16px; }
+.hero-meta-item { font-size: 14px; opacity: 0.9; }
+.hero-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.hero-ring-wrap { position: relative; width: 64px; height: 64px; }
+.hero-ring { width: 100%; height: 100%; }
+.hero-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+.hero-ring-count { font-size: 11px; font-weight: 600; }
+.hero-ring-label { font-size: 12px; opacity: 0.85; }
+.hero-body--empty { justify-content: center; min-height: 160px; }
+.hero-empty-text { font-size: 18px; font-weight: 600; margin: 0; }
+
+/* ================= 脊柱时间线 ================= */
+.timeline {
+  position: relative;
+  padding-left: 44px;
+}
+/* 薄荷脊柱 */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 1px;
   background: var(--c-accent);
-  border-color: var(--c-accent);
-  color: #fff;
+  opacity: 0.55;
+}
+.timeline-item {
+  position: relative;
+  padding-bottom: 22px;
+}
+.timeline-dot {
+  position: absolute;
+  left: 16px;
+  top: 26px;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c-bg-primary);
+  border: 3px solid var(--c-accent);
+  z-index: 1;
+}
+/* 未来节点发光 */
+.timeline-item.future .timeline-dot {
+  box-shadow: 0 0 0 4px var(--c-accent-glow), 0 0 10px var(--c-accent);
+}
+/* 过去节点归档色 */
+.timeline-item.past .timeline-dot {
+  border-color: var(--c-text-quaternary);
+  box-shadow: none;
+}
+
+/* 今天分割线 */
+.today-divider {
+  position: relative;
+  margin-left: -44px;
+  margin-bottom: 22px;
+  border-top: 2px dashed var(--c-text-quaternary);
+}
+.today-divider-label {
+  position: absolute;
+  top: -9px;
+  left: 30px;
+  background: var(--c-bg-primary);
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--c-text-tertiary);
 }
 
 /* 活动卡片 */
-.activity-card {
-  display: flex;
-  gap: 20px;
-  padding: 24px;
+.tl-card {
   background: var(--c-bg-secondary);
   border: 1px solid var(--c-border);
-  border-radius: 18px;
-  margin-bottom: 14px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
-.activity-card:hover {
-  border-color: var(--c-accent-light);
-  transform: translateY(-2px);
+.tl-card:hover { border-color: var(--c-accent-light); }
+.timeline-item.past .tl-card {
+  background: var(--c-bg-tertiary);
+  opacity: 0.88;
 }
-.activity-card.ended {
-  opacity: 0.7;
-}
+.tl-card-head { display: flex; gap: 18px; }
 
 /* 日期块 */
-.activity-date-block {
+.tl-date-block {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 80px;
-  background: var(--c-accent-light);
-  border-radius: 14px;
+  width: 64px;
   flex-shrink: 0;
-  position: relative;
+  padding: 10px 4px;
+  background: var(--c-accent-light);
+  border-radius: var(--radius-lg);
 }
-.activity-card.ended .activity-date-block {
-  background: var(--c-bg-elevated);
-}
-.date-month {
-  font-size: 12px;
+.timeline-item.past .tl-date-block { background: var(--c-bg-elevated); }
+.tl-month {
+  font-size: 11px;
   font-weight: 600;
   color: var(--c-accent);
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
-.activity-card.ended .date-month {
-  color: var(--c-text-tertiary);
-}
-.date-day {
-  font-size: 28px;
+.timeline-item.past .tl-month { color: var(--c-text-tertiary); }
+.tl-day {
+  font-size: 26px;
   font-weight: 700;
   color: var(--c-text-primary);
   line-height: 1.1;
 }
-.date-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: var(--c-accent);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
 
-/* 内容区 */
-.activity-content {
-  flex: 1;
-  min-width: 0;
-}
-.activity-header {
+.tl-main { flex: 1; min-width: 0; }
+.tl-title-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
-.activity-title {
-  font-size: 17px;
+.tl-title {
+  font-size: 16px;
   font-weight: 600;
   color: var(--c-text-primary);
   margin: 0;
   line-height: 1.4;
 }
-.activity-status {
-  padding: 4px 12px;
-  border-radius: 12px;
+.tl-soon {
+  flex-shrink: 0;
   font-size: 12px;
   font-weight: 600;
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.tl-ended {
   flex-shrink: 0;
-}
-.activity-status.open {
-  background: rgba(52, 199, 89, 0.12);
-  color: #34C759;
-}
-.activity-status.ended {
-  background: var(--c-bg-elevated);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--c-text-tertiary);
+  background: var(--c-bg-elevated);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
 }
-
-/* 元信息 */
-.activity-meta {
+.tl-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 8px;
 }
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  color: var(--c-text-secondary);
-}
-.meta-item svg {
-  color: var(--c-text-tertiary);
-  flex-shrink: 0;
-}
-
-/* 描述 */
-.activity-desc {
+.tl-meta-item { font-size: 13px; color: var(--c-text-secondary); }
+.tl-desc {
   font-size: 14px;
   line-height: 1.6;
   color: var(--c-text-secondary);
-  margin: 0 0 14px 0;
+  margin: 0 0 12px 0;
 }
 
-/* 报名区 */
-.signup-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.signup-progress {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+/* 报名进度 */
+.tl-progress { display: flex; align-items: center; gap: 10px; }
 .progress-bar {
   flex: 1;
   height: 6px;
@@ -372,30 +543,34 @@ const registrationProgress = (act) => Math.min(100, Math.round((act.registered /
   border-radius: 3px;
   transition: width 0.3s ease;
 }
-.signup-count {
+.progress-count {
   font-size: 12px;
   color: var(--c-text-tertiary);
   white-space: nowrap;
 }
-.signup-btn {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 10px;
-  background: var(--c-accent);
-  color: #fff;
-  font-size: 13px;
+
+/* 回顾摘要条 */
+.tl-review {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--c-border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.tl-review-item { font-size: 13px; color: var(--c-text-secondary); }
+.tl-review-link {
+  color: var(--c-accent);
+  text-decoration: none;
   font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-  font-family: inherit;
 }
-.signup-btn:hover:not(:disabled) {
-  opacity: 0.9;
-}
-.signup-btn:disabled {
-  background: var(--c-bg-elevated);
+.tl-review-link:hover { text-decoration: underline; }
+.tl-review-summary {
+  width: 100%;
+  margin: 4px 0 0 0;
+  font-size: 13px;
   color: var(--c-text-tertiary);
-  cursor: default;
 }
 
 /* 空状态 */
@@ -404,39 +579,48 @@ const registrationProgress = (act) => Math.min(100, Math.round((act.registered /
   padding: 60px 20px;
   color: var(--c-text-tertiary);
 }
-.empty-state svg {
-  margin-bottom: 16px;
-  opacity: 0.5;
+.empty-state svg { margin-bottom: 16px; opacity: 0.5; }
+.empty-state p { font-size: 15px; margin: 0; }
+
+/* 尊重减少动效偏好：仅在允许时做节点脉冲发光 */
+@media (prefers-reduced-motion: no-preference) {
+  .timeline-item.future .timeline-dot {
+    animation: dot-pulse 2.4s ease-in-out infinite;
+  }
 }
-.empty-state p {
-  font-size: 15px;
-  margin: 0;
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--c-accent-glow), 0 0 6px var(--c-accent); }
+  50% { box-shadow: 0 0 0 6px var(--c-accent-glow), 0 0 14px var(--c-accent); }
 }
 
-/* 响应式 */
+/* ================= 响应式 ================= */
 @media (max-width: 640px) {
-  .activities-page {
-    padding: 0 16px 80px;
-  }
-  .activity-card {
+  .activities-page { padding: 0 16px 80px; }
+  .hero { min-height: 0; }
+  .hero-body {
     flex-direction: column;
-    gap: 16px;
-    padding: 18px;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 28px 22px;
   }
-  .activity-date-block {
+  .hero-left { order: 1; }
+  .hero-main { order: 2; }
+  .hero-right { order: 3; flex-direction: row; align-items: center; gap: 12px; }
+  .hero-cd-num { font-size: 44px; }
+  .hero-title { font-size: 22px; }
+
+  .timeline { padding-left: 36px; }
+  .timeline::before { left: 15px; }
+  .timeline-dot { left: 16px; }
+  .today-divider { margin-left: -36px; }
+
+  .tl-card-head { flex-direction: column; gap: 12px; }
+  .tl-date-block {
     width: 100%;
-    height: auto;
     flex-direction: row;
     gap: 8px;
-    padding: 10px;
+    padding: 8px;
   }
-  .date-day { font-size: 22px; }
-  .activity-header {
-    flex-direction: column;
-  }
-  .signup-section {
-    flex-direction: column;
-    align-items: stretch;
-  }
+  .tl-day { font-size: 20px; }
 }
 </style>

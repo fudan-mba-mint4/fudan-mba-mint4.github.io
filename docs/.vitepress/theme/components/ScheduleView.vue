@@ -1,5 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import NextUpPill from './NextUpPill.vue'
+import SemesterHighway from './SemesterHighway.vue'
 
 const scheduleData = ref(null)
 const loading = ref(true)
@@ -170,6 +172,23 @@ const courseColors = {
 }
 
 const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
+
+// 学期高速公路节点点击：切换到按日期视图并尝试滚动到对应日期
+const handleJumpDate = (dateStr) => {
+  console.log('[SemesterHighway] jump to date:', dateStr)
+  activeTab.value = 'week'
+  // 尝试滚动到对应日期块（day-block 无 date 标识，先尽力定位）
+  nextTick(() => {
+    setTimeout(() => {
+      const blocks = document.querySelectorAll('.schedule-page .day-block')
+      blocks.forEach(el => {
+        if (el.textContent.includes(dateStr)) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      })
+    }, 80)
+  })
+}
 </script>
 
 <template>
@@ -188,6 +207,12 @@ const getCourseColor = (name) => courseColors[name] || courseColors['会计学']
     </div>
 
     <template v-else-if="scheduleData">
+      <!-- 方案1.1：下节课悬浮胶囊 -->
+      <NextUpPill :schedule-data="scheduleData" />
+
+      <!-- 方案1.2：学期高速公路 -->
+      <SemesterHighway :schedule-data="scheduleData" @jump-date="handleJumpDate" />
+
       <!-- 切换标签 -->
       <div class="tab-switcher reveal">
         <button

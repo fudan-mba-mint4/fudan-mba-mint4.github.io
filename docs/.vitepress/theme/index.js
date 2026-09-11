@@ -26,6 +26,7 @@ import ClassCommittee from './components/ClassCommittee.vue'
 import Gallery from './components/Gallery.vue'
 import ToolsHub from './components/ToolsHub.vue'
 import QuizHub from './components/QuizHub.vue'
+import CareerDev from './components/CareerDev.vue'
 import './styles/index.css'
 
 export default {
@@ -54,5 +55,6 @@ export default {
     app.component('Gallery', Gallery)
     app.component('ToolsHub', ToolsHub)
     app.component('QuizHub', QuizHub)
+    app.component('CareerDev', CareerDev)
   }
 }
