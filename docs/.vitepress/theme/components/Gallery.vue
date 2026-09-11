@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { useLang, formatRelative } from '../composables/useLang'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useLang } from '../composables/useLang'
 
 const i18n = {
   zh: {
@@ -8,52 +8,30 @@ const i18n = {
     empty: '暂无活动相册',
     emptyDesc: '活动照片将在每次活动后更新，敬请期待',
     events: '场活动',
-    photos: '张照片',
     latest: '最新活动',
     tapPreview: '点击预览',
     close: '关闭',
     viewFullAlbum: '查看完整相册',
-    photosUnit: '张',
-    // Bento 统计
-    statEvents: '活动场数',
-    statPlatforms: '直播平台',
-    statLatest: '最近记录',
-    statTop: '最热门活动',
-    monthsSpan: '个月跨度',
   },
   en: {
     loading: 'Loading albums...',
     empty: 'No albums yet',
     emptyDesc: 'Event photos will be updated after each activity. Stay tuned!',
     events: 'events',
-    photos: 'photos',
     latest: 'Latest',
     tapPreview: 'Tap to preview',
     close: 'Close',
     viewFullAlbum: 'View full album',
-    photosUnit: '',
-    statEvents: 'Events with media',
-    statPlatforms: 'Photo platforms',
-    statLatest: 'Latest record',
-    statTop: 'Most attended',
-    monthsSpan: 'month span',
   },
   th: {
     loading: 'กำลังโหลดอัลบั้ม...',
     empty: 'ยังไม่มีอัลบั้ม',
     emptyDesc: 'รูปภาพกิจกรรมจะถูกอัปเดตหลังกิจกรรมแต่ละครั้ง',
     events: 'กิจกรรม',
-    photos: 'รูปภาพ',
     latest: 'ล่าสุด',
     tapPreview: 'แตะเพื่อดูตัวอย่าง',
     close: 'ปิด',
     viewFullAlbum: 'ดูอัลบั้มเต็ม',
-    photosUnit: 'รูป',
-    statEvents: 'กิจกรรมที่มีภาพ',
-    statPlatforms: 'แพลตฟอร์มภาพ',
-    statLatest: 'บันทึกล่าสุด',
-    statTop: 'กิจกรรมที่มีผู้เข้าร่วมมากที่สุด',
-    monthsSpan: 'ช่วงเวลาเดือน',
   },
 }
 
@@ -75,7 +53,6 @@ onMounted(async () => {
         cover: a.tags.cover,
         url: a.tags.mediaUrl,
         location: a.location,
-        photoCount: a.tags.photoCount || 0,
         registered: typeof a.registered === 'number' ? a.registered : 0,
         mediaType: a.tags.mediaType || null,
       }))
@@ -86,136 +63,27 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-  // 数据就绪后挂载 Bento 进入视口监听
-  if (albums.value.length > 0) {
-    await nextTick()
-    setupBentoObserver()
-  }
 })
 
-/* 按年份分组 */
-const albumsByYear = computed(() => {
+/* 按月份分组（key: YYYY-MM，用于排序；显示用格式化月份名） */
+const albumsByMonth = computed(() => {
   const groups = {}
   albums.value.forEach(album => {
-    const y = new Date(album.date).getFullYear()
-    const year = lang.value === 'th' ? y + 543 : y
-    if (!groups[year]) groups[year] = []
-    groups[year].push(album)
+    const d = new Date(album.date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (!groups[key]) groups[key] = []
+    groups[key].push(album)
   })
-  return Object.entries(groups).sort((a, b) => b[0] - a[0])
+  return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]))
 })
 
-/* ============ Bento 统计聚合（全部由 activities.json 派生） ============ */
-
-// 1. 累计有影像活动场数
-const statCount = computed(() => albums.value.length)
-
-// 2. 来自 N 个直播平台（按 mediaType 去重）
-const statPlatforms = computed(() => {
-  const set = new Set(albums.value.map(a => a.mediaType).filter(Boolean))
-  return set.size
-})
-
-// 3. 最近一次记录（取最大 date，交给 formatRelative 用 Intl.RelativeTimeFormat 输出）
-const statLatest = computed(() => {
-  if (!albums.value.length) return null
-  return albums.value.reduce((max, a) =>
-    new Date(a.date) > new Date(max.date) ? a : max
-  )
-})
-
-// 4. 人数最多活动（registered 都为 0 / 不可靠时退化为日期跨度月数）
-const statTop = computed(() => {
-  if (!albums.value.length) return null
-  const withReg = albums.value.filter(a => typeof a.registered === 'number' && a.registered > 0)
-  if (withReg.length) {
-    const top = withReg.reduce((max, a) => a.registered > max.registered ? a : max)
-    return { type: 'event', count: top.registered, title: top.title }
-  }
-  // fallback：跨 X 个月
-  const dates = albums.value.map(a => new Date(a.date)).sort((a, b) => a - b)
-  const first = dates[0]
-  const last = dates[dates.length - 1]
-  const months = (last.getFullYear() - first.getFullYear()) * 12 + (last.getMonth() - first.getMonth()) + 1
-  return { type: 'span', months }
-})
-
-/* ============ Bento 数字滚动计数动画（仅首次进入视口跑一次） ============ */
-const bentoRef = ref(null)
-const animated = ref({ count: 0, platforms: 0, top: 0 })
-let bentoObserver = null
-
-function getTargets() {
-  return {
-    count: statCount.value,
-    platforms: statPlatforms.value,
-    top: statTop.value
-      ? (statTop.value.type === 'event' ? statTop.value.count : statTop.value.months)
-      : 0,
-  }
+/* 月份标题格式化（zh: 2026年8月; en: August 2026; th: 佛历） */
+const monthLabel = (key) => {
+  const [y, m] = key.split('-').map(Number)
+  const d = new Date(y, m - 1, 1)
+  const locale = lang.value === 'th' ? 'th-TH-u-ca-buddhist' : lang.value === 'en' ? 'en-US' : 'zh-CN'
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long' }).format(d)
 }
-
-function applyFinal() {
-  animated.value = getTargets()
-}
-
-function animateNumbers() {
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (reduceMotion) {
-    applyFinal()
-    return
-  }
-  const target = getTargets()
-  const start = performance.now()
-  const duration = 800
-  const from = { count: 0, platforms: 0, top: 0 }
-  const tick = (now) => {
-    const p = Math.min(1, (now - start) / duration)
-    const eased = 1 - Math.pow(1 - p, 3) // easeOutCubic
-    animated.value = {
-      count: Math.round(from.count + (target.count - from.count) * eased),
-      platforms: Math.round(from.platforms + (target.platforms - from.platforms) * eased),
-      top: Math.round(from.top + (target.top - from.top) * eased),
-    }
-    if (p < 1) requestAnimationFrame(tick)
-  }
-  requestAnimationFrame(tick)
-}
-
-function setupBentoObserver() {
-  const el = bentoRef.value
-  if (!el) return
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (reduceMotion || !('IntersectionObserver' in window)) {
-    applyFinal()
-    return
-  }
-  bentoObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        animateNumbers()
-        if (bentoObserver) bentoObserver.disconnect()
-      }
-    })
-  }, { threshold: 0.3 })
-  bentoObserver.observe(el)
-}
-
-/* ============ 卡片展示态 ============ */
-// 卡片3：直接由 Intl.RelativeTimeFormat 输出（如"3天前" / "3 days ago" / "3 วันที่แล้ว"）
-const card3Value = computed(() => {
-  if (!statLatest.value) return ''
-  return formatRelative(statLatest.value.date)
-})
-
-// 卡片4：最热门活动（标题截断 + 人数）或 跨 X 个月
-const card4Value = computed(() => {
-  if (!statTop.value) return { numeric: 0, title: '', suffix: '' }
-  if (statTop.value.type === 'event') {
-    return { numeric: animated.value.top, title: statTop.value.title[lang.value] || '', suffix: '' }
-  }
-  return { numeric: animated.value.top, title: '', suffix: t.value.monthsSpan }
-})
 
 const dateFmt = (dateStr) => {
   const d = new Date(dateStr)
@@ -246,10 +114,6 @@ onMounted(() => window.addEventListener('keydown', onKeydown))
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   document.body.style.overflow = ''
-  if (bentoObserver) {
-    bentoObserver.disconnect()
-    bentoObserver = null
-  }
 })
 </script>
 
@@ -262,39 +126,6 @@ onBeforeUnmount(() => {
     </div>
 
     <template v-else>
-      <!-- Bento 统计仪表盘（仅在有影像活动时渲染） -->
-      <div v-if="albums.length > 0" ref="bentoRef" class="bento-grid">
-        <!-- 1. 累计有影像活动场数 -->
-        <div class="bento-card">
-          <div class="bento-icon">📸</div>
-          <div class="bento-value">{{ animated.count }}</div>
-          <div class="bento-label">{{ t.statEvents }}</div>
-        </div>
-
-        <!-- 2. 来自 N 个直播平台 -->
-        <div class="bento-card">
-          <div class="bento-icon">🎙️</div>
-          <div class="bento-value">{{ animated.platforms }}</div>
-          <div class="bento-label">{{ t.statPlatforms }}</div>
-        </div>
-
-        <!-- 3. 最近一次记录（Intl.RelativeTimeFormat） -->
-        <div class="bento-card">
-          <div class="bento-icon">⏰</div>
-          <div class="bento-value bento-value-text">{{ card3Value }}</div>
-          <div class="bento-label">{{ t.statLatest }}</div>
-        </div>
-
-        <!-- 4. 人数最多活动 / 跨 X 个月 -->
-        <div class="bento-card">
-          <div class="bento-icon">👥</div>
-          <div class="bento-value">{{ card4Value.numeric }}</div>
-          <div v-if="card4Value.title" class="bento-sub" :title="card4Value.title">{{ card4Value.title }}</div>
-          <div v-else class="bento-suffix">{{ card4Value.suffix }}</div>
-          <div class="bento-label">{{ t.statTop }}</div>
-        </div>
-      </div>
-
       <!-- 空状态 -->
       <div v-if="albums.length === 0" class="gallery-empty">
         <div class="empty-icon">📷</div>
@@ -302,22 +133,20 @@ onBeforeUnmount(() => {
         <p>{{ t.emptyDesc }}</p>
       </div>
 
-      <!-- 相册列表（按年份分组） -->
+      <!-- 相册列表（按月份分组） -->
       <div v-else class="gallery-content">
-        <div v-for="[year, yearAlbums] in albumsByYear" :key="year" class="year-group">
-          <div class="year-header">
-            <span class="year-text">{{ year }}</span>
-            <span class="year-count">{{ yearAlbums.length }} {{ t.events }}</span>
+        <div v-for="[monthKey, monthAlbums] in albumsByMonth" :key="monthKey" class="month-group">
+          <div class="month-header">
+            <span class="month-text">{{ monthLabel(monthKey) }}</span>
+            <span class="month-count">{{ monthAlbums.length }} {{ t.events }}</span>
           </div>
           <div class="albums-grid">
             <div
-              v-for="album in yearAlbums"
+              v-for="album in monthAlbums"
               :id="album.id"
               :key="album.id"
               class="album-card"
               @click="openLightbox(album)"
-              @mouseenter="album.hover = true"
-              @mouseleave="album.hover = false"
             >
               <div class="album-cover">
                 <img
@@ -335,9 +164,6 @@ onBeforeUnmount(() => {
                     <path d="m21 15-5-5L5 21" />
                   </svg>
                 </div>
-
-                <!-- 照片数量角标 -->
-                <span v-if="album.photoCount" class="photo-badge">📷 {{ album.photoCount }} {{ t.photosUnit }}</span>
 
                 <!-- hover 提示 -->
                 <div class="cover-hint">
@@ -423,67 +249,6 @@ onBeforeUnmount(() => {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ========== Bento 统计仪表盘 ========== */
-.bento-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 36px;
-}
-
-.bento-card {
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border-light);
-  border-radius: var(--radius-xl);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.bento-icon {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.bento-value {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-semibold);
-  color: var(--c-accent);
-  line-height: var(--line-height-tight);
-  letter-spacing: var(--letter-spacing-tight);
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-
-/* 卡片3：相对时间短语（如"8天前"），允许换行 */
-.bento-value-text {
-  white-space: normal;
-  word-break: break-word;
-}
-
-.bento-suffix {
-  font-size: var(--text-sm);
-  font-weight: var(--font-regular);
-  color: var(--c-text-secondary);
-}
-
-.bento-sub {
-  font-size: var(--text-sm);
-  color: var(--c-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.bento-label {
-  font-size: var(--text-sm);
-  color: var(--c-text-secondary);
-  margin-top: auto;
-}
-
 /* 空状态 */
 .gallery-empty {
   display: flex;
@@ -502,22 +267,22 @@ onBeforeUnmount(() => {
 }
 .gallery-empty p { font-size: var(--text-sm); color: var(--c-text-secondary); margin: 0; }
 
-/* 年份分组 */
-.year-group { margin-bottom: 40px; }
-.year-header {
+/* 月份分组 */
+.month-group { margin-bottom: 36px; }
+.month-header {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--c-border);
 }
-.year-text {
-  font-size: var(--text-xl);
+.month-text {
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--c-text-primary);
 }
-.year-count { font-size: var(--text-sm); color: var(--c-text-tertiary); }
+.month-count { font-size: var(--text-sm); color: var(--c-text-tertiary); }
 
 /* 相册卡片网格 */
 .albums-grid {
@@ -566,21 +331,6 @@ onBeforeUnmount(() => {
   height: 48px;
   color: var(--c-accent);
   opacity: 0.6;
-}
-
-/* 照片数量角标 */
-.photo-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  color: #fff;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
 }
 
 /* hover 提示 */
@@ -747,10 +497,6 @@ onBeforeUnmount(() => {
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .bento-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
   .albums-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
 }
 @media (max-width: 640px) {

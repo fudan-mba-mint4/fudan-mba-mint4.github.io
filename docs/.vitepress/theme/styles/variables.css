@@ -63,6 +63,12 @@
   --c-coral: #ff6b6b;
   --c-coral-light: rgba(255, 107, 107, 0.1);
 
+  /* 强调色卡片（与班费余额卡片一致的渐变配色，全站统一） */
+  --c-card-accent-bg: linear-gradient(135deg, #7ad1bc 0%, #5ec4ac 100%);
+  --c-card-accent-text: #1f5a4f;
+  --c-card-accent-subtext: rgba(31, 90, 79, 0.75);
+  --c-card-accent-border: rgba(31, 90, 79, 0.2);
+
   /* 边框与分割线 */
   --c-border: #e5e5ea;             /* 主边框 苹果分割线灰 */
   --c-border-light: #f0f0f3;       /* 浅边框 */
@@ -249,6 +255,12 @@ html.dark {
   --c-amber-light: rgba(255, 159, 10, 0.15);
   --c-coral: #ff6961;
   --c-coral-light: rgba(255, 105, 97, 0.15);
+
+  /* 强调色卡片（深色模式，与班费余额卡片一致） */
+  --c-card-accent-bg: linear-gradient(135deg, #2d7a6c 0%, #1f5a4f 100%);
+  --c-card-accent-text: #ffffff;
+  --c-card-accent-subtext: rgba(255, 255, 255, 0.8);
+  --c-card-accent-border: rgba(255, 255, 255, 0.2);
 
   /* 边框与分割线 */
   --c-border: #38383a;

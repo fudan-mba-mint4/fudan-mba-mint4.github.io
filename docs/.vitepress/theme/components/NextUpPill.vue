@@ -161,8 +161,8 @@ const countdownSub = computed(() => {
   display: flex;
   align-items: stretch;
   gap: var(--space-4);
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
+  background: var(--c-card-accent-bg);
+  border: 1px solid transparent;
   border-radius: var(--radius-2xl);
   overflow: hidden;
   margin-bottom: var(--space-6);
@@ -171,12 +171,11 @@ const countdownSub = computed(() => {
 
 /* <24h 薄荷呼吸光 */
 .next-up-pill.urgent {
-  border-color: var(--c-accent);
   animation: nuBreathe 2.4s ease-in-out infinite;
 }
 
 @keyframes nuBreathe {
-  0%, 100% { box-shadow: 0 0 0 2px var(--c-accent-glow), 0 0 18px var(--c-accent-glow); }
+  0%, 100% { box-shadow: 0 0 0 2px var(--c-card-accent-border), 0 0 18px var(--c-accent-glow); }
   50% { box-shadow: 0 0 0 3px var(--c-accent), 0 0 28px var(--c-accent-glow); }
 }
 
@@ -208,7 +207,8 @@ const countdownSub = computed(() => {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--c-accent);
+  color: var(--c-card-accent-text);
+  opacity: 0.8;
   margin-bottom: 2px;
 }
 
@@ -222,7 +222,7 @@ const countdownSub = computed(() => {
 .nu-number {
   font-size: var(--text-3xl);
   font-weight: 800;
-  color: var(--c-text-primary);
+  color: var(--c-card-accent-text);
   letter-spacing: var(--letter-spacing-tight);
   font-variant-numeric: tabular-nums;
 }
@@ -230,19 +230,19 @@ const countdownSub = computed(() => {
 .nu-unit {
   font-size: var(--text-base);
   font-weight: 600;
-  color: var(--c-text-secondary);
+  color: var(--c-card-accent-subtext);
 }
 
 .nu-sub {
   font-size: var(--text-sm);
-  color: var(--c-text-tertiary);
+  color: var(--c-card-accent-subtext);
   margin-left: 4px;
 }
 
 .nu-date {
   margin-top: 4px;
   font-size: var(--text-xs);
-  color: var(--c-text-tertiary);
+  color: var(--c-card-accent-subtext);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -263,7 +263,7 @@ const countdownSub = computed(() => {
 .nu-course {
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--c-text-primary);
+  color: var(--c-card-accent-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -272,9 +272,8 @@ const countdownSub = computed(() => {
 
 .nu-location {
   font-size: var(--text-xs);
-  color: var(--c-text-inverse);
-  background: var(--course-color, var(--c-accent));
-  opacity: 0.92;
+  color: var(--c-card-accent-text);
+  background: rgba(255, 255, 255, 0.22);
   padding: 3px 10px;
   border-radius: var(--radius-full);
   white-space: nowrap;

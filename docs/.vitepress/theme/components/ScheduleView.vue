@@ -207,11 +207,13 @@ const handleJumpDate = (dateStr) => {
     </div>
 
     <template v-else-if="scheduleData">
-      <!-- 方案1.1：下节课悬浮胶囊 -->
-      <NextUpPill :schedule-data="scheduleData" />
-
-      <!-- 方案1.2：学期高速公路 -->
-      <SemesterHighway :schedule-data="scheduleData" @jump-date="handleJumpDate" />
+      <!-- P0打磨区：桌面端胶囊(40%) + 高速公路(60%) 并排，移动端上下堆叠 -->
+      <div class="schedule-polish-row">
+        <!-- 方案1.1：下节课悬浮胶囊 -->
+        <NextUpPill :schedule-data="scheduleData" class="spr-pill" />
+        <!-- 方案1.2：学期高速公路 -->
+        <SemesterHighway :schedule-data="scheduleData" @jump-date="handleJumpDate" class="spr-highway" />
+      </div>
 
       <!-- 切换标签 -->
       <div class="tab-switcher reveal">
@@ -1133,5 +1135,37 @@ const handleJumpDate = (dateStr) => {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(8px);
+}
+
+/* ========== P0打磨区：胶囊 + 高速公路 并排 ========== */
+.schedule-polish-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+.schedule-polish-row .spr-pill {
+  flex: 0 0 40%;
+  margin-bottom: 0 !important;
+  min-width: 0;
+}
+.schedule-polish-row .spr-highway {
+  flex: 1 1 60%;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .schedule-polish-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .schedule-polish-row .spr-pill {
+    flex: none;
+    width: 100%;
+  }
+  .schedule-polish-row .spr-highway {
+    flex: none;
+    width: 100%;
+  }
 }
 </style>

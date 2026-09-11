@@ -182,10 +182,10 @@ const isTodayDivider = (idx) => {
         <div class="hero-right">
           <div class="hero-ring-wrap">
             <svg class="hero-ring" viewBox="0 0 60 60" width="64" height="64">
-              <circle cx="30" cy="30" :r="RING_R" fill="none"
-                stroke="rgba(255,255,255,0.28)" stroke-width="5" />
-              <circle cx="30" cy="30" :r="RING_R" fill="none"
-                stroke="#ffffff" stroke-width="5" stroke-linecap="round"
+              <circle cx="30" cy="30" :r="RING_R" fill="none" class="hero-ring-track"
+                stroke="currentColor" stroke-width="5" />
+              <circle cx="30" cy="30" :r="RING_R" fill="none" class="hero-ring-progress"
+                stroke="currentColor" stroke-width="5" stroke-linecap="round"
                 :stroke-dasharray="RING_C" :stroke-dashoffset="ringOffset"
                 transform="rotate(-90 30 30)" />
             </svg>
@@ -302,7 +302,7 @@ const isTodayDivider = (idx) => {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(135deg, var(--c-accent-dark), var(--c-accent));
+  background: var(--c-card-accent-bg);
 }
 .hero--cover .hero-scrim {
   background: linear-gradient(135deg, rgba(31, 90, 79, 0.94), rgba(45, 122, 108, 0.80));
@@ -315,6 +315,10 @@ const isTodayDivider = (idx) => {
   gap: 36px;
   width: 100%;
   padding: 36px 40px;
+  color: var(--c-card-accent-text);
+}
+/* 有封面图时保持白字（深色遮罩上） */
+.hero--cover .hero-body {
   color: #ffffff;
 }
 .hero-left { flex-shrink: 0; }
@@ -360,6 +364,8 @@ const isTodayDivider = (idx) => {
 }
 .hero-ring-wrap { position: relative; width: 64px; height: 64px; }
 .hero-ring { width: 100%; height: 100%; }
+.hero-ring-track { opacity: 0.28; }
+.hero-ring-progress { opacity: 1; }
 .hero-ring-text {
   position: absolute;
   inset: 0;

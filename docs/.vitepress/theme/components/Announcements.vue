@@ -126,15 +126,12 @@ const categoryStyle = (cat) => {
   return map[cat] || map.normal
 }
 
-/* ========== 三级视觉权重配色（方案2.1） ==========
-   level-1 一级：pinned=true 或 category=important → 深薄荷实心底 + 白字
-   level-2 二级：normal / academic → 白底 + 左侧4px薄荷竖条
-   level-3 三级：activity → 浅灰描边卡
-   仅升级卡片底色/边框，与现有 categoryStyle chip 共存，不删除 chip */
+/* ========== 视觉权重配色 ==========
+   仅 pinned=true 用强调色渐变卡片（与班费余额一致）
+   其余所有公告（含 important）统一白底卡片，不再按类别区分底色 */
 const weightClass = (item) => {
-  if (item.pinned || item.category === 'important') return 'announcement-card--level-1'
-  if (item.category === 'activity') return 'announcement-card--level-3'
-  return 'announcement-card--level-2'
+  if (item.pinned) return 'announcement-card--pinned'
+  return ''
 }
 </script>
 
@@ -162,22 +159,31 @@ const weightClass = (item) => {
         :class="[weightClass(item), { pinned: item.pinned, expanded: isExpanded(item.id) }]"
       >
         <div class="announcement-header" @click="toggle(item.id)">
-          <div class="announcement-meta">
-            <span class="announcement-category" :style="categoryStyle(item.category)">
-              {{ categories.find(c => c.key === item.category)?.label }}
-            </span>
-            <span v-if="item.pinned" class="pinned-badge">📌</span>
-            <DeadlinePill v-if="item.deadline" :deadline="item.deadline" size="sm" />
-            <span class="announcement-date">{{ formatDate(item.date) }}</span>
+          <!-- 第一行：标题 + 标签（右） -->
+          <div class="announcement-toprow">
+            <h3 class="announcement-title">{{ item.title[currentLang] }}</h3>
+            <div class="announcement-tags">
+              <span v-if="item.pinned" class="pinned-badge">📌</span>
+              <span class="announcement-category" :style="categoryStyle(item.category)">
+                {{ categories.find(c => c.key === item.category)?.label }}
+              </span>
+            </div>
           </div>
-          <h3 class="announcement-title">{{ item.title[currentLang] }}</h3>
+          <!-- 第二行：摘要（精简） -->
           <p class="announcement-summary">{{ item.summary[currentLang] }}</p>
-          <button class="expand-btn" @click.stop="toggle(item.id)">
-            {{ isExpanded(item.id) ? t.collapse : t.expand }}
-            <svg class="expand-icon" :class="{ rotated: isExpanded(item.id) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
+          <!-- 第三行：日期 + 截止药丸（左） + 展开按钮（右） -->
+          <div class="announcement-bottomrow">
+            <div class="announcement-meta">
+              <span class="announcement-date">{{ formatDate(item.date) }}</span>
+              <DeadlinePill v-if="item.deadline" :deadline="item.deadline" size="sm" />
+            </div>
+            <button class="expand-btn" @click.stop="toggle(item.id)">
+              {{ isExpanded(item.id) ? t.collapse : t.expand }}
+              <svg class="expand-icon" :class="{ rotated: isExpanded(item.id) }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <transition name="content-expand">
           <div v-if="isExpanded(item.id)" class="announcement-content">
@@ -238,114 +244,129 @@ const weightClass = (item) => {
   color: #fff;
 }
 
-/* 公告卡片 */
+/* 公告卡片（默认白底，紧凑） */
 .announcement-card {
-  background: var(--c-bg-secondary);
+  background: var(--c-bg-card);
   border: 1px solid var(--c-border);
-  border-radius: 16px;
-  margin-bottom: 12px;
+  border-radius: 14px;
+  margin-bottom: 10px;
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .announcement-card:hover {
-  border-color: var(--c-accent-light);
-}
-.announcement-card.pinned {
-  border-left: 3px solid var(--c-accent);
+  border-color: var(--c-border-accent);
 }
 
-/* ========== 方案2.1：三级视觉权重配色 ========== */
-/* 一级：深薄荷实心底 + 白字 */
-.announcement-card--level-1 {
-  background: var(--c-accent-dark);
-  border-color: var(--c-accent-dark);
+/* 置顶公告：强调色渐变卡片（与班费余额一致，全站统一） */
+.announcement-card--pinned {
+  background: var(--c-card-accent-bg);
+  border-color: transparent;
 }
-.announcement-card--level-1:hover {
-  border-color: var(--c-accent-dark);
+.announcement-card--pinned:hover {
+  border-color: transparent;
 }
-.announcement-card--level-1 .announcement-title {
-  color: var(--c-text-inverse);
+.announcement-card--pinned .announcement-title {
+  color: var(--c-card-accent-text);
 }
-.announcement-card--level-1 .announcement-summary {
-  color: var(--c-text-inverse);
-  opacity: 0.85;
+.announcement-card--pinned .announcement-summary {
+  color: var(--c-card-accent-subtext);
 }
-.announcement-card--level-1 .announcement-date {
-  color: var(--c-text-inverse);
-  opacity: 0.75;
+.announcement-card--pinned .announcement-date {
+  color: var(--c-card-accent-subtext);
 }
-.announcement-card--level-1 .expand-btn {
-  color: var(--c-text-inverse);
+.announcement-card--pinned .expand-btn {
+  color: var(--c-card-accent-text);
 }
-.announcement-card--level-1 .expand-btn:hover {
-  background: var(--c-accent-glow);
+.announcement-card--pinned .expand-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
-.announcement-card--level-1 .content-divider {
-  background: var(--c-text-inverse);
-  opacity: 0.25;
+.announcement-card--pinned .content-divider {
+  background: var(--c-card-accent-border);
 }
-.announcement-card--level-1 .announcement-content p {
-  color: var(--c-text-inverse);
-  opacity: 0.9;
+.announcement-card--pinned .announcement-content p {
+  color: var(--c-card-accent-text);
+  opacity: 0.92;
 }
-.announcement-card--level-1 .deadline-static-chip {
-  border-color: var(--c-text-inverse);
-  background: transparent;
-  color: var(--c-text-inverse);
+.announcement-card--pinned .deadline-static-chip {
+  border-color: var(--c-card-accent-border);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--c-card-accent-text);
 }
-
-/* 二级：白底 + 左侧4px薄荷竖条 */
-.announcement-card--level-2 {
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-left: 4px solid var(--c-accent);
-}
-
-/* 三级：浅灰描边卡 */
-.announcement-card--level-3 {
-  background: var(--c-bg-secondary);
-  border: 1px solid var(--c-border);
+.announcement-card--pinned .announcement-category {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: var(--c-card-accent-text) !important;
 }
 
 .announcement-header {
-  padding: 20px 24px;
+  padding: 14px 18px;
   cursor: pointer;
 }
 
+/* 第一行：标题 + 标签 */
+.announcement-toprow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.announcement-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* 第三行：日期+截止药丸 + 展开按钮 */
+.announcement-bottomrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
 .announcement-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 10px;
+  min-width: 0;
 }
 .announcement-category {
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+  white-space: nowrap;
 }
 .pinned-badge {
-  font-size: 14px;
+  font-size: 13px;
 }
 .announcement-date {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--c-text-tertiary);
+  white-space: nowrap;
 }
 
 .announcement-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--c-text-primary);
-  margin: 0 0 8px 0;
+  margin: 0;
   line-height: 1.4;
+  flex: 1;
+  min-width: 0;
 }
 
 .announcement-summary {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--c-text-secondary);
-  margin: 0 0 12px 0;
-  line-height: 1.6;
+  margin: 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .expand-btn {
@@ -375,7 +396,7 @@ const weightClass = (item) => {
 
 /* 展开内容 */
 .announcement-content {
-  padding: 0 24px 20px;
+  padding: 0 18px 14px;
 }
 /* 展开态静态截止 chip（高亮截止日期） */
 .deadline-static-chip {
@@ -443,13 +464,19 @@ const weightClass = (item) => {
     padding: 0 16px 80px;
   }
   .announcement-header {
-    padding: 16px 18px;
+    padding: 12px 14px;
   }
   .announcement-content {
-    padding: 0 18px 16px;
+    padding: 0 14px 12px;
   }
   .announcement-title {
-    font-size: 16px;
+    font-size: 14px;
+  }
+  .announcement-summary {
+    font-size: 12px;
+  }
+  .announcement-toprow {
+    gap: 6px;
   }
 }
 </style>
