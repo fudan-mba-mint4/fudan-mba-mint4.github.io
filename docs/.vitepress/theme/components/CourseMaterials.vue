@@ -211,7 +211,7 @@ const formatDate = (dateStr) => {
                 </div>
                 <div class="file-info">
                   <span class="file-name">{{ file.name }}</span>
-                  <span class="file-meta">{{ file.external ? (t.externalSource || '教务网站') : (file.size ? (file.size + ' · PDF') : 'PDF') }}</span>
+                  <span class="file-meta">{{ file.external ? t.externalSource : (file.size ? (file.size + ' · PDF') : 'PDF') }}</span>
                 </div>
                 <div class="file-download">
                   <svg v-if="file.external" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
