@@ -235,6 +235,21 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
               <div class="tl-main">
                 <div class="tl-title-row">
                   <h3 class="tl-title">{{ act.title[lang] }}</h3>
+                  <!-- 活动关联链接：相册/班费，放在标题右边 -->
+                  <div class="tl-title-links">
+                    <a
+                      v-if="act.tags && act.tags.hasMedia"
+                      class="tl-title-link"
+                      :href="galleryLink"
+                      :aria-label="t.album"
+                    >📷 {{ t.album }}</a>
+                    <a
+                      v-if="act.tags && act.tags.involvesFinance"
+                      class="tl-title-link tl-title-link--finance"
+                      :href="`${langPrefix}/finance/`"
+                      :aria-label="t.involvesFinance"
+                    >💰 {{ t.involvesFinance }}</a>
+                  </div>
                   <span v-if="isUpcoming(act)" class="tl-soon">{{ formatRelative(act.date) }}</span>
                   <span v-else class="tl-ended">{{ t.ended }}</span>
                 </div>
@@ -253,21 +268,6 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
                     <div class="progress-fill" :style="{ width: registrationProgress(act) + '%' }"></div>
                   </div>
                   <span class="progress-count">{{ act.registered }}/{{ act.capacity }} {{ t.people }}</span>
-                </div>
-
-                <!-- 回顾摘要条（往期活动，字段缺失则不渲染） -->
-                <div
-                  v-if="!isUpcoming(act) &&
-                    ((act.tags && (act.tags.hasMedia || act.tags.involvesFinance)) || act.reviewSummary)"
-                  class="tl-review"
-                >
-                  <a
-                    v-if="act.tags && act.tags.hasMedia"
-                    class="tl-review-item tl-review-link"
-                    :href="galleryLink"
-                  >📸 {{ t.album }}</a>
-                  <span v-if="act.tags && act.tags.involvesFinance" class="tl-review-item">💰 {{ t.involvesFinance }}</span>
-                  <p v-if="act.reviewSummary" class="tl-review-summary">📝 {{ act.reviewSummary[lang] }}</p>
                 </div>
               </div>
             </div>
@@ -494,6 +494,17 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
 }
 .timeline-item.past .tl-month { color: var(--c-text-tertiary); }
 
+/* 深色模式：未来活动用深绿背景配白字，保证对比度 */
+html.dark .timeline-item.future .tl-date-block {
+  background: var(--c-accent-dark);
+}
+html.dark .timeline-item.future .tl-month {
+  color: #fff;
+}
+html.dark .timeline-item.past .tl-month {
+  color: var(--c-text-tertiary);
+}
+
 .tl-main { flex: 1; min-width: 0; }
 .tl-title-row {
   display: flex;
@@ -508,6 +519,27 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   color: var(--c-text-primary);
   margin: 0;
   line-height: 1.4;
+}
+.tl-title-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+  flex-shrink: 0;
+}
+.tl-title-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.tl-title-link:hover {
+  color: var(--c-accent);
+}
+.tl-title-link--finance:hover {
+  color: var(--c-finance-expense, #34c759);
 }
 .tl-soon {
   flex-shrink: 0;
