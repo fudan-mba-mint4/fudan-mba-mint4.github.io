@@ -481,14 +481,14 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   flex-shrink: 0;
   min-width: 88px;
   padding: 14px 18px;
-  background: var(--c-accent-light);
+  background: var(--c-accent);
   border-radius: var(--radius-lg);
 }
 .timeline-item.past .tl-date-block { background: var(--c-bg-elevated); }
 .tl-month {
   font-size: 16px;
   font-weight: 700;
-  color: var(--c-accent);
+  color: #fff;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
