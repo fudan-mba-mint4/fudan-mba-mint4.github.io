@@ -558,14 +558,20 @@ const formatDate = (dateStr) => {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 20px;
+  align-items: stretch;
 }
 
-.files-section {
+.files-section,
+.refs-section {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 0;
 }
 
-.refs-section {
-  margin-top: 0;
+.files-section .files-grid,
+.refs-section .files-grid {
+  flex: 1;
+  align-content: start;
 }
 
 .files-grid {

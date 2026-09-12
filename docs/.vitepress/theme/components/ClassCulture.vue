@@ -122,7 +122,7 @@ const { t } = useLang(i18n)
       <h2 class="section-title">{{ t.badgeTitle }}</h2>
       <div class="badge-section">
         <div class="badge-display">
-          <img src="/images/logo.webp" :alt="t.badgeAlt" class="badge-img-large" />
+          <img src="/images/logo.webp" :alt="t.badgeAlt" class="badge-img-large" loading="lazy" />
         </div>
         <div class="badge-elements">
           <div v-for="(b, i) in t.badgeElements" :key="i" class="badge-element">

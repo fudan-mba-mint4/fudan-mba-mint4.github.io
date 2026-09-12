@@ -75,20 +75,25 @@ onMounted(() => {
 })
 onUnmounted(() => { if (clockTimer) clearInterval(clockTimer) })
 
-const todayStart = computed(() => {
-  const d = new Date(now.value)
-  d.setHours(0, 0, 0, 0)
-  return d
-})
-
 /* ========== 日期解析：YYYY-MM-DD 补本地零点，避免按 UTC 解析偏 8 小时 ========== */
 const parseDate = (dateStr) =>
   typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
     ? new Date(dateStr + 'T00:00:00')
     : new Date(dateStr)
 
+/* ========== 日期+开始时间解析：从 time 字段提取开始时间（如 "17:00 - 18:00" → 17:00） ========== */
+const parseEventDateTime = (act) => {
+  const date = parseDate(act.date)
+  // 提取开始时间：匹配 "HH:MM" 格式
+  const timeMatch = act.time && act.time.match(/(\d{1,2}):(\d{2})/)
+  if (timeMatch) {
+    date.setHours(parseInt(timeMatch[1], 10), parseInt(timeMatch[2], 10), 0, 0)
+  }
+  return date
+}
+
 const isUpcoming = (act) =>
-  parseDate(act.date) >= todayStart.value && act.status !== 'ended'
+  parseEventDateTime(act) > now.value && act.status !== 'ended'
 
 /* ========== 方案4.3：下一场活动 Hero 巨幕倒计时 ========== */
 const nextEvent = computed(() => {
@@ -101,14 +106,14 @@ const nextEvent = computed(() => {
 /* 30 天内才升级为 Hero，否则占位 */
 const heroEvent = computed(() => {
   if (!nextEvent.value) return null
-  const diff = parseDate(nextEvent.value.date) - now.value
+  const diff = parseEventDateTime(nextEvent.value) - now.value
   if (diff > 30 * 24 * 60 * 60 * 1000) return null
   return nextEvent.value
 })
 
 const heroCountdown = computed(() => {
   if (!heroEvent.value) return { days: 0, hours: 0 }
-  const diff = parseDate(heroEvent.value.date) - now.value
+  const diff = parseEventDateTime(heroEvent.value) - now.value
   if (diff <= 0) return { days: 0, hours: 0 }
   return {
     days: Math.floor(diff / 86400000),
@@ -224,8 +229,7 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
             <div class="tl-card-head">
               <!-- 日期块 -->
               <div class="tl-date-block">
-                <span class="tl-month">{{ formatDate(act.date, { month: 'short' }) }}</span>
-                <span class="tl-day">{{ parseDate(act.date).getDate() }}</span>
+                <span class="tl-month">{{ formatDate(act.date, { year: undefined, month: 'long', day: 'numeric' }) }}</span>
               </div>
 
               <div class="tl-main">
@@ -472,30 +476,23 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
 /* 日期块 */
 .tl-date-block {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 64px;
   flex-shrink: 0;
-  padding: 10px 4px;
+  min-width: 88px;
+  padding: 14px 18px;
   background: var(--c-accent-light);
   border-radius: var(--radius-lg);
 }
 .timeline-item.past .tl-date-block { background: var(--c-bg-elevated); }
 .tl-month {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--c-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .timeline-item.past .tl-month { color: var(--c-text-tertiary); }
-.tl-day {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--c-text-primary);
-  line-height: 1.1;
-}
 
 .tl-main { flex: 1; min-width: 0; }
 .tl-title-row {
@@ -616,16 +613,27 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   .activities-page { padding: 0 16px 80px; }
   .hero { min-height: 0; }
   .hero-body {
+    position: relative;
     flex-direction: column;
     align-items: flex-start;
-    gap: 20px;
-    padding: 28px 22px;
+    gap: 16px;
+    padding: 24px 22px;
+    padding-right: 90px;
   }
   .hero-left { order: 1; }
   .hero-main { order: 2; }
-  .hero-right { order: 3; flex-direction: row; align-items: center; gap: 12px; }
-  .hero-cd-num { font-size: 44px; }
-  .hero-title { font-size: 22px; }
+  .hero-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .hero-ring-wrap { width: 52px; height: 52px; }
+  .hero-ring-label { font-size: 10px; }
+  .hero-cd-num { font-size: 40px; }
+  .hero-title { font-size: 20px; }
 
   .timeline { padding-left: 36px; }
   .timeline::before { left: 15px; }
@@ -635,10 +643,8 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   .tl-card-head { flex-direction: column; gap: 12px; }
   .tl-date-block {
     width: 100%;
-    flex-direction: row;
-    gap: 8px;
-    padding: 8px;
+    padding: 10px 14px;
   }
-  .tl-day { font-size: 20px; }
+  .tl-month { font-size: 15px; }
 }
 </style>
