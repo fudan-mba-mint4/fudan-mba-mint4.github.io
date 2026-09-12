@@ -39,7 +39,7 @@
         "photoCount": 120,
         "mediaUrl": "https://live.photoplus.cn/live/76223991",
         "mediaType": "photoplus",
-        "cover": "/images/albums/cover-meeting.jpg",
+        "cover": "/images/albums/cover-meeting.webp",
         "involvesFinance": false,
         "financeAmount": 0,
         "financeCategory": null
@@ -84,7 +84,7 @@
         "photoCount": 210,
         "mediaUrl": "https://m.alltuu.com/album/95acdd57c4253d3f8cd2b44f8fa35c4c",
         "mediaType": "alltuu",
-        "cover": "/images/albums/cover-dinner.jpg",
+        "cover": "/images/albums/cover-dinner.webp",
         "involvesFinance": false,
         "financeAmount": 0,
         "financeCategory": "activity",
@@ -130,7 +130,7 @@
         "photoCount": 150,
         "mediaUrl": "https://live.photoplus.cn/live/18618886",
         "mediaType": "photoplus",
-        "cover": "/images/albums/cover-opening.jpg",
+        "cover": "/images/albums/cover-opening.webp",
         "involvesFinance": false,
         "financeAmount": 0,
         "financeCategory": null

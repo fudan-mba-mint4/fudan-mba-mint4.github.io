@@ -195,33 +195,48 @@ const formatDate = (dateStr) => {
           <div v-if="session.files && session.files.length > 0" class="files-section">
             <h4 class="files-label">{{ t.slides }}</h4>
             <div class="files-grid">
-              <a
-                v-for="file in session.files"
-                :key="file.filename"
-                :href="file.url"
-                class="file-card"
-                :target="file.external ? '_blank' : undefined"
-                :rel="file.external ? 'noopener noreferrer' : undefined"
-                :download="file.external ? undefined : ''"
-              >
-                <div class="file-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                  </svg>
+              <template v-for="file in session.files" :key="file.filename">
+                <!-- 下载型课件 -->
+                <a
+                  v-if="file.url"
+                  :href="file.url"
+                  class="file-card"
+                  :target="file.external ? '_blank' : undefined"
+                  :rel="file.external ? 'noopener noreferrer' : undefined"
+                  :download="file.external ? undefined : ''"
+                >
+                  <div class="file-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  </div>
+                  <div class="file-info">
+                    <span class="file-name">{{ file.name }}</span>
+                    <span class="file-meta">{{ file.external ? t.externalSource : (file.size ? (file.size + ' · PDF') : 'PDF') }}</span>
+                  </div>
+                  <div class="file-download">
+                    <svg v-if="file.external" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </div>
+                </a>
+                <!-- 说明型课件（无下载链接，大文件等） -->
+                <div v-else class="file-card file-card--note">
+                  <div class="file-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  </div>
+                  <div class="file-info">
+                    <span class="file-name">{{ file.name }}</span>
+                    <span class="file-meta" v-if="file.desc">{{ file.desc }}</span>
+                    <span class="file-meta" v-else-if="file.size">{{ file.size }} · PDF</span>
+                  </div>
                 </div>
-                <div class="file-info">
-                  <span class="file-name">{{ file.name }}</span>
-                  <span class="file-meta">{{ file.external ? t.externalSource : (file.size ? (file.size + ' · PDF') : 'PDF') }}</span>
-                </div>
-                <div class="file-download">
-                  <svg v-if="file.external" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                </div>
-              </a>
+              </template>
             </div>
           </div>
 

@@ -3,7 +3,7 @@ import markdownItPangu from 'markdown-it-pangu'
 
 // ========== 共享配置（所有语言共用） ==========
 const sharedThemeConfig = {
-  logo: '/images/logo.png',
+  logo: '/images/logo.webp',
   socialLinks: [
     { icon: 'github', link: 'https://github.com/fudan-mba-mint4' },
   ],
@@ -208,16 +208,7 @@ export default defineConfig({
   // 站点图标
   head: [
     ['link', { rel: 'icon', href: '/favicon.png' }],
-    // 泰文字体（Noto Sans Thai），按需加载
-    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    [
-      'link',
-      {
-        rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap',
-      },
-    ],
+    // 泰文字体已本地化，不依赖Google Fonts（国内访问优化）
   ],
 
   // 启用浅色/深色模式切换

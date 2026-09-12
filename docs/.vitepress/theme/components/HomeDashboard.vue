@@ -639,7 +639,7 @@ onUnmounted(() => {
             <!-- 内光环：反向旋转 -->
             <div class="badge-ring badge-ring--inner" aria-hidden="true"></div>
             <!-- 班徽图片：呼吸缩放（代表生命力） -->
-            <img src="/images/logo.png" alt="薄荷 4 班班徽" class="badge-img" />
+            <img src="/images/logo.webp" alt="薄荷 4 班班徽" class="badge-img" />
           </div>
           <div class="identity-text">
             <h1 class="identity-name">{{ t.className }}</h1>

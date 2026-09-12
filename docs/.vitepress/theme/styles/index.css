@@ -6,6 +6,36 @@
 @import './variables.css';
 @import './animations.css';
 
+/* ========== 本地泰文字体（不依赖Google Fonts，国内访问优化） ========== */
+@font-face {
+  font-family: 'Noto Sans Thai';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-sans-thai-thai-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans Thai';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/noto-sans-thai-thai-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans Thai';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/noto-sans-thai-thai-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans Thai';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/noto-sans-thai-thai-700-normal.woff2') format('woff2');
+}
+
 /* ========== 覆盖VitePress默认主题变量（强制浅色模式） ========== */
 :root {
   --vp-c-bg: #ffffff;
