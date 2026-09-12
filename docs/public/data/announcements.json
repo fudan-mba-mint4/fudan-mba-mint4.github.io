@@ -5,19 +5,19 @@
       "date": "2026-09-10",
       "category": "important",
       "title": {
-        "zh": "关于中秋节放假安排的通知",
-        "en": "Mid-Autumn Festival Holiday Notice",
-        "th": "แจ้งการหยุดวันไหว้พระจันทร์"
+        "zh": "关于2026年中秋节、国庆节放假安排的通知",
+        "en": "Mid-Autumn Festival & National Day Holiday Notice 2026",
+        "th": "แจ้งการหยุดวันไหว้พระจันทร์และวันชาติ 2026"
       },
       "summary": {
-        "zh": "9月15日至17日放假调休，共3天。9月14日（周一）上课。",
-        "en": "Holiday from Sep 15-17, classes on Sep 14 (Monday).",
-        "th": "หยุด 15-17 ก.ย. เรียนวันจันทร์ที่ 14 ก.ย."
+        "zh": "中秋9月19-21日放假，国庆10月1-8日放假。9月20日、10月1日、10月4日、10月8日课程暂停。",
+        "en": "Mid-Autumn: Sep 19-21. National Day: Oct 1-8. Classes paused on Sep 20, Oct 1, Oct 4, Oct 8.",
+        "th": "ไหว้พระจันทร์ 19-21 ก.ย. วันชาติ 1-8 ต.ค. หยุดเรียน 20 ก.ย. 1 ต.ค. 4 ต.ค. 8 ต.ค."
       },
       "content": {
-        "zh": "各位同学：根据国务院办公厅通知，结合学院教学安排，2026年中秋节放假时间为9月15日（周二）至9月17日（周四），共3天。9月14日（周一）正常上课，补上周二课程。请各位同学合理安排时间，注意出行安全。",
-        "en": "Dear classmates: According to the official holiday schedule, Mid-Autumn Festival holiday is Sep 15-17. Classes resume on Sep 14 (Monday) to make up for Monday classes.",
-        "th": "ตามประกาศของรัฐบาล หยุดวันไหว้พระจันทร์ 15-17 ก.ย. เรียนวันจันทร์ที่ 14 ก.ย. ชดเชยวันอังคาร"
+        "zh": "各位同学：根据国务院办公厅通知及学院教学安排，2026年中秋节、国庆节放假安排如下：\n\n一、中秋节：9月19日（周六）至9月21日（周一）放假，共3天。9月20日（周日）管理经济学、会计学课程暂停。\n\n二、国庆节：10月1日（周四）至10月8日（周四）放假，共8天。10月1日（周四）数据、模型与决策课程暂停；10月4日（周日）管理经济学、会计学课程暂停；10月8日（周四）数据、模型与决策课程暂停。\n\n三、9月27日（周日）、10月11日（周日）及其他日期正常上课。\n\n请各位同学合理安排时间，注意出行安全。",
+        "en": "Dear classmates: According to the official holiday schedule and academic calendar, the 2026 Mid-Autumn Festival and National Day arrangements are as follows:\n\n1. Mid-Autumn Festival: Sep 19 (Sat) - Sep 21 (Mon), 3 days. Managerial Economics and Accounting classes on Sep 20 (Sun) are paused.\n\n2. National Day: Oct 1 (Thu) - Oct 8 (Thu), 8 days. Data, Models & Decisions on Oct 1 (Thu) paused; Managerial Economics and Accounting on Oct 4 (Sun) paused; Data, Models & Decisions on Oct 8 (Thu) paused.\n\n3. Classes resume normally on Sep 27 (Sun), Oct 11 (Sun), and all other dates.\n\nPlease plan your time accordingly and travel safely.",
+        "th": "เพื่อนร่วมชั้นทุกท่าน ตามประกาศของรัฐบาลและปฏิทินการศึกษา การหยุดนักขัตฤกษ์ปี 2026 มีดังนี้\n\n1. วันไหว้พระจันทร์ 19 ก.ย. (เสาร์) - 21 ก.ย. (จันทร์) หยุด 3 วัน วิชาเศรษฐศาสตร์บริหารและบัญชี วันอาทิตย์ที่ 20 ก.ย. หยุด\n\n2. วันชาติ 1 ต.ค. (พฤหัสบดี) - 8 ต.ค. (พฤหัสบดี) หยุด 8 วัน วิชาข้อมูล โมเดล และการตัดสินใจ วันพฤหัสที่ 1 ต.ค. หยุด วิชาเศรษฐศาสตร์บริหารและบัญชี วันอาทิตย์ที่ 4 ต.ค. หยุด วิชาข้อมูล โมเดล และการตัดสินใจ วันพฤหัสที่ 8 ต.ค. หยุด\n\n3. เรียนปกติ วันอาทิตย์ที่ 27 ก.ย. วันอาทิตย์ที่ 11 ต.ค. และวันอื่นๆ\n\nกรุณาวางแผนเวลาและเดินทางอย่างปลอดภัย"
       },
       "pinned": true
     },
@@ -42,28 +42,6 @@
       },
       "pinned": false,
       "deadline": "2026-09-17"
-    },
-    {
-      "id": "ann-003",
-      "date": "2026-09-05",
-      "category": "activity",
-      "title": {
-        "zh": "班级破冰活动报名开始",
-        "en": "Class Ice-Breaking Activity Registration Open",
-        "th": "ลงทะเบียนกิจกรรมทำความรู้จัก"
-      },
-      "summary": {
-        "zh": "定于9月20日举办班级破冰活动，地点待定，请于9月15日前报名。",
-        "en": "Ice-breaking activity on Sep 20, register by Sep 15.",
-        "th": "กิจกรรมทำความรู้จัก 20 ก.ย. ลงทะเบียนภายใน 15 ก.ย."
-      },
-      "content": {
-        "zh": "为增进同学之间的了解，班委会定于9月20日（周日）举办班级破冰活动。活动内容包括团队游戏、自我介绍、自由交流等。地点待定，将在报名后通知。请有意参加的同学于9月15日前在班级群内报名。活动费用从班费中支出。",
-        "en": "To help classmates get to know each other, the class committee will host an ice-breaking activity on Sep 20 (Sunday). Activities include team games, self-introductions, and free networking. Venue TBD. Please register in the class group by Sep 15. Costs covered by class fund.",
-        "th": "คณะกรรมการชั้นเรียนจัดกิจกรรมทำความรู้จักวันอาทิตย์ที่ 20 ก.ย. ลงทะเบียนภายใน 15 ก.ย. ค่าใช้จ่ายจากกองทุนชั้นเรียน"
-      },
-      "pinned": false,
-      "deadline": "2026-09-15"
     },
     {
       "id": "ann-004",
