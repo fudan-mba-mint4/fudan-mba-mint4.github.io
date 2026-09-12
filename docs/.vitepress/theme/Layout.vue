@@ -52,6 +52,52 @@ onMounted(() => {
     window.addEventListener('scroll', handleScroll, { passive: true })
   }
 
+  // ========== PDF后台预加载 ==========
+  // 策略：页面加载完成后，浏览器空闲时自动预加载课程资料中的PDF
+  // 用 <link rel="prefetch"> 最低优先级，不影响页面性能，用户点击下载时直接从缓存读取
+  const prefetchPDFs = async () => {
+    try {
+      const res = await fetch('/data/course-materials.json')
+      if (!res.ok) return
+      const data = await res.json()
+      const urls = new Set()
+      // 遍历所有课程的所有节次，收集课件、作业、参考资料的URL
+      for (const course of data.courses || []) {
+        for (const session of course.sessions || []) {
+          for (const file of session.files || []) {
+            if (file.url && (file.url.startsWith('/') || file.url.startsWith(window.location.origin))) {
+              urls.add(file.url)
+            }
+          }
+          if (session.homework?.url) {
+            urls.add(session.homework.url)
+          }
+          for (const ref of session.references || []) {
+            if (ref.url && (ref.url.startsWith('/') || ref.url.startsWith(window.location.origin))) {
+              urls.add(ref.url)
+            }
+          }
+        }
+      }
+      // 为每个URL创建 prefetch 链接，浏览器会在空闲时加载
+      urls.forEach(url => {
+        const link = document.createElement('link')
+        link.rel = 'prefetch'
+        link.href = url
+        link.as = 'fetch'
+        document.head.appendChild(link)
+      })
+    } catch (e) {
+      // 预加载失败不影响页面功能，静默忽略
+    }
+  }
+  // 等待页面完全加载后再开始预加载
+  if (document.readyState === 'complete') {
+    prefetchPDFs()
+  } else {
+    window.addEventListener('load', prefetchPDFs, { once: true })
+  }
+
   // 组件卸载时清理监听器，避免内存泄漏
   onUnmounted(() => {
     mediaQuery.removeEventListener('change', applySystemTheme)

@@ -99,7 +99,7 @@
         "th": "พิธีเปิดภาคเรียน"
       },
       "date": "2026-09-04",
-      "endDate": "2026-09-06",
+      "endDate": "2026-09-09",
       "time": "全天",
       "location": {
         "zh": "复旦管理学院",
@@ -182,35 +182,35 @@
       }
     },
     {
-      "id": "act-005",
+      "id": "act-007",
       "title": {
-        "zh": "DMD课程小组讨论",
-        "en": "DMD Study Group Session",
-        "th": "กลุ่มศึกษาร่วมวิชา DMD"
+        "zh": "班委选举",
+        "en": "Class Committee Election",
+        "th": "การเลือกตั้งคณะกรรมการชั้นเรียน"
       },
-      "date": "2026-09-17",
-      "endDate": "2026-09-17",
-      "time": "19:00 - 21:00",
+      "date": "2026-09-13",
+      "endDate": "2026-09-13",
+      "time": "17:00 - 18:00",
       "location": {
-        "zh": "线上（腾讯会议）",
-        "en": "Online (Tencent Meeting)",
-        "th": "ออนไลน์ (Tencent Meeting)"
+        "zh": "政立院区 B403教室",
+        "en": "Zhengli Campus Room B403",
+        "th": "วิทยาเขตเจิ้งหลี่ ห้อง B403"
       },
       "organizer": {
-        "zh": "学习委员",
-        "en": "Academic Officer",
-        "th": "เจ้าหน้าที่การเรียน"
+        "zh": "班级筹备组",
+        "en": "Class Preparatory Group",
+        "th": "กลุ่มเตรียมการชั้นเรียน"
       },
       "description": {
-        "zh": "第一节课后习题讨论，知识点梳理，互帮互助。",
-        "en": "Post-lecture exercise discussion and knowledge review. Help each other learn.",
-        "th": "อภิปรายแบบฝึกหัดหลังเรียน และทบทวนความรู้ ช่วยเหลือซึ่งกันและกัน"
+        "zh": "会计学下课后进行班委选举，产生第一届班委会。请全体同学准时参加。",
+        "en": "Class committee election after Accounting class. First class committee will be elected. All classmates please attend on time.",
+        "th": "การเลือกตั้งคณะกรรมการชั้นเรียนหลังวิชาบัญชี จะมีคณะกรรมการชั้นเรียนรุ่นแรก เพื่อนร่วมชั้นทุกท่านกรุณาเข้าร่วมตรงเวลา"
       },
-      "status": "open",
-      "capacity": 30,
-      "registered": 18,
+      "status": "upcoming",
+      "capacity": 84,
+      "registered": 0,
       "tags": {
-        "type": "study",
+        "type": "governance",
         "hasMedia": false,
         "mediaUrl": null,
         "mediaType": null,
@@ -218,46 +218,6 @@
         "involvesFinance": false,
         "financeAmount": 0,
         "financeCategory": null
-      }
-    },
-    {
-      "id": "act-006",
-      "title": {
-        "zh": "班级破冰活动",
-        "en": "Class Ice-Breaking Activity",
-        "th": "กิจกรรมทำความรู้จักชั้นเรียน"
-      },
-      "date": "2026-09-20",
-      "endDate": "2026-09-20",
-      "time": "14:00 - 18:00",
-      "location": {
-        "zh": "政立院区 活动室",
-        "en": "Zhengli Campus Activity Room",
-        "th": "ห้องกิจกรรม วิทยาเขตเจิ้งหลี่"
-      },
-      "organizer": {
-        "zh": "班委会",
-        "en": "Class Committee",
-        "th": "คณะกรรมการชั้นเรียน"
-      },
-      "description": {
-        "zh": "团队游戏、自我介绍、自由交流，增进同学之间的了解。活动费用从班费支出。",
-        "en": "Team games, self-introductions, and free networking to help classmates get to know each other. Costs covered by class fund.",
-        "th": "เกมทีม แนะนำตัว และแลกเปลี่ยนเสรี เพื่อสร้างความรู้จักระหว่างเพื่อนร่วมชั้น ค่าใช้จ่ายจากกองทุนชั้นเรียน"
-      },
-      "status": "open",
-      "capacity": 84,
-      "registered": 52,
-      "tags": {
-        "type": "social",
-        "hasMedia": false,
-        "mediaUrl": null,
-        "mediaType": null,
-        "cover": null,
-        "involvesFinance": true,
-        "financeAmount": 0,
-        "financeCategory": "activity",
-        "financeNote": "活动费用从班费支出，金额待定"
       }
     }
   ]
