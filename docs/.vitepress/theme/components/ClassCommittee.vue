@@ -152,17 +152,16 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
             <span v-for="(name, j) in committeeMembers[i]" :key="j" class="member-chip">{{ name }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- 独立董事会 -->
-      <div class="board-section">
-        <div class="board-header">
-          <span class="board-icon">⚖️</span>
-          <h3 class="board-title">{{ t.boardTitle }}</h3>
-        </div>
-        <p class="board-desc">{{ t.boardDesc }}</p>
-        <div class="board-members">
-          <span v-for="(name, i) in boardMembers" :key="i" class="member-chip member-chip--board">{{ name }}</span>
+        <!-- 独立董事会（第7张卡，占2列，与智库研究员同排） -->
+        <div class="committee-card committee-card--board">
+          <div class="committee-card-header">
+            <span class="committee-card-icon">⚖️</span>
+            <h3 class="committee-card-name">{{ t.boardTitle }}</h3>
+          </div>
+          <div class="committee-card-members">
+            <span v-for="(name, i) in boardMembers" :key="i" class="member-chip">{{ name }}</span>
+          </div>
         </div>
       </div>
     </section>
@@ -241,6 +240,10 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
   grid-column: span 2;
   /* 副主理人：占2列，与主理人同排 */
 }
+.committee-card--board {
+  grid-column: span 2;
+  /* 独立董事会：占2列，与智库研究员同排 */
+}
 .committee-card-header {
   display: flex;
   align-items: center;
@@ -279,7 +282,7 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
 
 @media (max-width: 768px) {
   .committee-grid { grid-template-columns: 1fr; }
-  .committee-card--lead, .committee-card--deputy { grid-column: span 1; }
+  .committee-card--lead, .committee-card--deputy, .committee-card--board { grid-column: span 1; }
   .committee-hero-title { font-size: 22px; }
 }
 
