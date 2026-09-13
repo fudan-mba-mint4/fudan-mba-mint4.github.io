@@ -38,13 +38,13 @@ const i18n = {
     references: '推荐阅读 / 参考资料',
     homework: '课后作业',
     deadline: '截止日期',
-    download: '下载',
+    download: '预览',
     fileSize: '文件大小',
     teacher: '主讲',
     location: '教室',
     time: '时间',
     updated: '数据更新',
-    tip: '文件较大，建议右键「另存为」下载',
+    tip: '在新标签页预览PDF，可自由下载',
     externalSource: '教务网站',
     sessionsShort: '讲'
   },
@@ -60,13 +60,13 @@ const i18n = {
     references: 'Recommended Reading',
     homework: 'Homework',
     deadline: 'Deadline',
-    download: 'Download',
+    download: 'Preview',
     fileSize: 'Size',
     teacher: 'Instructor',
     location: 'Room',
     time: 'Time',
     updated: 'Updated',
-    tip: 'Large files — right-click and "Save As" to download',
+    tip: 'Open PDF in new tab — download freely',
     externalSource: 'School Portal',
     sessionsShort: 'sessions'
   },
@@ -82,13 +82,13 @@ const i18n = {
     references: 'หนังสือแนะนำ',
     homework: 'การบ้าน',
     deadline: 'กำหนดส่ง',
-    download: 'ดาวน์โหลด',
+    download: 'ดูตัวอย่าง',
     fileSize: 'ขนาด',
     teacher: 'ผู้สอน',
     location: 'ห้อง',
     time: 'เวลา',
     updated: 'อัปเดต',
-    tip: 'ไฟล์ขนาดใหญ่ แนะนำให้คลิกขวาแล้วบันทึกเป็น',
+    tip: 'เปิด PDF ในแท็บใหม่ ดาวน์โหลดได้ตามต้องการ',
     externalSource: 'เว็บไซต์วิชาการ',
     sessionsShort: 'คาบ'
   }
@@ -196,14 +196,13 @@ const formatDate = (dateStr) => {
             <h4 class="files-label">{{ t.slides }}</h4>
             <div class="files-grid">
               <template v-for="file in session.files" :key="file.filename">
-                <!-- 下载型课件 -->
+                <!-- 预览型课件（新标签页打开PDF） -->
                 <a
                   v-if="file.url"
                   :href="file.url"
                   class="file-card"
-                  :target="file.external ? '_blank' : undefined"
-                  :rel="file.external ? 'noopener noreferrer' : undefined"
-                  :download="file.external ? undefined : ''"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <div class="file-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -215,11 +214,8 @@ const formatDate = (dateStr) => {
                     <span class="file-meta">{{ file.external ? t.externalSource : (file.size ? (file.size + ' · PDF') : 'PDF') }}</span>
                   </div>
                   <div class="file-download">
-                    <svg v-if="file.external" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
                   </div>
                 </a>
@@ -245,12 +241,13 @@ const formatDate = (dateStr) => {
             <h4 class="files-label">{{ t.references }}</h4>
             <div class="files-grid">
               <template v-for="ref in session.references" :key="ref.filename">
-                <!-- 下载型参考资料 -->
+                <!-- 预览型参考资料（新标签页打开PDF） -->
                 <a
                   v-if="ref.url"
                   :href="ref.url"
                   class="file-card file-card--ref"
-                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <div class="file-icon file-icon--ref">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -264,7 +261,7 @@ const formatDate = (dateStr) => {
                   </div>
                   <div class="file-download">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                     </svg>
                   </div>
                 </a>
@@ -288,7 +285,7 @@ const formatDate = (dateStr) => {
           <!-- 作业 -->
           <div v-if="session.homework" class="homework-section">
             <h4 class="files-label">{{ t.homework }}</h4>
-            <a :href="session.homework.url" class="homework-card" download>
+            <a :href="session.homework.url" class="homework-card" target="_blank" rel="noopener noreferrer">
               <div class="homework-card-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
@@ -311,7 +308,7 @@ const formatDate = (dateStr) => {
               </div>
               <div class="homework-card-download">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                 </svg>
               </div>
             </a>
