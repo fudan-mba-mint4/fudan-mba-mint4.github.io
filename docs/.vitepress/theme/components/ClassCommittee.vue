@@ -33,6 +33,8 @@ const i18n = {
       },
     ],
     committeeTitle: '委员名单',
+    boardTitle: '独立董事会',
+    boardDesc: '落选同学自动纳入，拥有提案权，负责观察和监督班委工作及收集班级成员意见，可自由参与项目，无淘汰。',
     committeeNote: '具体委员名单待确认后更新。本页面当前为架构展示版本，职能模块划分已确定，人员信息将在班委会确认后补充。',
     tableHeaders: ['职能模块', '姓名', '主要职责'],
     pending: '待补充',
@@ -68,6 +70,8 @@ const i18n = {
       },
     ],
     committeeTitle: 'Committee Members',
+    boardTitle: 'Independent Advisory Board',
+    boardDesc: 'Candidates who were not elected automatically join. They have proposal rights, observe and supervise committee work, collect class member feedback, and may freely participate in projects — no elimination.',
     committeeNote: 'Specific member names will be updated after confirmation. This page currently shows the architecture — module divisions are finalized, personnel info will be added after committee confirmation.',
     tableHeaders: ['Module', 'Name', 'Key Responsibilities'],
     pending: 'TBD',
@@ -103,6 +107,8 @@ const i18n = {
       },
     ],
     committeeTitle: 'สมาชิกคณะกรรมการ',
+    boardTitle: 'คณะกรรมการที่ปรึกษาอิสระ',
+    boardDesc: 'ผู้สมัครที่ไม่ได้รับเลือกเข้าร่วมโดยอัตโนมัติ มีสิทธิ์เสนอข้อเสนอ เฝ้าดูแลและกำกับงานคณะกรรมการ รวบรวมความคิดเห็นของสมาชิกชั้นเรียน และสามารถเข้าร่วมโครงการได้อย่างอิสระ — ไม่มีการตัดออก',
     committeeNote: 'ชื่อสมาชิกจะได้รับการอัปเดตหลังการยืนยัน หน้านี้ปัจจุบันแสดงโครงสร้าง — การแบ่งโมดูลเสร็จสิ้นแล้ว ข้อมูลบุคคลจะถูกเพิ่มหลังการยืนยันจากคณะกรรมการ',
     tableHeaders: ['โมดูล', 'ชื่อ', 'หน้าที่หลัก'],
     pending: 'รอดำเนินการ',
@@ -120,6 +126,9 @@ const committeeMembers = [
   ['杨旻', '陈飘逸', '徐哲明', '李甜', '徐佩莹'],
   ['孟维翰', '邹智宇'],
 ]
+
+// 独立董事会（落选同学自动纳入，负责监督班委）
+const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
 </script>
 
 <template>
@@ -142,6 +151,18 @@ const committeeMembers = [
           <div class="committee-card-members">
             <span v-for="(name, j) in committeeMembers[i]" :key="j" class="member-chip">{{ name }}</span>
           </div>
+        </div>
+      </div>
+
+      <!-- 独立董事会 -->
+      <div class="board-section">
+        <div class="board-header">
+          <span class="board-icon">⚖️</span>
+          <h3 class="board-title">{{ t.boardTitle }}</h3>
+        </div>
+        <p class="board-desc">{{ t.boardDesc }}</p>
+        <div class="board-members">
+          <span v-for="(name, i) in boardMembers" :key="i" class="member-chip member-chip--board">{{ name }}</span>
         </div>
       </div>
     </section>
@@ -214,13 +235,11 @@ const committeeMembers = [
   box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 .committee-card--lead {
-  grid-column: span 3;
-  background: linear-gradient(135deg, var(--c-accent-light) 0%, var(--c-bg-card) 100%);
-  border-color: var(--c-accent);
+  /* 主理人：正常1列，不特殊 */
 }
 .committee-card--deputy {
-  grid-column: span 3;
-  background: var(--c-bg-secondary);
+  grid-column: span 2;
+  /* 副主理人：占2列，与主理人同排 */
 }
 .committee-card-header {
   display: flex;
@@ -252,17 +271,10 @@ const committeeMembers = [
   color: var(--c-text-primary);
 }
 .committee-card--lead .member-chip {
-  background: var(--c-accent);
-  color: #fff;
-  border-color: var(--c-accent);
-  font-size: 18px;
-  font-weight: 700;
-  padding: 8px 20px;
+  /* 主理人：字体大小与其他班委一致 */
 }
 .committee-card--deputy .member-chip {
-  background: var(--c-bg-card);
-  font-size: 15px;
-  font-weight: 600;
+  /* 副主理人：字体大小与其他班委一致 */
 }
 
 @media (max-width: 768px) {
