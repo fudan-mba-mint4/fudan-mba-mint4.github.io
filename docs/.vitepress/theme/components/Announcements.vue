@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useNow } from '../composables/useNow.js'
+import { useData } from '../composables/useData.js'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -78,16 +79,8 @@ const activeCategory = ref('all')
 const searchQuery = ref('')
 
 /* ========== 数据 ========== */
-const announcements = ref([])
-onMounted(async () => {
-  try {
-    const res = await fetch('/data/announcements.json')
-    const data = await res.json()
-    announcements.value = data.announcements
-  } catch (e) {
-    console.error('Failed to load announcements:', e)
-  }
-})
+const { data: announcementsData } = useData('/data/announcements.json')
+const announcements = computed(() => announcementsData.value?.announcements || [])
 
 /* ========== 实时时钟（倒计时用，每分钟刷新） ========== */
 const { now } = useNow()

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { sortByDateDesc, formatShortDate } from '../utils/dateUtils.js'
+import { useData } from '../composables/useData.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -108,28 +109,16 @@ const i18n = {
 const { lang: currentLang, t } = useLang(i18n)
 
 /* ========== 班费数据（从JSON读取） ========== */
-const transactions = ref([])
-const activityFinances = ref([])
-const activitiesMap = ref({})
-const expandedActivity = ref(null)
-
-onMounted(async () => {
-  try {
-    const [financeRes, activityRes] = await Promise.all([
-      fetch('/data/finance.json'),
-      fetch('/data/activities.json')
-    ])
-    const financeData = await financeRes.json()
-    const activityData = await activityRes.json()
-    transactions.value = financeData.transactions || []
-    activityFinances.value = financeData.activityFinances || []
-    ;(activityData.activities || []).forEach(a => {
-      activitiesMap.value[a.id] = a
-    })
-  } catch (e) {
-    console.error('Failed to load finance data:', e)
-  }
+const { data: financeData } = useData('/data/finance.json')
+const { data: activitiesData } = useData('/data/activities.json')
+const transactions = computed(() => financeData.value?.transactions || [])
+const activityFinances = computed(() => financeData.value?.activityFinances || [])
+const activitiesMap = computed(() => {
+  const map = {}
+  ;(activitiesData.value?.activities || []).forEach(a => { map[a.id] = a })
+  return map
 })
+const expandedActivity = ref(null)
 
 const toggleActivity = (id) => {
   expandedActivity.value = expandedActivity.value === id ? null : id

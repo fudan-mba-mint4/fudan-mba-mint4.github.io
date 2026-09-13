@@ -1,29 +1,17 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useData } from '../composables/useData.js'
 
-const materialsData = ref(null)
-const loading = ref(true)
+const { data: materialsData, loading } = useData('/data/course-materials.json')
 const activeCourse = ref(0)
 
-onMounted(() => {
-  loadData()
+watch(materialsData, (data) => {
+  if (!data) return
+  const courses = data.courses || []
+  const idx = courses.findIndex(c => (c.sessions || []).length > 0)
+  activeCourse.value = idx >= 0 ? idx : 0
 })
-
-const loadData = async () => {
-  try {
-    const res = await fetch('/data/course-materials.json')
-    materialsData.value = await res.json()
-    const courses = (materialsData.value && materialsData.value.courses) || []
-    // 默认选中第一个有课件的课程
-    const idx = courses.findIndex(c => (c.sessions || []).length > 0)
-    activeCourse.value = idx >= 0 ? idx : 0
-  } catch (e) {
-    console.error('加载课件数据失败', e)
-  } finally {
-    loading.value = false
-  }
-}
 
 const i18n = {
   zh: {

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { sortByDateDesc } from '../utils/dateUtils.js'
+import { useData } from '../composables/useData.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -42,8 +43,9 @@ const i18n = {
 const { lang, t } = useLang(i18n)
 
 /* ========== 数据（JSON 驱动） ========== */
-const courses = ref([])
-const documents = ref([])
+const { data: kbData } = useData('/data/knowledge-base.json')
+const courses = computed(() => kbData.value?.courses || [])
+const documents = computed(() => kbData.value?.documents || [])
 
 /* ========== 阅读进度（localStorage） ========== */
 const STORAGE_KEY = 'mint4:kb:v1'
@@ -121,16 +123,8 @@ const typeIcon = (type) => {
   return map[type] || '📄'
 }
 
-onMounted(async () => {
+onMounted(() => {
   loadReadIds()
-  try {
-    const res = await fetch('/data/knowledge-base.json')
-    const data = await res.json()
-    courses.value = data.courses || []
-    documents.value = data.documents || []
-  } catch (e) {
-    console.warn('knowledge base data load failed', e)
-  }
 })
 
 onUnmounted(() => {

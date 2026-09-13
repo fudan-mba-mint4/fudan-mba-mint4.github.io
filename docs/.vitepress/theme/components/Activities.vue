@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useLang, formatDate, formatRelative } from '../composables/useLang'
 import { useNow } from '../composables/useNow.js'
 import { parseDate } from '../utils/dateUtils.js'
+import { useData } from '../composables/useData.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -64,16 +65,8 @@ const i18n = {
 const { lang, t } = useLang(i18n)
 
 /* ========== 活动数据（从JSON读取） ========== */
-const activities = ref([])
-onMounted(async () => {
-  try {
-    const res = await fetch('/data/activities.json')
-    const data = await res.json()
-    activities.value = data.activities || []
-  } catch (e) {
-    console.error('Failed to load activities:', e)
-  }
-})
+const { data: activitiesData } = useData('/data/activities.json')
+const activities = computed(() => activitiesData.value?.activities || [])
 
 /* ========== 时钟（每分钟刷新一次，倒计时不秒跳） ========== */
 const { now } = useNow()
@@ -267,13 +260,23 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
                       class="tl-title-link"
                       :href="galleryLink"
                       :aria-label="t.album"
-                    >📷 {{ t.album }}</a>
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                      </svg>
+                      {{ t.album }}
+                    </a>
                     <a
                       v-if="act.tags && act.tags.involvesFinance"
                       class="tl-title-link tl-title-link--finance"
                       :href="`${langPrefix}/finance/`"
                       :aria-label="t.involvesFinance"
-                    >💰 {{ t.involvesFinance }}</a>
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                      {{ t.involvesFinance }}
+                    </a>
                   </div>
                   <span v-if="isUpcoming(act)" class="tl-soon">{{ formatRelative(act.date) }}</span>
                   <span v-else class="tl-ended">{{ t.ended }}</span>
@@ -560,18 +563,30 @@ html.dark .timeline-item.past .tl-month {
   flex-shrink: 0;
 }
 .tl-title-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 500;
   color: var(--c-text-secondary);
   text-decoration: none;
   white-space: nowrap;
-  transition: color 0.2s ease;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 .tl-title-link:hover {
   color: var(--c-accent);
+  border-color: var(--c-accent);
+  background: var(--c-accent-light);
 }
 .tl-title-link--finance:hover {
   color: var(--c-finance-expense, #34c759);
+  border-color: var(--c-finance-expense, #34c759);
+  background: rgba(52, 199, 89, 0.08);
 }
 .tl-soon {
   flex-shrink: 0;

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useData } from '../composables/useData.js'
 import classData from '../../../public/data/class-members.json'
 
 /* ========== 多语言文案 ========== */
@@ -194,52 +195,31 @@ const scheduleError = ref(false)
 /* ========== 作业数据 ========== */
 const homeworkData = ref([])
 
-/* ========== 活动相册数据（首页展示封面图） ========== */
-const galleryActivities = ref([])
-
 /* ========== 班费数据（从finance.json读取） ========== */
-const financeData = ref({ balance: 0, income: 0, expense: 0 })
-
-async function fetchFinance() {
-  try {
-    const res = await fetch('/data/finance.json')
-    const data = await res.json()
-    const txs = data.transactions || []
-    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-    financeData.value = { balance: income - expense, income, expense }
-  } catch (e) {
-    console.error('加载班费数据失败', e)
-  }
-}
+const { data: financeRaw } = useData('/data/finance.json')
+const financeData = computed(() => {
+  const txs = financeRaw.value?.transactions || []
+  const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  return { balance: income - expense, income, expense }
+})
 
 /* ========== 公告数据（从announcements.json读取） ========== */
-const announcementsData = ref([])
+const { data: announcementsRaw } = useData('/data/announcements.json')
+const announcementsData = computed(() => {
+  return (announcementsRaw.value?.announcements || [])
+    .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
+    .slice(0, 3)
+})
 
-async function fetchAnnouncements() {
-  try {
-    const res = await fetch('/data/announcements.json')
-    const data = await res.json()
-    announcementsData.value = (data.announcements || [])
-      .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
-      .slice(0, 3)
-  } catch (e) {
-    console.error('加载公告数据失败', e)
-  }
-}
-
-async function fetchActivities() {
-  try {
-    const res = await fetch('/data/activities.json')
-    const data = await res.json()
-    galleryActivities.value = (data.activities || [])
-      .filter(a => a.tags && a.tags.hasMedia && a.tags.cover)
-      .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
-      .slice(0, 4)
-  } catch (e) {
-    console.error('加载活动相册失败', e)
-  }
-}
+/* ========== 活动相册数据 ========== */
+const { data: activitiesRaw } = useData('/data/activities.json')
+const galleryActivities = computed(() => {
+  return (activitiesRaw.value?.activities || [])
+    .filter(a => a.tags && a.tags.hasMedia && a.tags.cover)
+    .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
+    .slice(0, 4)
+})
 
 async function fetchHomework() {
   try {
@@ -310,9 +290,6 @@ const retrySchedule = () => {
 onMounted(() => {
   fetchSchedule()
   fetchHomework()
-  fetchActivities()
-  fetchFinance()
-  fetchAnnouncements()
 })
 
 // 获取接下来的2节课

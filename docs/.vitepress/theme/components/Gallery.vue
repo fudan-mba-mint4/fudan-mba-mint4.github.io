@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useLang } from '../composables/useLang'
+import { useData } from '../composables/useData.js'
 
 const i18n = {
   zh: {
@@ -37,34 +38,24 @@ const i18n = {
 
 const { lang, t } = useLang(i18n)
 
-const albums = ref([])
-const loading = ref(true)
-
-onMounted(async () => {
-  try {
-    const res = await fetch('/data/activities.json')
-    const data = await res.json()
-    albums.value = (data.activities || [])
-      .filter(a => a.tags && a.tags.hasMedia)
-      .map(a => ({
-        id: a.id,
-        title: a.title,
-        date: a.date,
-        cover: a.tags.cover,
-        url: a.tags.mediaUrl,
-        location: a.location,
-        registered: typeof a.registered === 'number' ? a.registered : 0,
-        mediaType: a.tags.mediaType || null,
-        localPhotos: a.tags.localPhotos || null,
-        photoCount: a.tags.photoCount || 0,
-      }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-  } catch (e) {
-    console.error('加载相册数据失败', e)
-    albums.value = []
-  } finally {
-    loading.value = false
-  }
+const { data: activitiesData, loading } = useData('/data/activities.json')
+const albums = computed(() => {
+  if (!activitiesData.value?.activities) return []
+  return (activitiesData.value.activities || [])
+    .filter(a => a.tags && a.tags.hasMedia)
+    .map(a => ({
+      id: a.id,
+      title: a.title,
+      date: a.date,
+      cover: a.tags.cover,
+      url: a.tags.mediaUrl,
+      location: a.location,
+      registered: typeof a.registered === 'number' ? a.registered : 0,
+      mediaType: a.tags.mediaType || null,
+      localPhotos: a.tags.localPhotos || null,
+      photoCount: a.tags.photoCount || 0,
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
 })
 
 /* 按月份分组（key: YYYY-MM，用于排序；显示用格式化月份名） */

@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useData } from '../composables/useData.js'
 import NextUpPill from './NextUpPill.vue'
 import SemesterHighway from './SemesterHighway.vue'
 
@@ -66,21 +67,9 @@ const locale = computed(() =>
 )
 
 /* ========== 数据加载 ========== */
-const scheduleData = ref(null)
-const loading = ref(true)
+const { data: scheduleData, loading } = useData('/data/schedule.json')
 const activeTab = ref('week') // 'week' | 'course' | 'calendar'
 const showCalendar = ref(false)
-
-onMounted(async () => {
-  try {
-    const res = await fetch('/data/schedule.json')
-    scheduleData.value = await res.json()
-  } catch (e) {
-    console.error('加载课表失败', e)
-  } finally {
-    loading.value = false
-  }
-})
 
 /* ========== 课程颜色：用稳定索引而非中文名 ========== */
 const courseIndexMap = computed(() => {
