@@ -611,7 +611,6 @@ onUnmounted(() => {
       <!-- 1. 班级身份卡（大卡，2x2） -->
       <div
         class="card card--identity card--span-2-col card--span-2-row"
-        v-tilt
         role="banner"
         :aria-label="`${t.className} - ${t.classFull}`"
       >
