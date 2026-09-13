@@ -11,6 +11,7 @@ const i18n = {
     viewAll: '查看全部',
     backToTop: '回到顶部',
     noAnnouncements: '暂无公告',
+    categoryMap: { important: '重要', academic: '教学', normal: '通知', event: '活动' },
     // 班级身份卡
     className: '薄荷 4 班',
     classFull: '复旦大学 MBA 2026 级',
@@ -75,6 +76,7 @@ const i18n = {
     viewAll: 'View All',
     backToTop: 'Back to Top',
     noAnnouncements: 'No announcements yet',
+    categoryMap: { important: 'Important', academic: 'Academic', normal: 'Notice', event: 'Event' },
     className: 'Mint 4',
     classFull: 'Fudan University MBA Class of 2026',
     slogan: '4 the Best, for the Future.',
@@ -128,6 +130,7 @@ const i18n = {
     viewAll: 'ดูทั้งหมด',
     backToTop: 'กลับไปด้านบน',
     noAnnouncements: 'ไม่มีประกาศ',
+    categoryMap: { important: 'สำคัญ', academic: 'การเรียน', normal: 'แจ้งเตือน', event: 'กิจกรรม' },
     className: 'มินต์ 4',
     classFull: 'มหาวิทยาลัยฟูตาน MBA รุ่น 2026',
     slogan: '4 the Best, for the Future.',
@@ -287,9 +290,79 @@ const retrySchedule = () => {
   fetchSchedule()
 }
 
+/* ========== 截止提醒弹窗 ========== */
+const showAlerts = ref(false)
+const alerts = ref([])
+
+// 弹窗类型配色
+const alertColors = {
+  homework: { bg: 'linear-gradient(135deg, #ff9500, #ff6b00)', glow: 'rgba(255, 149, 0, 0.35)', label: '作业' },
+  important: { bg: 'linear-gradient(135deg, #ff3b30, #d70015)', glow: 'rgba(255, 59, 48, 0.35)', label: '重要' },
+  activity: { bg: 'linear-gradient(135deg, #34c759, #248a3d)', glow: 'rgba(52, 199, 89, 0.35)', label: '活动' },
+  course: { bg: 'linear-gradient(135deg, #007aff, #0051d5)', glow: 'rgba(0, 122, 255, 0.35)', label: '课程' },
+  finance: { bg: 'linear-gradient(135deg, #af52de, #7c2eb8)', glow: 'rgba(175, 82, 222, 0.35)', label: '班费' },
+}
+
+// 检测截止项（真实数据）
+const detectDeadlines = () => {
+  const now = new Date()
+  const oneDay = 24 * 60 * 60 * 1000
+  const results = []
+
+  // 1. 作业检测
+  const hwList = homeworkData.value || []
+  hwList.forEach(hw => {
+    if (hw.status !== 'pending' || !hw.deadline) return
+    const deadline = new Date(hw.deadline + 'T18:00:00')
+    const diff = deadline - now
+    if (diff > 0 && diff <= oneDay) {
+      const hours = Math.ceil(diff / (60 * 60 * 1000))
+      results.push({
+        id: hw.id,
+        type: 'homework',
+        title: `${hw.course_id.toUpperCase()} ${hw.title}`,
+        desc: `截止时间：${hw.deadline.slice(5)} 18:00（还剩${hours}小时）`,
+      })
+    }
+  })
+
+  // 2. 活动检测（活动前1天提醒）
+  const actList = activitiesData.value || []
+  actList.forEach(act => {
+    if (!act.date || act.status === 'ended') return
+    const actDate = new Date(act.date + 'T00:00:00')
+    const diff = actDate - now
+    if (diff > 0 && diff <= oneDay) {
+      const hours = Math.ceil(diff / (60 * 60 * 1000))
+      results.push({
+        id: act.id,
+        type: 'activity',
+        title: act.title[currentLang.value] || act.title.zh,
+        desc: `明天开始（还剩${hours}小时）${act.location ? ' · ' + act.location : ''}`,
+      })
+    }
+  })
+
+  return results
+}
+
+const triggerAlerts = () => {
+  const detected = detectDeadlines()
+  // Demo：如果没有真实截止项，用模拟数据展示效果
+  alerts.value = detected.length > 0 ? detected : [
+    { id: 'demo1', type: 'homework', title: 'DMD 第一次作业', desc: '截止时间：09-17 18:00（还剩约4天）' },
+    { id: 'demo2', type: 'activity', title: '班委选举', desc: '今天 17:00 · B403教室' },
+  ]
+  showAlerts.value = true
+  setTimeout(() => {
+    showAlerts.value = false
+  }, 6000)
+}
+
 onMounted(() => {
   fetchSchedule()
   fetchHomework()
+  setTimeout(triggerAlerts, 1200)
 })
 
 // 获取接下来的2节课
@@ -606,6 +679,21 @@ onUnmounted(() => {
             }"
           ></span>
         </div>
+        <!-- 苹果风色团呼吸旋转背景 -->
+        <div class="color-blobs" aria-hidden="true">
+          <div class="blob-orbit blob-orbit--1">
+            <span class="color-blob color-blob--mint"></span>
+          </div>
+          <div class="blob-orbit blob-orbit--2">
+            <span class="color-blob color-blob--orange"></span>
+          </div>
+          <div class="blob-orbit blob-orbit--3">
+            <span class="color-blob color-blob--blue"></span>
+          </div>
+          <div class="blob-orbit blob-orbit--4">
+            <span class="color-blob color-blob--pink"></span>
+          </div>
+        </div>
         <div class="identity-inner">
           <div class="identity-badge">
             <!-- 脉动光晕 -->
@@ -811,7 +899,7 @@ onUnmounted(() => {
             :aria-label="`${item.category}: ${(item.title[currentLang] || item.title.zh || '')}, ${item.date}`"
           >
             <span class="announcement-indicator" :class="{ 'announcement-indicator--pinned': item.pinned }" aria-hidden="true"></span>
-            <span class="announcement-tag">{{ item.category }}</span>
+            <span class="announcement-tag">{{ t.categoryMap[item.category] || item.category }}</span>
             <span class="announcement-title">{{ item.title[currentLang] || item.title.zh }}</span>
             <span class="announcement-date">{{ item.date }}</span>
             <svg class="announcement-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -964,6 +1052,35 @@ onUnmounted(() => {
           <path d="M12 19V5M5 12l7-7 7 7"/>
         </svg>
       </button>
+    </Transition>
+
+    <!-- 截止提醒弹窗（多个同时显示） -->
+    <Transition name="alert-pop">
+      <div v-if="showAlerts" class="alerts-container">
+        <div
+          v-for="(alert, idx) in alerts"
+          :key="alert.id"
+          class="deadline-alert"
+          :style="{
+            '--alert-bg': alertColors[alert.type]?.bg,
+            '--alert-glow': alertColors[alert.type]?.glow,
+            '--alert-index': idx,
+          }"
+          role="alert"
+        >
+          <div class="deadline-alert-icon">
+            <svg v-if="alert.type === 'homework'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <svg v-else-if="alert.type === 'activity'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <svg v-else-if="alert.type === 'important'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="deadline-alert-content">
+            <div class="deadline-alert-title">{{ alert.title }}</div>
+            <div class="deadline-alert-desc">{{ alert.desc }}</div>
+          </div>
+          <div class="deadline-alert-progress"></div>
+        </div>
+      </div>
     </Transition>
   </div>
 </template>
@@ -1223,12 +1340,126 @@ onUnmounted(() => {
   z-index: 0;
 }
 
+/* 苹果风色团呼吸旋转背景 */
+.color-blobs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 0;
+  animation: blobsGlobalRotate 50s linear infinite;
+}
+@keyframes blobsGlobalRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 轨道层：每个色团绕中心做椭圆轨道运动 */
+.blob-orbit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+.blob-orbit--1 { animation: orbit1 14s ease-in-out infinite; }
+.blob-orbit--2 { animation: orbit2 18s ease-in-out infinite; animation-direction: reverse; }
+.blob-orbit--3 { animation: orbit3 16s ease-in-out infinite; }
+.blob-orbit--4 { animation: orbit4 20s ease-in-out infinite; animation-direction: reverse; }
+
+@keyframes orbit1 {
+  0%   { transform: rotate(0deg) translateX(70px) rotate(0deg); }
+  25%  { transform: rotate(90deg) translateX(90px) rotate(-90deg); }
+  50%  { transform: rotate(180deg) translateX(65px) rotate(-180deg); }
+  75%  { transform: rotate(270deg) translateX(85px) rotate(-270deg); }
+  100% { transform: rotate(360deg) translateX(70px) rotate(-360deg); }
+}
+@keyframes orbit2 {
+  0%   { transform: rotate(45deg) translateX(85px) rotate(-45deg); }
+  25%  { transform: rotate(135deg) translateX(60px) rotate(-135deg); }
+  50%  { transform: rotate(225deg) translateX(90px) rotate(-225deg); }
+  75%  { transform: rotate(315deg) translateX(70px) rotate(-315deg); }
+  100% { transform: rotate(405deg) translateX(85px) rotate(-405deg); }
+}
+@keyframes orbit3 {
+  0%   { transform: rotate(90deg) translateX(60px) rotate(-90deg); }
+  33%  { transform: rotate(210deg) translateX(95px) rotate(-210deg); }
+  66%  { transform: rotate(330deg) translateX(75px) rotate(-330deg); }
+  100% { transform: rotate(450deg) translateX(60px) rotate(-450deg); }
+}
+@keyframes orbit4 {
+  0%   { transform: rotate(135deg) translateX(90px) rotate(-135deg); }
+  25%  { transform: rotate(225deg) translateX(65px) rotate(-225deg); }
+  50%  { transform: rotate(315deg) translateX(85px) rotate(-315deg); }
+  75%  { transform: rotate(405deg) translateX(70px) rotate(-405deg); }
+  100% { transform: rotate(495deg) translateX(90px) rotate(-495deg); }
+}
+
+/* 色团本体：呼吸缩放+透明度+颜色交融 */
+.color-blob {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  filter: blur(35px);
+  mix-blend-mode: multiply;
+  will-change: transform, opacity;
+  transform: translate(-50%, -50%);
+}
+.dark .color-blob {
+  mix-blend-mode: screen;
+}
+.color-blob--mint {
+  width: 130px;
+  height: 130px;
+  background: radial-gradient(circle at 30% 30%, #5EC4AC 0%, #2D7A6C 50%, transparent 75%);
+  animation: breatheMint 6s ease-in-out infinite;
+}
+.color-blob--orange {
+  width: 110px;
+  height: 110px;
+  background: radial-gradient(circle at 60% 40%, #ffb347 0%, #ff6b00 50%, transparent 75%);
+  animation: breatheOrange 7.5s ease-in-out infinite;
+}
+.color-blob--blue {
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle at 40% 60%, #5ac8fa 0%, #007aff 50%, transparent 75%);
+  animation: breatheBlue 8s ease-in-out infinite;
+}
+.color-blob--pink {
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle at 50% 50%, #ff6482 0%, #ff2d55 50%, transparent 75%);
+  animation: breathePink 7s ease-in-out infinite;
+}
+
+@keyframes breatheMint {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.25); opacity: 0.75; }
+}
+@keyframes breatheOrange {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.45; }
+  30% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.7; }
+  70% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.4; }
+}
+@keyframes breatheBlue {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.4; }
+  40% { transform: translate(-50%, -50%) scale(1.35); opacity: 0.65; }
+  80% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.35; }
+}
+@keyframes breathePink {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+}
+
 .particle {
   position: absolute;
   width: var(--p-size);
   height: var(--p-size);
-  border-radius: 50%;
-  background: var(--c-accent);
+  border-radius: 50%;  background: var(--c-accent);
   opacity: 0.12;
   left: var(--p-x);
   top: var(--p-y);
@@ -1273,6 +1504,16 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.dark .identity-badge {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 /* 班徽图片：呼吸缩放（代表生命力） */
 .badge-img {
@@ -2789,6 +3030,104 @@ onUnmounted(() => {
   .mentor-avatar:hover,
   .gallery-item:hover {
     transform: none;
+  }
+}
+
+/* ========== 截止提醒弹窗 ========== */
+.alerts-container {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+.deadline-alert {
+  position: relative;
+  width: 320px;
+  background: var(--c-bg-card);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 16px 14px;
+  pointer-events: auto;
+  animation: alertPulse 1.5s ease-in-out infinite;
+  --alert-bg: linear-gradient(135deg, #ff9500, #ff6b00);
+  --alert-glow: rgba(255, 149, 0, 0.35);
+}
+.deadline-alert-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--alert-bg);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deadline-alert-content {
+  flex: 1;
+  min-width: 0;
+}
+.deadline-alert-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin-bottom: 3px;
+}
+.deadline-alert-desc {
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  line-height: 1.5;
+}
+.deadline-alert-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--alert-bg);
+  transform-origin: left center;
+  animation: progressShrink 6s linear forwards;
+}
+@keyframes progressShrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1); }
+  50% { box-shadow: 0 8px 40px var(--alert-glow), 0 2px 12px var(--alert-glow); }
+}
+.alert-pop-enter-active {
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.alert-pop-leave-active {
+  transition: all 0.25s ease-in;
+}
+.alert-pop-enter-from {
+  opacity: 0;
+  transform: translateX(40px) scale(0.9);
+}
+.alert-pop-leave-to {
+  opacity: 0;
+  transform: translateX(40px) scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .alerts-container {
+    top: 70px;
+    right: 12px;
+    left: 12px;
+  }
+  .deadline-alert {
+    width: auto;
   }
 }
 </style>
