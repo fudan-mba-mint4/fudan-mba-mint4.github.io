@@ -137,23 +137,8 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
     <section class="committee-hero">
       <h2 class="committee-hero-title">{{ t.committeeTitle }}</h2>
       <p class="committee-hero-sub">2026级薄荷4班 · 班委团队</p>
-      <div class="committee-grid">
-        <div
-          v-for="(mod, i) in t.modules"
-          :key="i"
-          class="committee-card"
-          :class="{ 'committee-card--lead': i === 0, 'committee-card--deputy': i === 1 }"
-        >
-          <div class="committee-card-header">
-            <span class="committee-card-icon">{{ mod.icon }}</span>
-            <h3 class="committee-card-name">{{ mod.name.replace(/（.*?）|\(.*?\)/g, '') }}</h3>
-          </div>
-          <div class="committee-card-members">
-            <span v-for="(name, j) in committeeMembers[i]" :key="j" class="member-chip">{{ name }}</span>
-          </div>
-        </div>
-
-        <!-- 独立董事会（第7张卡，占2列，与智库研究员同排） -->
+      <div class="committee-grid committee-grid--top">
+        <!-- 独立董事会 -->
         <div class="committee-card committee-card--board">
           <div class="committee-card-header">
             <span class="committee-card-icon">⚖️</span>
@@ -161,6 +146,41 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
           </div>
           <div class="committee-card-members">
             <span v-for="(name, i) in boardMembers" :key="i" class="member-chip">{{ name }}</span>
+          </div>
+        </div>
+        <!-- 主理人 -->
+        <div class="committee-card committee-card--lead">
+          <div class="committee-card-header">
+            <span class="committee-card-icon">{{ t.modules[0].icon }}</span>
+            <h3 class="committee-card-name">{{ t.modules[0].name.replace(/（.*?）|\(.*?\)/g, '') }}</h3>
+          </div>
+          <div class="committee-card-members">
+            <span v-for="(name, j) in committeeMembers[0]" :key="j" class="member-chip">{{ name }}</span>
+          </div>
+        </div>
+        <!-- 副主理人 -->
+        <div class="committee-card committee-card--deputy">
+          <div class="committee-card-header">
+            <span class="committee-card-icon">{{ t.modules[1].icon }}</span>
+            <h3 class="committee-card-name">{{ t.modules[1].name.replace(/（.*?）|\(.*?\)/g, '') }}</h3>
+          </div>
+          <div class="committee-card-members">
+            <span v-for="(name, j) in committeeMembers[1]" :key="j" class="member-chip">{{ name }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="committee-grid committee-grid--bottom">
+        <div
+          v-for="(mod, i) in t.modules.slice(2)"
+          :key="i"
+          class="committee-card"
+        >
+          <div class="committee-card-header">
+            <span class="committee-card-icon">{{ mod.icon }}</span>
+            <h3 class="committee-card-name">{{ mod.name.replace(/（.*?）|\(.*?\)/g, '') }}</h3>
+          </div>
+          <div class="committee-card-members">
+            <span v-for="(name, j) in committeeMembers[i + 2]" :key="j" class="member-chip">{{ name }}</span>
           </div>
         </div>
       </div>
@@ -218,8 +238,14 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
 }
 .committee-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
+}
+.committee-grid--top {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 14px;
+}
+.committee-grid--bottom {
+  grid-template-columns: repeat(2, 1fr);
 }
 .committee-card {
   background: var(--c-bg-card);
@@ -237,12 +263,10 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
   /* 主理人：正常1列，不特殊 */
 }
 .committee-card--deputy {
-  grid-column: span 2;
-  /* 副主理人：占2列，与主理人同排 */
+  /* 副主理人：正常1列 */
 }
 .committee-card--board {
-  grid-column: span 2;
-  /* 独立董事会：占2列，与智库研究员同排 */
+  /* 独立董事会：正常1列 */
 }
 .committee-card-header {
   display: flex;
