@@ -110,10 +110,42 @@ const i18n = {
 }
 
 const { t } = useLang(i18n)
+
+// 委员名单（按 t.modules 顺序：主理人、副主理人、体验运营、财务激励、记忆主理、智库研究）
+const committeeMembers = [
+  ['彭皓宁'],
+  ['相婉玲', '雷振宇'],
+  ['程芳芳', '王炜泽', '彭泽云', '施纯', '潘芸怡'],
+  ['高晓梅', '叶宏颖', '李浩鹏', '程枭'],
+  ['杨旻', '陈飘逸', '徐哲明', '李甜', '徐佩莹'],
+  ['孟维翰', '邹智宇'],
+]
 </script>
 
 <template>
   <div class="governance-page">
+    <!-- 委员名单（放在最上面） -->
+    <section class="committee-hero">
+      <h2 class="committee-hero-title">{{ t.committeeTitle }}</h2>
+      <p class="committee-hero-sub">2026级薄荷4班 · 班委团队</p>
+      <div class="committee-grid">
+        <div
+          v-for="(mod, i) in t.modules"
+          :key="i"
+          class="committee-card"
+          :class="{ 'committee-card--lead': i === 0, 'committee-card--deputy': i === 1 }"
+        >
+          <div class="committee-card-header">
+            <span class="committee-card-icon">{{ mod.icon }}</span>
+            <h3 class="committee-card-name">{{ mod.name.replace(/（.*?）|\(.*?\)/g, '') }}</h3>
+          </div>
+          <div class="committee-card-members">
+            <span v-for="(name, j) in committeeMembers[i]" :key="j" class="member-chip">{{ name }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 治理理念 -->
     <section class="philosophy-section">
       <div class="philosophy-card">
@@ -137,33 +169,6 @@ const { t } = useLang(i18n)
         </div>
       </div>
     </section>
-
-    <!-- 委员名单 -->
-    <section class="section section--alt">
-      <h2 class="section-title">{{ t.committeeTitle }}</h2>
-      <div class="committee-note">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <p>{{ t.committeeNote }}</p>
-      </div>
-      <div class="committee-table-wrap">
-        <table class="committee-table">
-          <thead>
-            <tr>
-              <th v-for="(h, i) in t.tableHeaders" :key="i">{{ h }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(mod, i) in t.modules" :key="i">
-              <td class="cell-module">{{ mod.name }}</td>
-              <td class="cell-name">{{ t.pending }}</td>
-              <td class="cell-duty">{{ mod.duties[0] }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -172,6 +177,98 @@ const { t } = useLang(i18n)
   max-width: 900px;
   margin: 0 auto;
   padding: 0 24px 60px;
+}
+
+/* 委员名单（顶部） */
+.committee-hero {
+  padding: 40px 0 32px;
+}
+.committee-hero-title {
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  margin: 0 0 6px;
+  letter-spacing: -0.3px;
+}
+.committee-hero-sub {
+  font-size: 14px;
+  color: var(--c-text-secondary);
+  text-align: center;
+  margin: 0 0 28px;
+}
+.committee-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.committee-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  padding: 20px 18px;
+  transition: all 0.25s ease;
+}
+.committee-card:hover {
+  border-color: var(--c-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+.committee-card--lead {
+  grid-column: span 3;
+  background: linear-gradient(135deg, var(--c-accent-light) 0%, var(--c-bg-card) 100%);
+  border-color: var(--c-accent);
+}
+.committee-card--deputy {
+  grid-column: span 3;
+  background: var(--c-bg-secondary);
+}
+.committee-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.committee-card-icon {
+  font-size: 22px;
+}
+.committee-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.committee-card-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.member-chip {
+  display: inline-block;
+  padding: 6px 14px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-text-primary);
+}
+.committee-card--lead .member-chip {
+  background: var(--c-accent);
+  color: #fff;
+  border-color: var(--c-accent);
+  font-size: 18px;
+  font-weight: 700;
+  padding: 8px 20px;
+}
+.committee-card--deputy .member-chip {
+  background: var(--c-bg-card);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .committee-grid { grid-template-columns: 1fr; }
+  .committee-card--lead, .committee-card--deputy { grid-column: span 1; }
+  .committee-hero-title { font-size: 22px; }
 }
 
 /* 治理理念 */
