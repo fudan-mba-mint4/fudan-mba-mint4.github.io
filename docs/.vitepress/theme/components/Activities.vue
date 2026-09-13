@@ -7,6 +7,8 @@ const i18n = {
   zh: {
     nextEvent: '下一场活动',
     countdownLabel: '距离开始',
+    ongoing: '进行中',
+    statusLabel: '活动状态',
     days: '天',
     hours: '小时',
     spotsLeft: '剩余名额',
@@ -23,6 +25,8 @@ const i18n = {
   en: {
     nextEvent: 'Next event',
     countdownLabel: 'Starts in',
+    ongoing: 'Ongoing',
+    statusLabel: 'Status',
     days: 'd',
     hours: 'h',
     spotsLeft: 'Spots left',
@@ -39,6 +43,8 @@ const i18n = {
   th: {
     nextEvent: 'กิจกรรมถัดไป',
     countdownLabel: 'เริ่มใน',
+    ongoing: 'กำลังดำเนินการ',
+    statusLabel: 'สถานะ',
     days: 'วัน',
     hours: 'ชม.',
     spotsLeft: 'ที่ว่าง',
@@ -92,13 +98,34 @@ const parseEventDateTime = (act) => {
   return date
 }
 
+/* ========== 结束时间解析：从 time 字段提取第二个时间（如 "17:00 - 18:00" → 18:00），只有一个时间则默认+2小时 ========== */
+const parseEventEndDateTime = (act) => {
+  const date = parseDate(act.date)
+  const timeMatches = act.time && act.time.match(/(\d{1,2}):(\d{2})/g)
+  if (timeMatches && timeMatches.length >= 2) {
+    const endMatch = timeMatches[1].match(/(\d{1,2}):(\d{2})/)
+    date.setHours(parseInt(endMatch[1], 10), parseInt(endMatch[2], 10), 0, 0)
+  } else if (timeMatches && timeMatches.length === 1) {
+    const startMatch = timeMatches[0].match(/(\d{1,2}):(\d{2})/)
+    date.setHours(parseInt(startMatch[1], 10) + 2, parseInt(startMatch[2], 10), 0, 0)
+  }
+  return date
+}
+
+/* 是否正在进行中 */
+const isOngoing = (act) => {
+  const start = parseEventDateTime(act)
+  const end = parseEventEndDateTime(act)
+  return now.value >= start && now.value <= end
+}
+
 const isUpcoming = (act) =>
   parseEventDateTime(act) > now.value && act.status !== 'ended'
 
 /* ========== 方案4.3：下一场活动 Hero 巨幕倒计时 ========== */
 const nextEvent = computed(() => {
   const upcoming = activities.value
-    .filter(a => isUpcoming(a))
+    .filter(a => (isUpcoming(a) || isOngoing(a)) && a.status !== 'ended')
     .sort((a, b) => parseDate(a.date) - parseDate(b.date))
   return upcoming[0] || null
 })
@@ -112,12 +139,14 @@ const heroEvent = computed(() => {
 })
 
 const heroCountdown = computed(() => {
-  if (!heroEvent.value) return { days: 0, hours: 0 }
+  if (!heroEvent.value) return { days: 0, hours: 0, ongoing: false }
+  if (isOngoing(heroEvent.value)) return { days: 0, hours: 0, ongoing: true }
   const diff = parseEventDateTime(heroEvent.value) - now.value
-  if (diff <= 0) return { days: 0, hours: 0 }
+  if (diff <= 0) return { days: 0, hours: 0, ongoing: false }
   return {
     days: Math.floor(diff / 86400000),
     hours: Math.floor((diff % 86400000) / 3600000),
+    ongoing: false,
   }
 })
 
@@ -173,17 +202,22 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
         <!-- 左：倒计时 -->
         <div class="hero-left">
           <span class="hero-eyebrow">{{ t.nextEvent }}</span>
-          <div class="hero-countdown">
-            <span class="hero-cd-block">
-              <span class="hero-cd-num">{{ heroCountdown.days }}</span>
-              <span class="hero-cd-unit">{{ t.days }}</span>
-            </span>
-            <span class="hero-cd-block">
-              <span class="hero-cd-num">{{ heroCountdown.hours }}</span>
-              <span class="hero-cd-unit">{{ t.hours }}</span>
-            </span>
+          <div class="hero-countdown" :class="{ ongoing: heroCountdown.ongoing }">
+            <template v-if="heroCountdown.ongoing">
+              <span class="hero-cd-ongoing">{{ t.ongoing }}</span>
+            </template>
+            <template v-else>
+              <span class="hero-cd-block">
+                <span class="hero-cd-num">{{ heroCountdown.days }}</span>
+                <span class="hero-cd-unit">{{ t.days }}</span>
+              </span>
+              <span class="hero-cd-block">
+                <span class="hero-cd-num">{{ heroCountdown.hours }}</span>
+                <span class="hero-cd-unit">{{ t.hours }}</span>
+              </span>
+            </template>
           </div>
-          <span class="hero-countdown-label">{{ t.countdownLabel }}</span>
+          <span class="hero-countdown-label">{{ heroCountdown.ongoing ? t.statusLabel : t.countdownLabel }}</span>
         </div>
 
         <!-- 中：标题与地点 -->
@@ -347,6 +381,13 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   margin-bottom: 10px;
 }
 .hero-countdown { display: flex; align-items: baseline; gap: 8px; }
+.hero-countdown.ongoing { align-items: center; }
+.hero-cd-ongoing {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--c-accent);
+  letter-spacing: -0.5px;
+}
 .hero-cd-block { display: flex; align-items: baseline; gap: 4px; }
 .hero-cd-num {
   font-size: 56px;

@@ -7,6 +7,8 @@ const i18n = {
   zh: {
     nextUp: '下节课',
     startsIn: '开始倒计时',
+    ongoing: '进行中',
+    statusLabel: '课程状态',
     at: '上课',
     location: '地点',
     teacher: '老师',
@@ -17,6 +19,8 @@ const i18n = {
   en: {
     nextUp: 'Next Up',
     startsIn: 'Starts in',
+    ongoing: 'Ongoing',
+    statusLabel: 'Status',
     at: 'Class',
     location: 'Room',
     teacher: 'Prof.',
@@ -27,6 +31,8 @@ const i18n = {
   th: {
     nextUp: 'คาบต่อไป',
     startsIn: 'เริ่มในอีก',
+    ongoing: 'กำลังดำเนินการ',
+    statusLabel: 'สถานะ',
     at: 'เรียน',
     location: 'ห้อง',
     teacher: 'อาจารย์',
@@ -88,9 +94,16 @@ const isImminent = computed(() => {
   return diff > 0 && diff < 24 * 60 * 60 * 1000
 })
 
-/* 倒计时文案：X天X小时 / X小时X分 */
+/* 是否正在进行中 */
+const isOngoing = computed(() => {
+  if (!next.value) return false
+  return now.value >= next.value.start && now.value <= next.value.end
+})
+
+/* 倒计时文案：X天X小时 / X小时X分 / 进行中 */
 const countdown = computed(() => {
   if (!next.value) return ''
+  if (isOngoing.value) return t.value.ongoing
   let diffMs = next.value.start - now.value
   if (diffMs < 0) diffMs = 0
   const totalMins = Math.floor(diffMs / 60000)
@@ -142,8 +155,8 @@ const startLabel = computed(() => {
       <span class="eyebrow">{{ t.nextUp }} · {{ startLabel }}</span>
       <h2 class="course-name">{{ next.course }}</h2>
       <div class="countdown-row">
-        <span class="countdown-label">{{ t.startsIn }}</span>
-        <span class="countdown-value">{{ countdown }}</span>
+        <span class="countdown-label">{{ isOngoing ? t.statusLabel : t.startsIn }}</span>
+        <span class="countdown-value" :class="{ ongoing: isOngoing }">{{ countdown }}</span>
       </div>
     </div>
 
