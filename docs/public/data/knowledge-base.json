@@ -59,6 +59,7 @@
     { "id": 6, "courseId": "general", "type": "resource", "title": { "zh": "复旦大学MBA学生手册", "en": "Fudan MBA Student Handbook", "th": "คู่มือนักศึกษา MBA ม.ฝูด่าน" }, "author": "学院", "date": "2026-09-01", "size": "5.2 MB", "url": "" },
     { "id": 7, "courseId": "general", "type": "resource", "title": { "zh": "课程考勤与请假制度", "en": "Course Attendance & Leave Policy", "th": "ระเบียบการเข้าเรียนและการลา" }, "author": "学院", "date": "2026-09-01", "size": "1.1 MB", "url": "" },
     { "id": 8, "courseId": "general", "type": "resource", "title": { "zh": "管理学院图书馆使用指南", "en": "School of Management Library Guide", "th": "คู่มือการใช้ห้องสมุดโรงเรียนบริหาร" }, "author": "学院", "date": "2026-09-01", "size": "0.9 MB", "url": "" },
-    { "id": 9, "courseId": "general", "type": "resource", "title": { "zh": "政立院区设施使用说明", "en": "Zhengli Campus Facilities Guide", "th": "คู่มือสิ่งอำนวยความสะดวก วิทยาเขตเจิ้งหลี่" }, "author": "学院", "date": "2026-09-01", "size": "1.5 MB", "url": "" }
+    { "id": 9, "courseId": "general", "type": "resource", "title": { "zh": "政立院区设施使用说明", "en": "Zhengli Campus Facilities Guide", "th": "คู่มือสิ่งอำนวยความสะดวก วิทยาเขตเจิ้งหลี่" }, "author": "学院", "date": "2026-09-01", "size": "1.5 MB", "url": "" },
+    { "id": 10, "courseId": "general", "type": "calendar", "title": { "zh": "复旦大学2026-2027学年校历", "en": "Fudan University Academic Calendar 2026-2027", "th": "ปฏิทินการศึกษา มหาวิทยาลัยฝูด่าน 2026-2027" }, "author": "复旦大学", "date": "2026-08-30", "size": "0.9 MB", "url": "/images/fudan-academic-calendar-2026-2027.jpg" }
   ]
 }

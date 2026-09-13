@@ -13,7 +13,7 @@ const i18n = {
     noLink: '暂无下载链接',
     clearHistory: '清除阅读记录',
     localOnly: '仅本机保存',
-    typeLabels: { note: '课程笔记', summary: '重点总结', exam: '考题参考', resource: '学习资源' },
+    typeLabels: { note: '课程笔记', summary: '重点总结', exam: '考题参考', resource: '学习资源', calendar: '校历' },
   },
   en: {
     search: 'Search notes, summaries, exams…',
@@ -24,7 +24,7 @@ const i18n = {
     noLink: 'No download link yet',
     clearHistory: 'Clear history',
     localOnly: 'Stored on this device only',
-    typeLabels: { note: 'Course Notes', summary: 'Key Summary', exam: 'Past Exam', resource: 'Resource' },
+    typeLabels: { note: 'Course Notes', summary: 'Key Summary', exam: 'Past Exam', resource: 'Resource', calendar: 'Calendar' },
   },
   th: {
     search: 'ค้นหาโน้ต สรุป ข้อสอบ…',
@@ -35,7 +35,7 @@ const i18n = {
     noLink: 'ยังไม่มีลิงก์ดาวน์โหลด',
     clearHistory: 'ล้างประวัติการอ่าน',
     localOnly: 'บันทึกเฉพาะเครื่องนี้',
-    typeLabels: { note: 'โน้ตวิชา', summary: 'สรุปสำคัญ', exam: 'ข้อสอบเก่า', resource: 'ทรัพยากร' },
+    typeLabels: { note: 'โน้ตวิชา', summary: 'สรุปสำคัญ', exam: 'ข้อสอบเก่า', resource: 'ทรัพยากร', calendar: 'ปฏิทิน' },
   },
 }
 const { lang, t } = useLang(i18n)
@@ -116,7 +116,7 @@ const formatDate = (dateStr) => {
 }
 
 const typeIcon = (type) => {
-  const map = { note: '📝', summary: '📋', exam: '📄', resource: '📦' }
+  const map = { note: '📝', summary: '📋', exam: '📄', resource: '📦', calendar: '📅' }
   return map[type] || '📄'
 }
 

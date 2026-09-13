@@ -69,6 +69,7 @@ const locale = computed(() =>
 const scheduleData = ref(null)
 const loading = ref(true)
 const activeTab = ref('week') // 'week' | 'course' | 'calendar'
+const showCalendar = ref(false)
 
 onMounted(async () => {
   try {
@@ -233,6 +234,20 @@ const isToday = (dateStr) => {
         {{ scheduleData.total_sessions }} {{ t.sessionsUnit }} ·
         {{ scheduleData.semester }}
       </p>
+      <button class="calendar-btn" @click="showCalendar = true">
+        <span class="calendar-icon">📅</span>
+        <span>{{ t.viewCalendar || '查看校历' }}</span>
+      </button>
+    </div>
+
+    <!-- 校历弹窗 -->
+    <div v-if="showCalendar" class="calendar-modal" @click.self="showCalendar = false">
+      <div class="calendar-modal-content">
+        <button class="calendar-close" @click="showCalendar = false">✕</button>
+        <h3>复旦大学 2026—2027 学年校历</h3>
+        <img src="/images/fudan-academic-calendar-2026-2027.jpg" alt="复旦大学校历" class="calendar-img" />
+        <a href="/images/fudan-academic-calendar-2026-2027.jpg" target="_blank" class="calendar-download">在新标签页打开</a>
+      </div>
     </div>
 
     <!-- 加载状态 -->
@@ -495,6 +510,82 @@ const isToday = (dateStr) => {
   color: var(--c-text-tertiary);
   font-size: var(--text-base);
 }
+
+.calendar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: var(--c-accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.calendar-btn:hover { opacity: 0.85; }
+.calendar-icon { font-size: 16px; }
+
+/* 校历弹窗 */
+.calendar-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.calendar-modal-content {
+  background: var(--c-bg-card);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.calendar-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--c-bg-secondary);
+  color: var(--c-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.calendar-close:hover { background: var(--c-border); }
+.calendar-modal-content h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 700;
+  padding-right: 40px;
+}
+.calendar-img {
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+.calendar-download {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--c-accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+.calendar-download:hover { text-decoration: underline; }
 
 .loading {
   text-align: center;
