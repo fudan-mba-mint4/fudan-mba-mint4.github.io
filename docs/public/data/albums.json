@@ -24,6 +24,24 @@
       "url": "https://live.photoplus.cn/live/18618886",
       "cover": "/images/albums/cover-opening.webp",
       "description": "复旦大学MBA 2026级开学典礼（9月4日-6日）"
+    },
+    {
+      "id": 4,
+      "title": "班委选举",
+      "date": "2026-09-13",
+      "url": null,
+      "type": "local",
+      "cover": "/images/albums/election-20260913/01.jpg",
+      "description": "第一届班委会选举，彭皓宁当选班级主理人",
+      "photos": [
+        "/images/albums/election-20260913/01.jpg",
+        "/images/albums/election-20260913/02.jpg",
+        "/images/albums/election-20260913/03.jpg",
+        "/images/albums/election-20260913/04.jpg",
+        "/images/albums/election-20260913/05.jpg",
+        "/images/albums/election-20260913/06.jpg",
+        "/images/albums/election-20260913/07.jpg"
+      ]
     }
   ]
 }

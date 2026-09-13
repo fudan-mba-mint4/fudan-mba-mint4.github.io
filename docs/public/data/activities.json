@@ -162,9 +162,9 @@
         "th": "โอเรียนเตชั่น MBA 2026: กิจกรรมสร้างทีม แนะนำโรงเรียน แชร์จากรุ่นพี่"
       },
       "reviewSummary": {
-        "zh": "学院与传承人联合组织迎新，团队游戏与学长经验分享，班费支出3200元采购物资。",
-        "en": "School and mentors co-hosted the welcome day: team games and senior sharing; class fund spent 3200 RMB on supplies.",
-        "th": "โรงเรียนและผู้ให้คำปรึกษาจัดงานต้อนรับร่วมกัน: เกมทีมและรุ่นพี่แชร์ประสบการณ์ ใช้กองทุนชั้นเรียน 3200 หยวนซื้อวัสดุ"
+        "zh": "学院与传承人联合组织迎新，团队游戏与学长经验分享。",
+        "en": "School and mentors co-hosted the welcome day: team games and senior sharing.",
+        "th": "โรงเรียนและผู้ให้คำปรึกษาจัดงานต้อนรับร่วมกัน: เกมทีมและรุ่นพี่แชร์ประสบการณ์"
       },
       "status": "ended",
       "capacity": 300,
@@ -174,10 +174,10 @@
         "mediaUrl": null,
         "mediaType": null,
         "cover": null,
-        "involvesFinance": true,
-        "financeAmount": 3200,
-        "financeCategory": "activity",
-        "financeNote": "Orientation活动物资采购",
+        "involvesFinance": false,
+        "financeAmount": 0,
+        "financeCategory": null,
+        "financeNote": null,
         "type": "orientation"
       }
     },
@@ -202,19 +202,34 @@
         "th": "กลุ่มเตรียมการชั้นเรียน"
       },
       "description": {
-        "zh": "会计学下课后进行班委选举，产生第一届班委会。请全体同学准时参加。",
-        "en": "Class committee election after Accounting class. First class committee will be elected. All classmates please attend on time.",
-        "th": "การเลือกตั้งคณะกรรมการชั้นเรียนหลังวิชาบัญชี จะมีคณะกรรมการชั้นเรียนรุ่นแรก เพื่อนร่วมชั้นทุกท่านกรุณาเข้าร่วมตรงเวลา"
+        "zh": "会计学下课后进行班委选举，产生第一届班委会。",
+        "en": "Class committee election after Accounting class. First class committee elected.",
+        "th": "การเลือกตั้งคณะกรรมการชั้นเรียนหลังวิชาบัญชี คณะกรรมการชั้นเรียนรุ่นแรกถูกเลือกตั้ง"
       },
-      "status": "upcoming",
+      "reviewSummary": {
+        "zh": "第一届班委会选举产生，彭皓宁当选班级主理人，相婉玲、雷振宇当选副主理人。",
+        "en": "First class committee elected. Peng Haoning as Class Lead, Xiang Wanling and Lei Zhenyu as Deputy Leads.",
+        "th": "คณะกรรมการชั้นเรียนรุ่นแรกถูกเลือกตั้ง เผิง เฮ่าหนิงเป็นผู้นำชั้น เซียง หว่านหลิงและเหลย เจินอวี่เป็นรองผู้นำ"
+      },
+      "status": "ended",
       "capacity": 84,
-      "registered": 0,
+      "registered": 84,
       "tags": {
         "type": "governance",
-        "hasMedia": false,
+        "hasMedia": true,
         "mediaUrl": null,
-        "mediaType": null,
-        "cover": null,
+        "mediaType": "local",
+        "cover": "/images/albums/election-20260913/01.jpg",
+        "localPhotos": [
+          "/images/albums/election-20260913/01.jpg",
+          "/images/albums/election-20260913/02.jpg",
+          "/images/albums/election-20260913/03.jpg",
+          "/images/albums/election-20260913/04.jpg",
+          "/images/albums/election-20260913/05.jpg",
+          "/images/albums/election-20260913/06.jpg",
+          "/images/albums/election-20260913/07.jpg"
+        ],
+        "photoCount": 7,
         "involvesFinance": false,
         "financeAmount": 0,
         "financeCategory": null

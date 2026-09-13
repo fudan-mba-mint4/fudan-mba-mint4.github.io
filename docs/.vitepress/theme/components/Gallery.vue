@@ -55,6 +55,8 @@ onMounted(async () => {
         location: a.location,
         registered: typeof a.registered === 'number' ? a.registered : 0,
         mediaType: a.tags.mediaType || null,
+        localPhotos: a.tags.localPhotos || null,
+        photoCount: a.tags.photoCount || 0,
       }))
       .sort((a, b) => new Date(b.date) - new Date(a.date))
   } catch (e) {
@@ -95,9 +97,11 @@ const dateFmt = (dateStr) => {
 const activeAlbum = ref(null)
 const lightboxLoading = ref(false)
 const lightboxFailed = ref(false)
+const lightboxIndex = ref(0)
 
 const openLightbox = (album) => {
   activeAlbum.value = album
+  lightboxIndex.value = 0
   lightboxLoading.value = true
   lightboxFailed.value = false
   document.body.style.overflow = 'hidden'
@@ -108,6 +112,28 @@ const closeLightbox = () => {
 }
 const onLightboxImgLoad = () => { lightboxLoading.value = false }
 const onLightboxImgError = () => { lightboxLoading.value = false; lightboxFailed.value = true }
+
+/* 本地多图画廊切换 */
+const currentPhoto = computed(() => {
+  if (activeAlbum.value?.localPhotos?.length) {
+    return activeAlbum.value.localPhotos[lightboxIndex.value]
+  }
+  return activeAlbum.value?.cover
+})
+const nextPhoto = () => {
+  if (activeAlbum.value?.localPhotos?.length > 1) {
+    lightboxIndex.value = (lightboxIndex.value + 1) % activeAlbum.value.localPhotos.length
+    lightboxLoading.value = true
+    lightboxFailed.value = false
+  }
+}
+const prevPhoto = () => {
+  if (activeAlbum.value?.localPhotos?.length > 1) {
+    lightboxIndex.value = (lightboxIndex.value - 1 + activeAlbum.value.localPhotos.length) % activeAlbum.value.localPhotos.length
+    lightboxLoading.value = true
+    lightboxFailed.value = false
+  }
+}
 
 const onKeydown = (e) => { if (e.key === 'Escape') closeLightbox() }
 onMounted(() => window.addEventListener('keydown', onKeydown))
@@ -165,6 +191,14 @@ onBeforeUnmount(() => {
                   </svg>
                 </div>
 
+                <!-- 常驻点击提示（右下角） -->
+                <div class="cover-cta">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/>
+                  </svg>
+                  <span>{{ t.tapPreview }}</span>
+                </div>
+
                 <!-- hover 提示 -->
                 <div class="cover-hint">
                   <span>{{ t.tapPreview }}</span>
@@ -197,7 +231,7 @@ onBeforeUnmount(() => {
             </div>
             <img
               v-if="!lightboxFailed"
-              :src="activeAlbum.cover"
+              :src="currentPhoto"
               :alt="activeAlbum.title[lang]"
               class="lightbox-img"
               @load="onLightboxImgLoad"
@@ -210,11 +244,22 @@ onBeforeUnmount(() => {
                 <path d="m21 15-5-5L5 21" />
               </svg>
             </div>
+
+            <!-- 左右切换箭头（本地多图画廊） -->
+            <template v-if="activeAlbum.localPhotos && activeAlbum.localPhotos.length > 1">
+              <button class="lightbox-nav lightbox-nav--prev" @click.stop="prevPhoto" aria-label="上一张">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button class="lightbox-nav lightbox-nav--next" @click.stop="nextPhoto" aria-label="下一张">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+              <div class="lightbox-counter">{{ lightboxIndex + 1 }} / {{ activeAlbum.localPhotos.length }}</div>
+            </template>
           </div>
           <div class="lightbox-meta">
             <div class="lb-meta-row"><span class="lb-label">{{ t.latest }}</span><span>{{ dateFmt(activeAlbum.date) }}</span></div>
             <div class="lb-meta-row" v-if="activeAlbum.location"><span class="lb-label">{{ t.events }}</span><span>{{ activeAlbum.location[lang] }}</span></div>
-            <a :href="activeAlbum.url" target="_blank" rel="noopener noreferrer" class="lb-cta">{{ t.viewFullAlbum }} →</a>
+            <a v-if="activeAlbum.url" :href="activeAlbum.url" target="_blank" rel="noopener noreferrer" class="lb-cta">{{ t.viewFullAlbum }} →</a>
           </div>
         </div>
       </div>
@@ -353,6 +398,29 @@ onBeforeUnmount(() => {
 }
 .album-card:hover .cover-hint { opacity: 1; }
 
+/* 常驻点击提示（右下角） */
+.cover-cta {
+  position: absolute;
+  right: 10px;
+  bottom: 44px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+  transition: background 0.2s ease;
+}
+.album-card:hover .cover-cta {
+  background: rgba(0, 0, 0, 0.7);
+}
+
 /* 底部渐变遮罩 */
 .cover-gradient {
   position: absolute;
@@ -404,6 +472,44 @@ onBeforeUnmount(() => {
   transition: background var(--transition-fast);
 }
 .lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
+
+/* 灯箱左右导航 */
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.lightbox-nav:hover { background: rgba(255, 255, 255, 0.3); }
+.lightbox-nav--prev { left: 20px; }
+.lightbox-nav--next { right: 20px; }
+
+/* 图片计数器 */
+.lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+}
 .lightbox-title {
   position: absolute;
   top: 26px;
