@@ -5,3 +5,4 @@ docs/.vitepress/cache
 *.log
 .env
 .env.local
+PROJECT_MEMORY.md
