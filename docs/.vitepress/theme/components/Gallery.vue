@@ -452,18 +452,32 @@ onBeforeUnmount(() => {
   z-index: 100;
   width: 44px;
   height: 44px;
-  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(8px);
-  color: #fff;
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff !important;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease;
+  padding: 0;
+  margin: 0;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
-.lightbox-close:hover { background: rgba(0, 0, 0, 0.85); }
+.lightbox-close:hover {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  transform: scale(1.1);
+}
+.lightbox-close svg {
+  width: 22px;
+  height: 22px;
+  stroke: #fff !important;
+  display: block;
+}
 
 /* 灯箱左右导航 */
 .lightbox-nav {
