@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { parseDateTime, parseDate } from '../utils/dateUtils.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -63,7 +64,7 @@ const upcomingClasses = computed(() => {
 
   ;(scheduleData.value.schedule || []).forEach(day => {
     ;(day.courses || []).forEach(course => {
-      const classDate = new Date(`${course.date}T${course.time_start}:00`)
+      const classDate = parseDateTime(course.date, course.time_start)
       if (classDate > now) {
         allClasses.push({
           ...course,
@@ -81,7 +82,7 @@ const upcomingClasses = computed(() => {
 const daysUntil = (dateStr) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const target = new Date(dateStr + 'T00:00:00')
+  const target = parseDate(dateStr)
   const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24))
   if (diff === 0) return t.value.today
   if (diff === 1) return t.value.tomorrow
