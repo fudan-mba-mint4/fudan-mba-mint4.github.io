@@ -44,11 +44,11 @@
         <form @submit.prevent="submitAnnouncement" class="data-form">
           <div class="form-row">
             <div class="form-group">
-              <label>标题 *</label>
+              <label>标题 <span class="required">*</span></label>
               <input v-model="annForm.titleZh" required />
             </div>
             <div class="form-group">
-              <label>标签 *</label>
+              <label>标签 <span class="required">*</span></label>
               <select v-model="annForm.category">
                 <option value="important">🔴 重要</option>
                 <option value="academic">📚 教学</option>
@@ -58,7 +58,7 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>日期 *</label>
+              <label>日期 <span class="required">*</span></label>
               <input type="date" v-model="annForm.date" required />
             </div>
             <div class="form-group">
@@ -70,11 +70,11 @@
             <label class="checkbox-label"><input type="checkbox" v-model="annForm.pinned" /> 置顶显示</label>
           </div>
           <div class="form-group">
-            <label>摘要 *</label>
+            <label>摘要 <span class="required">*</span></label>
             <input v-model="annForm.summaryZh" required placeholder="一句话摘要" />
           </div>
           <div class="form-group">
-            <label>内容主体 *</label>
+            <label>内容主体 <span class="required">*</span></label>
             <textarea v-model="annForm.contentZh" rows="5" required></textarea>
           </div>
           <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
@@ -88,8 +88,8 @@
         <h3>🎉 添加活动</h3>
         <form @submit.prevent="submitActivity" class="data-form">
           <div class="form-row">
-            <div class="form-group"><label>活动标题 *</label><input v-model="actForm.titleZh" required /></div>
-            <div class="form-group"><label>日期 *</label><input type="date" v-model="actForm.date" required /></div>
+            <div class="form-group"><label>活动标题 <span class="required">*</span></label><input v-model="actForm.titleZh" required /></div>
+            <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="actForm.date" required /></div>
           </div>
           <div class="form-row">
             <div class="form-group"><label>时间（如 "17:00 - 18:00"）</label><input v-model="actForm.time" placeholder="17:00 - 18:00" /></div>
@@ -117,21 +117,21 @@
         <form @submit.prevent="submitCourseMaterial" class="data-form">
           <div class="form-row">
             <div class="form-group">
-              <label>课程 *</label>
+              <label>课程 <span class="required">*</span></label>
               <select v-model="cmForm.courseId">
                 <option value="dmd">数据、模型与决策（DMD）</option>
                 <option value="managerial-economics">管理经济学</option>
                 <option value="accounting">会计学</option>
               </select>
             </div>
-            <div class="form-group"><label>第几讲 *</label><input type="number" v-model.number="cmForm.session" required placeholder="1" /></div>
+            <div class="form-group"><label>第几讲 <span class="required">*</span></label><input type="number" v-model.number="cmForm.session" required placeholder="1" /></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>日期 *</label><input type="date" v-model="cmForm.date" required /></div>
-            <div class="form-group"><label>本讲标题 *</label><input v-model="cmForm.title" required placeholder="第1讲：..." /></div>
+            <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="cmForm.date" required /></div>
+            <div class="form-group"><label>本讲标题 <span class="required">*</span></label><input v-model="cmForm.title" required placeholder="第1讲：..." /></div>
           </div>
           <div class="form-group">
-            <label>课件PDF *</label>
+            <label>课件PDF <span class="required">*</span></label>
             <input type="file" accept=".pdf" @change="onSlideFile" class="file-input" />
             <span v-if="cmForm.slideFile" class="file-info">📄 {{ cmForm.slideFile.name }} ({{ formatSize(cmForm.slideFile.size) }})</span>
           </div>
@@ -167,17 +167,17 @@
         <form @submit.prevent="submitFinance" class="data-form">
           <div class="form-row">
             <div class="form-group">
-              <label>类型 *</label>
+              <label>类型 <span class="required">*</span></label>
               <select v-model="finForm.type">
                 <option value="income">📈 收入</option>
                 <option value="expense">📉 支出</option>
               </select>
             </div>
-            <div class="form-group"><label>日期 *</label><input type="date" v-model="finForm.date" required /></div>
+            <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="finForm.date" required /></div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>分类 *</label>
+              <label>分类 <span class="required">*</span></label>
               <select v-model="finForm.category">
                 <option value="tuition">班费缴纳</option>
                 <option value="activity">活动支出</option>
@@ -185,9 +185,9 @@
                 <option value="other">其他</option>
               </select>
             </div>
-            <div class="form-group"><label>金额（元）*</label><input type="number" step="0.01" v-model.number="finForm.amount" required placeholder="0.00" /></div>
+            <div class="form-group"><label>金额（元）<span class="required">*</span></label><input type="number" step="0.01" v-model.number="finForm.amount" required placeholder="0.00" /></div>
           </div>
-          <div class="form-group"><label>描述 *</label><input v-model="finForm.description" required placeholder="如：8月1日班级见面会晚宴" /></div>
+          <div class="form-group"><label>描述 <span class="required">*</span></label><input v-model="finForm.description" required placeholder="如：8月1日班级见面会晚宴" /></div>
           <div class="form-group"><label>关联活动ID（可选）</label><input v-model="finForm.activityId" placeholder="如 act-001，不关联留空" /></div>
           <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
             {{ submitting ? '提交中...' : '提交并发布' }}
@@ -200,11 +200,11 @@
         <h3>🖼️ 添加活动相册</h3>
         <form @submit.prevent="submitAlbum" class="data-form">
           <div class="form-row">
-            <div class="form-group"><label>活动标题 *</label><input v-model="albForm.title" required /></div>
-            <div class="form-group"><label>日期 *</label><input type="date" v-model="albForm.date" required /></div>
+            <div class="form-group"><label>活动标题 <span class="required">*</span></label><input v-model="albForm.title" required /></div>
+            <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="albForm.date" required /></div>
           </div>
-          <div class="form-group"><label>图片直播链接 *</label><input v-model="albForm.url" required placeholder="https://live.photoplus.cn/live/..." /></div>
-          <div class="form-group"><label>封面图 *</label>
+          <div class="form-group"><label>图片直播链接 <span class="required">*</span></label><input v-model="albForm.url" required placeholder="https://live.photoplus.cn/live/..." /></div>
+          <div class="form-group"><label>封面图 <span class="required">*</span></label>
             <input type="file" accept="image/*" @change="onCoverFile" class="file-input" />
             <span v-if="albForm.coverFile" class="file-info">🖼️ {{ albForm.coverFile.name }} ({{ formatSize(albForm.coverFile.size) }})</span>
           </div>
@@ -543,6 +543,7 @@ onMounted(() => {
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 13px; font-weight: 600; color: var(--c-text-secondary); }
+.form-group label .required { color: #ff3b30; margin-left: 2px; }
 .form-group input, .form-group select, .form-group textarea { padding: 10px 14px; border: 1px solid var(--c-border); border-radius: 10px; font-size: 14px; background: var(--c-bg-secondary); color: var(--c-text-primary); font-family: inherit; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--c-accent); }
 .checkbox-group { justify-content: flex-end; }
