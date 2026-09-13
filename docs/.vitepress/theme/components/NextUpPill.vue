@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useNow } from '../composables/useNow.js'
+import { parseDateTime, isOngoing as checkOngoing } from '../utils/dateUtils.js'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -50,12 +52,7 @@ const props = defineProps({
 })
 
 /* ========== 实时时钟（每分钟刷新） ========== */
-const now = ref(new Date())
-let timer = null
-onMounted(() => {
-  timer = setInterval(() => { now.value = new Date() }, 60 * 1000)
-})
-onUnmounted(() => clearInterval(timer))
+const { now } = useNow()
 
 /* 课程名 -> 稳定索引（按 courses[] 顺序），用于颜色 */
 const courseIndexMap = computed(() => {
@@ -72,8 +69,8 @@ const flattened = computed(() => {
   const list = []
   for (const day of props.data.schedule) {
     for (const c of day.courses) {
-      const start = new Date(`${c.date}T${c.time_start}:00`)
-      const end = new Date(`${c.date}T${c.time_end}:00`)
+      const start = parseDateTime(c.date, c.time_start)
+      const end = parseDateTime(c.date, c.time_end)
       list.push({ ...c, start, end })
     }
   }
@@ -97,7 +94,7 @@ const isImminent = computed(() => {
 /* 是否正在进行中 */
 const isOngoing = computed(() => {
   if (!next.value) return false
-  return now.value >= next.value.start && now.value <= next.value.end
+  return checkOngoing(next.value.date, next.value.time_start, next.value.time_end, now.value)
 })
 
 /* 倒计时文案：X天X小时 / X小时X分 / 进行中 */

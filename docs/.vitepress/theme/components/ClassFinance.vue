@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { sortByDateDesc, formatShortDate } from '../utils/dateUtils.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -140,14 +141,10 @@ const activityTitle = (af) => {
 }
 
 const sortedActivityFinances = computed(() => {
-  return [...activityFinances.value].sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
+  return sortByDateDesc(activityFinances.value, 'date')
 })
 
-const activityDate = (af) => {
-  const d = new Date(af.date + 'T00:00:00')
-  if (currentLang.value === 'zh') return `${d.getMonth() + 1}月${d.getDate()}日`
-  return d.toLocaleDateString(currentLang.value === 'en' ? 'en-US' : 'th-TH', { month: 'short', day: 'numeric' })
-}
+const activityDate = (af) => formatShortDate(af.date, currentLang.value)
 
 /* ========== 统计计算 ========== */
 const totalIncome = computed(() => transactions.value.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0))
@@ -160,17 +157,12 @@ const filtered = computed(() => {
   let list = [...transactions.value]
   if (filterType.value === 'income') list = list.filter(t => t.type === 'income')
   if (filterType.value === 'expense') list = list.filter(t => t.type === 'expense')
-  return list.sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
+  return sortByDateDesc(list, 'date')
 })
 
 /* ========== 格式化 ========== */
 const formatAmount = (n) => (n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-const formatDate = (dateStr) => {
-  const d = new Date(dateStr + 'T00:00:00')
-  if (currentLang.value === 'zh') return `${d.getMonth() + 1}月${d.getDate()}日`
-  if (currentLang.value === 'en') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
-}
+const formatDate = (dateStr) => formatShortDate(dateStr, currentLang.value)
 const categoryLabel = (cat) => t.value.categories[cat] || cat
 </script>
 

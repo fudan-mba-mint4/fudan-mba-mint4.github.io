@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { sortByDateDesc } from '../utils/dateUtils.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -102,7 +103,7 @@ const filteredDocs = computed(() => {
       ((d.title.en || '').toLowerCase().includes(q))
     )
   }
-  return list.sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
+  return sortByDateDesc(list, 'date')
 })
 
 const courseDocCount = (courseId) => documents.value.filter(d => d.courseId === courseId).length

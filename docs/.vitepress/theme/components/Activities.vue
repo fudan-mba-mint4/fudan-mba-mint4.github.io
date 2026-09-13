@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useLang, formatDate, formatRelative } from '../composables/useLang'
+import { useNow } from '../composables/useNow.js'
+import { parseDate } from '../utils/dateUtils.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -74,18 +76,7 @@ onMounted(async () => {
 })
 
 /* ========== 时钟（每分钟刷新一次，倒计时不秒跳） ========== */
-const now = ref(new Date())
-let clockTimer = null
-onMounted(() => {
-  clockTimer = setInterval(() => { now.value = new Date() }, 60000)
-})
-onUnmounted(() => { if (clockTimer) clearInterval(clockTimer) })
-
-/* ========== 日期解析：YYYY-MM-DD 补本地零点，避免按 UTC 解析偏 8 小时 ========== */
-const parseDate = (dateStr) =>
-  typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
-    ? new Date(dateStr + 'T00:00:00')
-    : new Date(dateStr)
+const { now } = useNow()
 
 /* ========== 日期+开始时间解析：从 time 字段提取开始时间（如 "17:00 - 18:00" → 17:00） ========== */
 const parseEventDateTime = (act) => {

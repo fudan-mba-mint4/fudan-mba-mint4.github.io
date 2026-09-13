@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useNow } from '../composables/useNow.js'
+import { parseDateTime } from '../utils/dateUtils.js'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -37,10 +39,7 @@ const props = defineProps({
 })
 
 /* ========== 实时时钟（每分钟刷新） ========== */
-const now = ref(new Date())
-let timer = null
-onMounted(() => { timer = setInterval(() => { now.value = new Date() }, 60 * 1000) })
-onUnmounted(() => clearInterval(timer))
+const { now } = useNow()
 
 /* 节点详情展开状态：Map<"courseIndex-sessionIndex", true> */
 const expanded = ref(new Set())
@@ -54,8 +53,8 @@ const isOpen = (key) => expanded.value.has(key)
 const lanes = computed(() => {
   return props.courses.map((course, cIdx) => {
     const sessions = (course.sessions || []).map((s, sIdx) => {
-      const start = new Date(`${s.date}T${s.time_start}:00`)
-      const end = new Date(`${s.date}T${s.time_end}:00`)
+      const start = parseDateTime(s.date, s.time_start)
+      const end = parseDateTime(s.date, s.time_end)
       return {
         ...s,
         start, end,

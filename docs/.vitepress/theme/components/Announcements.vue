@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useNow } from '../composables/useNow.js'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -89,10 +90,7 @@ onMounted(async () => {
 })
 
 /* ========== 实时时钟（倒计时用，每分钟刷新） ========== */
-const now = ref(new Date())
-let timer = null
-onMounted(() => { timer = setInterval(() => { now.value = new Date() }, 60 * 1000) })
-onUnmounted(() => clearInterval(timer))
+const { now } = useNow()
 
 /* ========== 筛选：分类 + 搜索 ========== */
 const filtered = computed(() => {
