@@ -456,22 +456,23 @@ onBeforeUnmount(() => {
 }
 .lightbox-close {
   position: absolute;
-  top: 20px;
-  right: 24px;
-  z-index: 2;
-  width: 40px;
-  height: 40px;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background 0.2s ease;
 }
-.lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
+.lightbox-close:hover { background: rgba(0, 0, 0, 0.85); }
 
 /* 灯箱左右导航 */
 .lightbox-nav {
