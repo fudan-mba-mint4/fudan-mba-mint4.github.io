@@ -217,7 +217,7 @@
 
       <!-- ===== 提交记录 ===== -->
       <div class="history-section">
-        <h3>📜 提交记录 <span class="history-count">({{ submitHistory.length }}条)</span></h3>
+        <h3>📜 提交记录 <span class="history-count">({{ submitHistory.length }}条)</span> <span v-if="historyLoading" class="history-loading">加载中...</span></h3>
         <div v-if="submitHistory.length === 0" class="history-empty">暂无提交记录</div>
         <div v-for="record in submitHistory" :key="record.id" class="history-item">
           <div class="history-info">
@@ -231,6 +231,8 @@
           <div v-if="record.commitSha" class="history-sha">Commit: <code>{{ record.commitSha.substring(0,7) }}</code></div>
           <div v-if="record.error" class="history-error">{{ record.error }}</div>
           <div v-if="record.reverted" class="reverted-tag">↩ 已撤回</div>
+          <button v-if="record.status === 'success' && !record.reverted && record.commitSha"
+                  class="revert-btn" @click="revertCommit(record)">↩ 撤回</button>
         </div>
       </div>
     </div>
@@ -239,6 +241,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { fetchHistory, appendHistory, markReverted } from '../utils/adminHistory'
 
 const REPO = 'fudan-mba-mint4/fudan-mba-mint4.github.io'
 const PASSWORD_HASH = '0b8a55bb3079977fb8b4e8305b0b8c1c81f162fe1f88525a97de074e800b7ca3'
@@ -267,6 +270,7 @@ async function testToken() {
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}`, { headers: { Authorization: `token ${githubToken.value}` } })
     tokenStatus.value = res.ok ? 'valid' : 'invalid'
+    if (res.ok) loadHistoryFromGithub()
   } catch { tokenStatus.value = 'invalid' }
 }
 
@@ -345,13 +349,111 @@ function onHomeworkFile(e) { cmForm.value.homeworkFile = e.target.files[0] }
 function onRefFile(e, idx) { cmForm.value.references[idx].file = e.target.files[0] }
 function onCoverFile(e) { albForm.value.coverFile = e.target.files[0] }
 
-// ===== 提交记录 =====
+// ===== 提交记录（数据源：GitHub admin-history.json）=====
 const submitHistory = ref([])
+const historyLoading = ref(false)
 function createRecord(type, desc) {
   const r = { id: Date.now(), type, typeName: dataTypes.find(t=>t.id===type)?.name, description: desc, time: new Date().toLocaleString('zh-CN'), status:'pending', commitSha:null, error:null, reverted:false }
-  submitHistory.value.unshift(r); saveHistory(); return r
+  submitHistory.value.unshift(r); return r
 }
-function saveHistory() { localStorage.setItem('submit_history', JSON.stringify(submitHistory.value)) }
+async function loadHistoryFromGithub() {
+  if (!githubToken.value) return
+  historyLoading.value = true
+  try {
+    const { records } = await fetchHistory(githubToken.value, REPO)
+    submitHistory.value = records
+  } catch(e) {
+    console.warn('加载提交记录失败:', e.message)
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+// ===== 撤回提交 =====
+const reverting = ref(false)
+async function revertCommit(record) {
+  if (!record.commitSha || record.reverted || reverting.value) return
+  const ok = confirm(`确定要撤回这次提交吗？\n\n${record.description}\n\n注意：如果此次提交包含文件上传（PDF/图片等），已上传的文件不会被自动删除，需在GitHub上手动删除。`)
+  if (!ok) return
+  reverting.value = true
+  try {
+    // 1. 获取提交详情
+    const commitRes = await ghApi(`/repos/${REPO}/commits/${record.commitSha}`)
+    if (!commitRes.ok) throw new Error(`获取提交详情失败 ${commitRes.status}`)
+    const commitData = await commitRes.json()
+    const parentSha = commitData.parents[0]?.sha
+    if (!parentSha) throw new Error('该提交没有parent，无法撤回')
+    const files = commitData.files || []
+    if (files.length === 0) throw new Error('该提交没有修改任何文件')
+
+    let processed = 0
+    for (const file of files) {
+      if (file.status === 'modified') {
+        // 恢复为parent版本
+        const parentRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=${parentSha}`)
+        if (!parentRes.ok) continue
+        const parentData = await parentRes.json()
+        const curRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=main`)
+        if (!curRes.ok) continue
+        const curData = await curRes.json()
+        const putRes = await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `[Revert] 撤回: ${record.description}`, content: parentData.content, sha: curData.sha, branch: 'main' })
+        })
+        if (putRes.ok) processed++
+      } else if (file.status === 'added') {
+        // 删除新增的文件
+        const curRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=main`)
+        if (!curRes.ok) continue
+        const curData = await curRes.json()
+        const delRes = await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
+          method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `[Revert] 撤回新增文件: ${file.filename}`, sha: curData.sha, branch: 'main' })
+        })
+        if (delRes.ok) processed++
+      } else if (file.status === 'removed') {
+        // 恢复被删除的文件（从parent版本获取内容）
+        const parentRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=${parentSha}`)
+        if (!parentRes.ok) continue
+        const parentData = await parentRes.json()
+        const putRes = await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `[Revert] 恢复文件: ${file.filename}`, content: parentData.content, branch: 'main' })
+        })
+        if (putRes.ok) processed++
+      } else if (file.status === 'renamed') {
+        // 重命名：删除新文件，恢复旧文件
+        const curRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=main`)
+        if (curRes.ok) {
+          const curData = await curRes.json()
+          await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: `[Revert] 撤回重命名: 删除${file.filename}`, sha: curData.sha, branch: 'main' })
+          })
+        }
+        if (file.previous_filename) {
+          const oldRes = await ghApi(`/repos/${REPO}/contents/${file.previous_filename}?ref=${parentSha}`)
+          if (oldRes.ok) {
+            const oldData = await oldRes.json()
+            await ghApi(`/repos/${REPO}/contents/${file.previous_filename}`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: `[Revert] 恢复文件: ${file.previous_filename}`, content: oldData.content, branch: 'main' })
+            })
+          }
+        }
+        processed++
+      }
+    }
+    if (processed === 0) throw new Error('没有文件被成功撤回')
+    record.reverted = true
+    try { await markReverted(githubToken.value, REPO, record.id, '管理员') } catch(e) { console.warn('更新撤回状态失败:', e.message) }
+    alert(`撤回成功！已处理 ${processed} 个文件变更。\n如有上传的PDF/图片文件，请在GitHub上手动删除。`)
+  } catch (e) {
+    alert(`撤回失败: ${e.message}`)
+  } finally {
+    reverting.value = false
+  }
+}
 
 // ===== 提交公告 =====
 async function submitAnnouncement() {
@@ -377,7 +479,8 @@ async function submitAnnouncement() {
     rec.status = 'success'
     annForm.value = { titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
-  submitting.value = false; saveHistory()
+  submitting.value = false
+  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 提交活动 =====
@@ -406,7 +509,8 @@ async function submitActivity() {
     rec.status = 'success'
     actForm.value = { titleZh:'', date:today, time:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false }
   } catch(e) { rec.status='failed'; rec.error=e.message }
-  submitting.value = false; saveHistory()
+  submitting.value = false
+  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 提交课程资料 =====
@@ -461,7 +565,8 @@ async function submitCourseMaterial() {
     rec.status = 'success'
     cmForm.value = { courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] }
   } catch(e) { rec.status='failed'; rec.error=e.message }
-  submitting.value = false; saveHistory()
+  submitting.value = false
+  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 提交班费 =====
@@ -476,7 +581,8 @@ async function submitFinance() {
     rec.status = 'success'
     finForm.value = { type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
-  submitting.value = false; saveHistory()
+  submitting.value = false
+  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 提交相册 =====
@@ -502,13 +608,13 @@ async function submitAlbum() {
     rec.status = 'success'
     albForm.value = { title:'', date:today, url:'', coverFile:null, description:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
-  submitting.value = false; saveHistory()
+  submitting.value = false
+  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 初始化 =====
 onMounted(() => {
-  const t = localStorage.getItem('github_token'); if (t) githubToken.value = t
-  const h = localStorage.getItem('submit_history'); if (h) submitHistory.value = JSON.parse(h)
+  const t = localStorage.getItem('github_token'); if (t) { githubToken.value = t; testToken() }
 })
 </script>
 
@@ -566,6 +672,7 @@ onMounted(() => {
 .history-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 24px; }
 .history-section h3 { font-size: 18px; font-weight: 700; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
 .history-count { font-size: 13px; font-weight: 400; color: var(--c-text-tertiary); }
+.history-loading { font-size: 12px; color: var(--c-text-tertiary); font-weight: 400; }
 .history-empty { text-align: center; padding: 32px; color: var(--c-text-tertiary); font-size: 14px; }
 .history-item { padding: 16px; border: 1px solid var(--c-border); border-radius: 12px; margin-bottom: 12px; background: var(--c-bg-secondary); }
 .history-info { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
@@ -580,6 +687,9 @@ onMounted(() => {
 .history-sha code { background: var(--c-bg-card); padding: 2px 6px; border-radius: 4px; }
 .history-error { font-size: 12px; color: #ff3b30; margin-bottom: 4px; }
 .reverted-tag { font-size: 12px; color: var(--c-text-tertiary); }
+.revert-btn { margin-top: 8px; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all 0.2s ease; }
+.revert-btn:hover { background: #ff3b30; color: #fff; }
+.revert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 640px) {
   .form-row { grid-template-columns: 1fr; }
   .token-bar { flex-direction: column; align-items: stretch; }
