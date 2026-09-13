@@ -27,6 +27,7 @@ import Gallery from './components/Gallery.vue'
 import ToolsHub from './components/ToolsHub.vue'
 import QuizHub from './components/QuizHub.vue'
 import CareerDev from './components/CareerDev.vue'
+import AdminPanel from './components/AdminPanel.vue'
 import './styles/index.css'
 
 export default {
@@ -56,5 +57,6 @@ export default {
     app.component('ToolsHub', ToolsHub)
     app.component('QuizHub', QuizHub)
     app.component('CareerDev', CareerDev)
+    app.component('AdminPanel', AdminPanel)
   }
 }

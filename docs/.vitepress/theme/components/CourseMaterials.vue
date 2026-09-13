@@ -393,51 +393,56 @@ const formatDate = (dateStr) => {
 /* 课程标签 */
 .course-tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 
 .course-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  background: var(--c-bg-card);
-  color: var(--c-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
+  gap: 10px;
+  padding: 14px 24px;
+  border: 1.5px solid var(--c-accent-light);
+  border-radius: 16px;
+  background: var(--c-accent-light);
+  color: var(--c-accent);
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .course-tab:hover {
   border-color: var(--c-accent);
-  color: var(--c-accent);
+  background: var(--c-accent);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 122, 108, 0.2);
 }
 
 .course-tab.active {
   background: var(--c-accent);
   border-color: var(--c-accent);
   color: #fff;
+  box-shadow: 0 4px 16px rgba(45, 122, 108, 0.3);
 }
 
 .course-tab.empty {
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .tab-count {
-  font-size: 11px;
-  background: rgba(255,255,255,0.2);
-  padding: 2px 8px;
-  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.25);
+  padding: 3px 10px;
+  border-radius: 12px;
 }
 
 .course-tab:not(.active) .tab-count {
-  background: var(--c-bg-secondary);
-  color: var(--c-text-tertiary);
+  background: var(--c-accent);
+  color: #fff;
 }
 
 .tab-count--empty {
