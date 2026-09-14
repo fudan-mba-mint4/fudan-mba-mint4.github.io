@@ -740,9 +740,13 @@ function toggleExpand(id) {
 async function deleteSingleTreehole(id) {
   if (!confirm('确定删除这条留言吗？删除后可在"包含已删除"中恢复。')) return
   try {
-    const res = await fetch(`${API_PREFIX}/api/treehole/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
+    const res = await fetch(`${API_PREFIX}/api/admin/treehole/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${treeholeTokenInput.value.trim()}`
+      },
+      body: JSON.stringify({ ids: [id] })
     })
     const data = await res.json()
     if (res.ok) {
