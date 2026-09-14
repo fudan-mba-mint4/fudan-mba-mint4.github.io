@@ -1,102 +1,127 @@
 <template>
-  <div class="treehole-page">
+  <div class="treehole-page" ref="pageRef">
     <!-- 页面头部 -->
     <div class="treehole-header">
       <div class="treehole-title-row">
-        <h1 class="treehole-title">{{ t.title }}</h1>
-        <button class="write-btn" @click="showForm = true">
+        <div>
+          <h1 class="treehole-title">{{ t.title }}</h1>
+          <p class="treehole-subtitle">{{ t.subtitle }}</p>
+        </div>
+        <button class="write-btn" @click="openForm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
           </svg>
           {{ t.writeBtn }}
         </button>
       </div>
-      <p class="treehole-subtitle">{{ t.subtitle }}</p>
+      <!-- 统计条 -->
+      <div v-if="stats.total > 0" class="treehole-stats">
+        <span class="stat-item"><strong>{{ stats.total }}</strong> {{ t.totalMessages }}</span>
+        <span v-if="stats.todayCount > 0" class="stat-item stat-today"><strong>{{ stats.todayCount }}</strong> {{ t.todayNew }}</span>
+      </div>
     </div>
 
     <!-- 留言列表 -->
     <div class="message-list">
       <!-- 加载中 -->
-      <div v-if="loading" class="loading-state">
+      <div v-if="loading && messages.length === 0" class="state-center">
         <div class="spinner"></div>
-        <span>{{ t.loading }}</span>
+        <span class="state-text">{{ t.loading }}</span>
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="messages.length === 0 && !error" class="empty-state">
+      <div v-else-if="!loading && !loadError && messages.length === 0" class="state-center empty-state">
         <div class="empty-icon">🌱</div>
-        <p class="empty-text">{{ t.empty }}</p>
+        <p class="state-text">{{ t.empty }}</p>
+        <button class="empty-action-btn" @click="openForm">{{ t.writeFirst }}</button>
       </div>
 
-      <!-- 错误状态 -->
-      <div v-else-if="error" class="error-state">
-        <p class="error-text">{{ error }}</p>
-        <button class="retry-btn" @click="loadMessages">{{ t.retry }}</button>
+      <!-- 错误状态（但已有数据时不打断浏览） -->
+      <div v-else-if="loadError && messages.length === 0" class="state-center">
+        <div class="error-icon">📡</div>
+        <p class="state-text error-text">{{ t.loadErrorText }}</p>
+        <button class="retry-btn" @click="retryLoad">{{ t.retry }}</button>
       </div>
 
       <!-- 留言卡片 -->
-      <div
-        v-for="msg in messages"
-        :key="msg.id"
-        class="message-card"
-        @dblclick="handleAdminDelete(msg.id)"
-      >
-        <div class="message-header">
-          <span class="message-nickname">{{ msg.nickname || t.anonymous }}</span>
-          <span class="message-time">{{ formatTime(msg.created_at) }}</span>
+      <TransitionGroup name="list">
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          class="message-card"
+          :class="{ 'message-new': msg.id === newMessageId }"
+        >
+          <div class="message-header">
+            <span class="message-nickname">{{ msg.nickname || t.anonymous }}</span>
+            <span class="message-time">{{ formatTime(msg.created_at) }}</span>
+          </div>
+          <p class="message-content">{{ msg.content }}</p>
         </div>
-        <p class="message-content">{{ msg.content }}</p>
-      </div>
+      </TransitionGroup>
 
       <!-- 加载更多 -->
-      <div v-if="hasMore && !loading" class="load-more">
-        <button class="load-more-btn" @click="loadMore" :disabled="loadingMore">
-          {{ loadingMore ? t.loading : t.loadMore }}
+      <div v-if="hasMore && !loading" class="load-more-sentinel" ref="sentinelRef">
+        <button v-if="!autoLoading" class="load-more-btn" @click="loadMore">
+          {{ t.loadMore }}
         </button>
+        <div v-else class="loading-inline">
+          <div class="spinner spinner-sm"></div>
+          <span>{{ t.loading }}</span>
+        </div>
       </div>
+
+      <!-- 没有更多了 -->
+      <div v-if="!hasMore && messages.length > 0" class="end-hint">— {{ t.endHint }} —</div>
     </div>
 
     <!-- 写留言弹窗 -->
     <Teleport to="body">
-      <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 class="modal-title">{{ t.formTitle }}</h3>
-            <button class="modal-close" @click="closeForm">✕</button>
+      <Transition name="modal">
+        <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">{{ t.formTitle }}</h3>
+              <button class="modal-close" @click="closeForm" aria-label="关闭">✕</button>
+            </div>
+            <form class="modal-body" @submit.prevent="submitMessage">
+              <div class="form-group">
+                <label class="form-label">{{ t.nicknameLabel }} <span class="form-optional">({{ t.optional }})</span></label>
+                <input
+                  v-model="form.nickname"
+                  type="text"
+                  class="form-input"
+                  :placeholder="t.nicknamePlaceholder"
+                  maxlength="50"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">{{ t.contentLabel }} <span class="form-required">*</span></label>
+                <textarea
+                  v-model="form.content"
+                  class="form-textarea"
+                  :placeholder="t.contentPlaceholder"
+                  maxlength="500"
+                  rows="5"
+                  required
+                  ref="textareaRef"
+                ></textarea>
+                <div class="char-count" :class="{ 'char-warn': form.content.length > 450 }">{{ form.content.length }}/500</div>
+              </div>
+              <Transition name="fade">
+                <div v-if="formError" class="form-error">{{ formError }}</div>
+              </Transition>
+              <div class="form-actions">
+                <button type="button" class="btn-secondary" @click="closeForm">{{ t.cancel }}</button>
+                <button type="submit" class="btn-primary" :disabled="submitting || !form.content.trim()">
+                  <span v-if="submitting" class="btn-loading"></span>
+                  {{ submitting ? t.submitting : t.submit }}
+                </button>
+              </div>
+            </form>
           </div>
-          <form class="modal-body" @submit.prevent="submitMessage">
-            <div class="form-group">
-              <label class="form-label">{{ t.nicknameLabel }} <span class="form-optional">({{ t.optional }})</span></label>
-              <input
-                v-model="form.nickname"
-                type="text"
-                class="form-input"
-                :placeholder="t.nicknamePlaceholder"
-                maxlength="50"
-              />
-            </div>
-            <div class="form-group">
-              <label class="form-label">{{ t.contentLabel }} <span class="form-required">*</span></label>
-              <textarea
-                v-model="form.content"
-                class="form-textarea"
-                :placeholder="t.contentPlaceholder"
-                maxlength="500"
-                rows="5"
-                required
-              ></textarea>
-              <div class="char-count">{{ form.content.length }}/500</div>
-            </div>
-            <div v-if="formError" class="form-error">{{ formError }}</div>
-            <div class="form-actions">
-              <button type="button" class="btn-secondary" @click="closeForm">{{ t.cancel }}</button>
-              <button type="submit" class="btn-primary" :disabled="submitting || !form.content.trim()">
-                {{ submitting ? t.submitting : t.submit }}
-              </button>
-            </div>
-          </form>
         </div>
-      </div>
+      </Transition>
     </Teleport>
 
     <!-- 提交成功提示 -->
@@ -114,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useLang } from '../composables/useLang.js'
 
 const i18n = {
@@ -123,10 +148,14 @@ const i18n = {
     subtitle: '说出你的心声，这里没有人知道你是谁',
     writeBtn: '写留言',
     loading: '加载中...',
-    empty: '还没有留言，来做第一个吧',
+    empty: '空空如也，来做第一个倾诉者吧',
+    writeFirst: '写下第一条',
     retry: '重试',
     loadMore: '加载更多',
+    endHint: '已经到底啦',
     anonymous: '匿名同学',
+    totalMessages: '条留言',
+    todayNew: '条今日新增',
     formTitle: '写下你的心声',
     nicknameLabel: '昵称',
     optional: '选填',
@@ -137,17 +166,21 @@ const i18n = {
     submit: '提交',
     submitting: '提交中...',
     submitSuccess: '留言提交成功！',
-    formError: '',
+    loadErrorText: '加载失败，请检查网络后重试',
   },
   en: {
     title: 'Anonymous Tree Hole',
     subtitle: 'Speak your mind, no one knows who you are',
     writeBtn: 'Write',
     loading: 'Loading...',
-    empty: 'No messages yet. Be the first!',
+    empty: 'Nothing here yet. Be the first to share!',
+    writeFirst: 'Write the First',
     retry: 'Retry',
     loadMore: 'Load More',
+    endHint: 'You\'ve reached the end',
     anonymous: 'Anonymous',
+    totalMessages: 'messages',
+    todayNew: 'new today',
     formTitle: 'Write Your Thoughts',
     nicknameLabel: 'Nickname',
     optional: 'optional',
@@ -158,17 +191,21 @@ const i18n = {
     submit: 'Submit',
     submitting: 'Submitting...',
     submitSuccess: 'Message submitted!',
-    formError: '',
+    loadErrorText: 'Failed to load. Please check your connection and retry.',
   },
   th: {
     title: 'กระบอกไม้ไผ่ นิรนาม',
     subtitle: 'พูดสิ่งที่อยากพูด ไม่มีใครรู้ว่าคุณคือใคร',
     writeBtn: 'เขียน',
     loading: 'กำลังโหลด...',
-    empty: 'ยังไม่มีข้อความ เป็นคนแรกกัน!',
+    empty: 'ยังไม่มีอะไรเลย เป็นคนแรกกัน!',
+    writeFirst: 'เขียนข้อความแรก',
     retry: 'ลองอีกครั้ง',
     loadMore: 'โหลดเพิ่ม',
+    endHint: 'ถึงที่สุดแล้ว',
     anonymous: 'นักเรียนนิรนาม',
+    totalMessages: 'ข้อความ',
+    todayNew: 'ใหม่วันนี้',
     formTitle: 'เขียนสิ่งที่อยากพูด',
     nicknameLabel: 'ชื่อเล่น',
     optional: 'ไม่บังคับ',
@@ -179,7 +216,7 @@ const i18n = {
     submit: 'ส่ง',
     submitting: 'กำลังส่ง...',
     submitSuccess: 'ส่งข้อความสำเร็จ!',
-    formError: '',
+    loadErrorText: 'โหลดไม่สำเร็จ กรุณาตรวจสอบเครือข่ายแล้วลองอีกครั้ง',
   },
 }
 
@@ -187,46 +224,74 @@ const { t } = useLang(i18n)
 
 const API_BASE = '/api/treehole'
 
+// 状态
 const messages = ref([])
 const loading = ref(true)
-const loadingMore = ref(false)
-const error = ref('')
+const autoLoading = ref(false)
+const loadError = ref(false)
 const page = ref(1)
 const hasMore = ref(true)
+const stats = ref({ total: 0, todayCount: 0 })
+const newMessageId = ref(null)
+
+// 表单
 const showForm = ref(false)
 const submitting = ref(false)
 const formError = ref('')
-const showSuccess = ref(false)
 const form = ref({ nickname: '', content: '' })
+const showSuccess = ref(false)
+const textareaRef = ref(null)
+
+// 无限滚动
+const sentinelRef = ref(null)
+const pageRef = ref(null)
+let observer = null
 
 onMounted(() => {
   loadMessages()
+  setupInfiniteScroll()
 })
+
+onUnmounted(() => {
+  if (observer) observer.disconnect()
+})
+
+function setupInfiniteScroll() {
+  if (!('IntersectionObserver' in window)) return
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && hasMore.value && !loading.value && !autoLoading.value && messages.value.length > 0) {
+      loadMore()
+    }
+  }, { rootMargin: '200px' })
+  if (sentinelRef.value) observer.observe(sentinelRef.value)
+}
 
 async function loadMessages() {
   loading.value = true
-  error.value = ''
+  loadError.value = false
   page.value = 1
   try {
     const res = await fetch(`${API_BASE}?page=1&limit=20`)
-    if (!res.ok) throw new Error('加载失败')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = data.data || []
     hasMore.value = data.pagination?.page < data.pagination?.totalPages
+    stats.value = data.stats || { total: 0, todayCount: 0 }
   } catch (e) {
-    error.value = e.message || '加载失败，请稍后重试'
+    console.error('加载留言失败:', e)
+    loadError.value = true
   } finally {
     loading.value = false
   }
 }
 
 async function loadMore() {
-  if (loadingMore.value || !hasMore.value) return
-  loadingMore.value = true
+  if (autoLoading.value || !hasMore.value) return
+  autoLoading.value = true
   try {
     const nextPage = page.value + 1
     const res = await fetch(`${API_BASE}?page=${nextPage}&limit=20`)
-    if (!res.ok) throw new Error('加载失败')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = [...messages.value, ...(data.data || [])]
     page.value = nextPage
@@ -234,8 +299,26 @@ async function loadMore() {
   } catch (e) {
     console.error('加载更多失败:', e)
   } finally {
-    loadingMore.value = false
+    autoLoading.value = false
   }
+}
+
+function retryLoad() {
+  loadMessages()
+}
+
+function openForm() {
+  showForm.value = true
+  formError.value = ''
+  nextTick(() => {
+    textareaRef.value?.focus()
+  })
+}
+
+function closeForm() {
+  showForm.value = false
+  form.value = { nickname: '', content: '' }
+  formError.value = ''
 }
 
 async function submitMessage() {
@@ -253,24 +336,40 @@ async function submitMessage() {
     })
     const data = await res.json()
     if (!res.ok) {
+      if (res.status === 429) {
+        throw new Error(data.error || '提交太频繁，请稍后再试')
+      }
       throw new Error(data.error || data.errors?.join('、') || '提交失败')
     }
-    // 提交成功，关闭弹窗，刷新列表
+    // 提交成功
+    const newMsg = data.data
+    newMessageId.value = newMsg.id
+    // 如果当前在第一页，直接插入到列表顶部
+    if (page.value === 1) {
+      messages.value = [newMsg, ...messages.value].slice(0, 20)
+    } else {
+      // 不在第一页，重新加载第一页
+      await loadMessages()
+    }
+    stats.value.total = (stats.value.total || 0) + 1
+    stats.value.todayCount = (stats.value.todayCount || 0) + 1
     closeForm()
     showSuccess.value = true
     setTimeout(() => { showSuccess.value = false }, 3000)
-    await loadMessages()
+    // 高亮新留言3秒后取消
+    setTimeout(() => { newMessageId.value = null }, 3000)
+    // 滚动到新留言
+    nextTick(() => {
+      const firstCard = document.querySelector('.message-card')
+      if (firstCard) {
+        firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
   } catch (e) {
     formError.value = e.message || '提交失败，请稍后重试'
   } finally {
     submitting.value = false
   }
-}
-
-function closeForm() {
-  showForm.value = false
-  form.value = { nickname: '', content: '' }
-  formError.value = ''
 }
 
 function formatTime(isoString) {
@@ -286,28 +385,7 @@ function formatTime(isoString) {
   if (minutes < 60) return `${minutes}分钟前`
   if (hours < 24) return `${hours}小时前`
   if (days < 7) return `${days}天前`
-  return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
-}
-
-// 管理员删除：双击留言卡片，输入Token后删除
-async function handleAdminDelete(id) {
-  const token = prompt('管理员删除：请输入Admin Token')
-  if (!token) return
-  try {
-    const res = await fetch(`${API_BASE}/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` },
-    })
-    const data = await res.json()
-    if (res.ok) {
-      alert('删除成功')
-      await loadMessages()
-    } else {
-      alert(data.error || '删除失败')
-    }
-  } catch (e) {
-    alert('删除失败: ' + e.message)
-  }
+  return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 
@@ -319,12 +397,10 @@ async function handleAdminDelete(id) {
 }
 
 /* 头部 */
-.treehole-header {
-  padding: 40px 0 28px;
-}
+.treehole-header { padding: 40px 0 24px; }
 .treehole-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
@@ -351,36 +427,114 @@ async function handleAdminDelete(id) {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.1s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .write-btn:hover { opacity: 0.85; }
+.write-btn:active { transform: scale(0.97); }
 
-/* 留言列表 */
-.message-list {
+/* 统计条 */
+.treehole-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: var(--c-bg-secondary);
+  border-radius: 10px;
+  width: fit-content;
+}
+.stat-item { font-size: 13px; color: var(--c-text-secondary); }
+.stat-item strong { color: var(--c-text-primary); font-weight: 700; }
+.stat-today strong { color: var(--c-accent); }
+
+/* 状态居中 */
+.state-center {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 12px;
+}
+.state-text {
+  font-size: 14px;
+  color: var(--c-text-secondary);
+  margin: 0;
+  text-align: center;
+}
+.error-text { color: var(--c-text-tertiary); }
+.empty-icon { font-size: 44px; }
+.error-icon { font-size: 40px; }
+.empty-action-btn {
+  margin-top: 8px;
+  padding: 10px 24px;
+  background: var(--c-accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.empty-action-btn:hover { opacity: 0.85; }
+.retry-btn {
+  padding: 8px 20px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--c-text-primary);
+  transition: border-color 0.2s ease;
+}
+.retry-btn:hover { border-color: var(--c-accent); }
+
+/* 加载动画 */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--c-border);
+  border-top-color: var(--c-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.spinner-sm { width: 18px; height: 18px; border-width: 2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 留言列表 */
+.message-list { display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .message-card {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
   border-radius: 16px;
-  padding: 20px;
-  transition: border-color 0.2s ease;
-  cursor: default;
+  padding: 18px 20px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .message-card:hover {
   border-color: var(--c-accent-light);
+}
+.message-new {
+  animation: highlight 3s ease-out;
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(45, 122, 108, 0.15);
+}
+@keyframes highlight {
+  0% { box-shadow: 0 0 0 6px rgba(45, 122, 108, 0.25); }
+  100% { box-shadow: 0 0 0 0 rgba(45, 122, 108, 0); }
 }
 .message-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .message-nickname {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--c-accent);
 }
@@ -394,52 +548,20 @@ async function handleAdminDelete(id) {
   color: var(--c-text-primary);
   margin: 0;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
-/* 状态 */
-.loading-state, .empty-state, .error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  gap: 12px;
-}
-.spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--c-border);
-  border-top-color: var(--c-accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.empty-icon { font-size: 40px; }
-.empty-text, .loading-state span {
-  font-size: 14px;
-  color: var(--c-text-secondary);
-  margin: 0;
-}
-.error-text {
-  font-size: 14px;
-  color: var(--c-error, #ff3b30);
-  margin: 0;
-}
-.retry-btn {
-  padding: 8px 20px;
-  background: var(--c-bg-secondary);
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  font-size: 14px;
-  cursor: pointer;
-  color: var(--c-text-primary);
-}
+/* 列表动画 */
+.list-enter-active { transition: all 0.3s ease; }
+.list-enter-from { opacity: 0; transform: translateY(-10px); }
+.list-leave-active { transition: all 0.2s ease; position: absolute; }
+.list-leave-to { opacity: 0; }
 
 /* 加载更多 */
-.load-more {
+.load-more-sentinel {
   display: flex;
   justify-content: center;
-  padding: 8px 0;
+  padding: 16px 0;
 }
 .load-more-btn {
   padding: 10px 32px;
@@ -451,10 +573,20 @@ async function handleAdminDelete(id) {
   color: var(--c-text-primary);
   transition: border-color 0.2s ease;
 }
-.load-more-btn:hover:not(:disabled) {
-  border-color: var(--c-accent);
+.load-more-btn:hover { border-color: var(--c-accent); }
+.loading-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--c-text-secondary);
 }
-.load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.end-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+  padding: 16px 0;
+}
 
 /* 弹窗 */
 .modal-overlay {
@@ -484,11 +616,7 @@ async function handleAdminDelete(id) {
   padding: 20px 24px;
   border-bottom: 1px solid var(--c-border);
 }
-.modal-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0;
-}
+.modal-title { font-size: 18px; font-weight: 700; margin: 0; }
 .modal-close {
   width: 32px;
   height: 32px;
@@ -501,13 +629,11 @@ async function handleAdminDelete(id) {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s ease;
 }
-.modal-body {
-  padding: 24px;
-}
-.form-group {
-  margin-bottom: 18px;
-}
+.modal-close:hover { background: var(--c-border); }
+.modal-body { padding: 24px; }
+.form-group { margin-bottom: 18px; }
 .form-label {
   display: block;
   font-size: 14px;
@@ -515,14 +641,8 @@ async function handleAdminDelete(id) {
   margin-bottom: 8px;
   color: var(--c-text-primary);
 }
-.form-optional {
-  font-weight: 400;
-  color: var(--c-text-tertiary);
-  font-size: 12px;
-}
-.form-required {
-  color: #ff3b30;
-}
+.form-optional { font-weight: 400; color: var(--c-text-tertiary); font-size: 12px; }
+.form-required { color: #ff3b30; }
 .form-input, .form-textarea {
   width: 100%;
   padding: 12px 14px;
@@ -539,16 +659,14 @@ async function handleAdminDelete(id) {
   outline: none;
   border-color: var(--c-accent);
 }
-.form-textarea {
-  resize: vertical;
-  min-height: 120px;
-}
+.form-textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
 .char-count {
   text-align: right;
   font-size: 12px;
   color: var(--c-text-tertiary);
   margin-top: 4px;
 }
+.char-warn { color: #ff9500; }
 .form-error {
   padding: 10px 14px;
   background: rgba(255, 59, 48, 0.1);
@@ -570,11 +688,11 @@ async function handleAdminDelete(id) {
   cursor: pointer;
   border: none;
   transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.btn-primary {
-  background: var(--c-accent);
-  color: #fff;
-}
+.btn-primary { background: var(--c-accent); color: #fff; }
 .btn-primary:hover:not(:disabled) { opacity: 0.85; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-secondary {
@@ -582,6 +700,27 @@ async function handleAdminDelete(id) {
   color: var(--c-text-primary);
   border: 1px solid var(--c-border);
 }
+.btn-loading {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* 弹窗动画 */
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+.modal-enter-active .modal-content, .modal-leave-active .modal-content {
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+.modal-enter-from .modal-content, .modal-leave-to .modal-content {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
+}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 /* Toast */
 .toast {
@@ -604,9 +743,7 @@ async function handleAdminDelete(id) {
   color: #34c759;
   border: 1px solid rgba(52, 199, 89, 0.3);
 }
-.toast-enter-active, .toast-leave-active {
-  transition: all 0.3s ease;
-}
+.toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
 .toast-enter-from, .toast-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(-10px);
@@ -617,8 +754,9 @@ async function handleAdminDelete(id) {
   .treehole-page { padding: 0 16px 40px; }
   .treehole-header { padding: 28px 0 20px; }
   .treehole-title { font-size: 22px; }
-  .treehole-title-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .treehole-title-row { flex-direction: column; align-items: stretch; gap: 14px; }
   .write-btn { width: 100%; justify-content: center; }
   .message-card { padding: 16px; }
+  .treehole-stats { width: 100%; justify-content: center; }
 }
 </style>

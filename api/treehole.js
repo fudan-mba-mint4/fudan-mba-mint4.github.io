@@ -1,7 +1,7 @@
 // 匿名树洞 API
-// GET  /api/treehole       - 获取留言列表（分页）
+// GET  /api/treehole       - 获取留言列表（分页）+ 统计
 // POST /api/treehole       - 提交留言
-import { initDatabase, query } from '../../lib/db.js'
+import { getSql, initDatabase } from '../../lib/db.js'
 import {
   validateTreeholeMessage,
   checkRateLimit,
@@ -10,10 +10,27 @@ import {
   jsonResponse,
 } from '../../lib/validate.js'
 
-let dbInitialized = false
+let dbReady = false
+let initPromise = null
+
+async function ensureDb() {
+  if (dbReady) return true
+  if (initPromise) return initPromise
+  initPromise = (async () => {
+    try {
+      await initDatabase()
+      dbReady = true
+      return true
+    } catch (err) {
+      console.error('数据库初始化失败:', err)
+      initPromise = null
+      throw err
+    }
+  })()
+  return initPromise
+}
 
 export default async function handler(req, res) {
-  // CORS 头（允许前端跨域调用，同域名下其实不需要，但加上更安全）
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -24,16 +41,11 @@ export default async function handler(req, res) {
     return
   }
 
-  // 初始化数据库（幂等，只执行一次）
-  if (!dbInitialized) {
-    try {
-      await initDatabase()
-      dbInitialized = true
-    } catch (err) {
-      console.error('数据库初始化失败:', err)
-      jsonResponse(res, 500, { error: '数据库初始化失败', detail: err.message })
-      return
-    }
+  try {
+    await ensureDb()
+  } catch (err) {
+    jsonResponse(res, 503, { error: '数据库连接失败，请稍后重试', detail: err.message })
+    return
   }
 
   try {
@@ -51,30 +63,28 @@ export default async function handler(req, res) {
 }
 
 /**
- * GET: 获取留言列表
- * Query参数: page(默认1), limit(默认20, 最大50)
+ * GET: 获取留言列表 + 统计
  */
 async function handleGet(req, res) {
+  const sql = getSql()
   const url = new URL(req.url, 'http://localhost')
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10))
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)))
   const offset = (page - 1) * limit
 
-  // 获取总数
-  const countResult = await query(
-    'SELECT COUNT(*)::int as total FROM treehole_messages WHERE is_deleted = FALSE'
-  )
-  const total = countResult[0]?.total || 0
+  // 并行查询：总数、今日新增、分页数据
+  const [countResult, todayResult, messages] = await Promise.all([
+    sql`SELECT COUNT(*)::int as total FROM treehole_messages WHERE is_deleted = FALSE`,
+    sql`SELECT COUNT(*)::int as today_count FROM treehole_messages WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE`,
+    sql`SELECT id, nickname, content, created_at
+         FROM treehole_messages
+         WHERE is_deleted = FALSE
+         ORDER BY created_at DESC
+         LIMIT ${limit} OFFSET ${offset}`,
+  ])
 
-  // 获取分页数据
-  const messages = await query(
-    `SELECT id, nickname, content, created_at
-     FROM treehole_messages
-     WHERE is_deleted = FALSE
-     ORDER BY created_at DESC
-     LIMIT $1 OFFSET $2`,
-    [limit, offset]
-  )
+  const total = countResult[0]?.total || 0
+  const todayCount = todayResult[0]?.today_count || 0
 
   jsonResponse(res, 200, {
     data: messages,
@@ -84,21 +94,26 @@ async function handleGet(req, res) {
       total,
       totalPages: Math.ceil(total / limit),
     },
+    stats: {
+      total,
+      todayCount,
+    },
   })
 }
 
 /**
  * POST: 提交留言
- * Body: { nickname?: string, content: string }
  */
 async function handlePost(req, res) {
-  // 频率限制：同一IP 1分钟内最多3条
+  const sql = getSql()
+
+  // 频率限制
   const ip = getClientIp(req)
   const rateLimit = checkRateLimit(ip, 60000, 3)
   if (!rateLimit.allowed) {
     jsonResponse(res, 429, {
       error: '提交太频繁，请稍后再试',
-      remaining: rateLimit.remaining,
+      retryAfter: 60,
     })
     return
   }
@@ -119,16 +134,15 @@ async function handlePost(req, res) {
     return
   }
 
-  // 哈希IP（保护隐私，不存原始IP）
+  // 哈希IP
   const ipHash = await hashIp(ip)
 
   // 存入数据库
-  const result = await query(
-    `INSERT INTO treehole_messages (nickname, content, ip_hash)
-     VALUES ($1, $2, $3)
-     RETURNING id, nickname, content, created_at`,
-    [data.nickname, data.content, ipHash]
-  )
+  const result = await sql`
+    INSERT INTO treehole_messages (nickname, content, ip_hash)
+    VALUES (${data.nickname}, ${data.content}, ${ipHash})
+    RETURNING id, nickname, content, created_at
+  `
 
   jsonResponse(res, 201, {
     message: '留言提交成功',
@@ -136,19 +150,12 @@ async function handlePost(req, res) {
   })
 }
 
-/**
- * 解析JSON请求体
- */
 function parseBody(req) {
   return new Promise((resolve, reject) => {
     let raw = ''
     req.on('data', chunk => { raw += chunk })
     req.on('end', () => {
-      try {
-        resolve(raw ? JSON.parse(raw) : {})
-      } catch (e) {
-        reject(e)
-      }
+      try { resolve(raw ? JSON.parse(raw) : {}) } catch (e) { reject(e) }
     })
     req.on('error', reject)
   })
