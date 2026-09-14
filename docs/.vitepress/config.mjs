@@ -33,7 +33,13 @@ const zhNav = [
     ],
   },
   { text: '财务激励', link: '/finance/' },
-  { text: '记忆主理', link: '/gallery/' },
+  {
+    text: '记忆主理',
+    items: [
+      { text: '活动相册', link: '/gallery/' },
+      { text: '匿名树洞', link: '/treehole/' },
+    ],
+  },
   {
     text: '智库研究',
     items: [
@@ -96,7 +102,13 @@ const enNav = [
     ],
   },
   { text: 'Finance', link: '/en/finance/' },
-  { text: 'Memories', link: '/en/gallery/' },
+  {
+    text: 'Memories',
+    items: [
+      { text: 'Gallery', link: '/en/gallery/' },
+      { text: 'Anonymous Tree Hole', link: '/en/treehole/' },
+    ],
+  },
   {
     text: 'Research',
     items: [
@@ -159,7 +171,13 @@ const thNav = [
     ],
   },
   { text: 'การเงิน', link: '/th/finance/' },
-  { text: 'ความทรงจำ', link: '/th/gallery/' },
+  {
+    text: 'ความทรงจำ',
+    items: [
+      { text: 'อัลบั้ม', link: '/th/gallery/' },
+      { text: 'กระบอกไม้ไผ่', link: '/th/treehole/' },
+    ],
+  },
   {
     text: 'วิจัย',
     items: [

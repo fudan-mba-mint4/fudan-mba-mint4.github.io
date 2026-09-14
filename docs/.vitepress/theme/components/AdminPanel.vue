@@ -215,6 +215,69 @@
         </form>
       </div>
 
+      <!-- ===== 树洞管理 ===== -->
+      <div v-if="currentType === 'treehole'" class="form-section">
+        <h3>🌳 匿名树洞管理</h3>
+
+        <!-- Admin Token验证 -->
+        <div v-if="!treeholeAdminVerified" class="treehole-auth">
+          <p class="treehole-auth-desc">操作树洞数据需要管理员Token</p>
+          <div class="treehole-auth-row">
+            <input type="password" v-model="treeholeTokenInput" placeholder="Admin Token" @keyup.enter="verifyTreeholeToken" class="token-input" />
+            <button @click="verifyTreeholeToken" class="token-btn">验证</button>
+          </div>
+          <p v-if="treeholeTokenError" class="token-error">{{ treeholeTokenError }}</p>
+        </div>
+
+        <!-- 管理界面 -->
+        <div v-else>
+          <!-- 工具栏 -->
+          <div class="treehole-toolbar">
+            <input v-model="treeholeSearch" placeholder="搜索留言内容或昵称..." @keyup.enter="loadTreeholeMessages" class="treehole-search" />
+            <label class="treehole-checkbox"><input type="checkbox" v-model="treeholeIncludeDeleted" @change="loadTreeholeMessages" /> 包含已删除</label>
+            <button @click="loadTreeholeMessages" class="token-btn">刷新</button>
+            <button v-if="treeholeSelected.length > 0" @click="batchDeleteTreehole" class="treehole-delete-btn">
+              批量删除 ({{ treeholeSelected.length }})
+            </button>
+          </div>
+
+          <!-- 统计 -->
+          <div class="treehole-stats">
+            共 {{ treeholePagination.total }} 条留言，当前第 {{ treeholePagination.page }} / {{ treeholePagination.totalPages || 1 }} 页
+          </div>
+
+          <!-- 留言列表 -->
+          <div v-if="treeholeLoading" class="treehole-loading">加载中...</div>
+          <div v-else-if="treeholeMessages.length === 0" class="treehole-empty">暂无留言</div>
+          <div v-else class="treehole-list">
+            <div v-for="msg in treeholeMessages" :key="msg.id" class="treehole-item" :class="{ deleted: msg.is_deleted }">
+              <div class="treehole-item-check">
+                <input type="checkbox" :value="msg.id" v-model="treeholeSelected" :disabled="msg.is_deleted" />
+              </div>
+              <div class="treehole-item-content">
+                <div class="treehole-item-header">
+                  <span class="treehole-item-nickname">{{ msg.nickname || '匿名' }}</span>
+                  <span class="treehole-item-time">{{ formatTreeholeTime(msg.created_at) }}</span>
+                  <span class="treehole-item-ip" title="IP哈希（前16位）">IP: {{ msg.ip_hash || '未知' }}</span>
+                  <span v-if="msg.is_deleted" class="treehole-item-deleted-badge">已删除</span>
+                </div>
+                <p class="treehole-item-text">{{ msg.content }}</p>
+              </div>
+              <div class="treehole-item-actions">
+                <button v-if="!msg.is_deleted" @click="deleteSingleTreehole(msg.id)" class="treehole-single-delete">删除</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分页 -->
+          <div v-if="treeholePagination.totalPages > 1" class="treehole-pagination">
+            <button @click="treeholePageChange(treeholePagination.page - 1)" :disabled="treeholePagination.page <= 1" class="treehole-page-btn">上一页</button>
+            <span class="treehole-page-info">{{ treeholePagination.page }} / {{ treeholePagination.totalPages }}</span>
+            <button @click="treeholePageChange(treeholePagination.page + 1)" :disabled="treeholePagination.page >= treeholePagination.totalPages" class="treehole-page-btn">下一页</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== 提交记录 ===== -->
       <div class="history-section">
         <h3>📜 提交记录 <span class="history-count">({{ submitHistory.length }}条)</span> <span v-if="historyLoading" class="history-loading">加载中...</span></h3>
@@ -332,6 +395,7 @@ const dataTypes = [
   { id: 'courseMaterials', name: '课程资料', icon: '📚' },
   { id: 'finance', name: '班费', icon: '💰' },
   { id: 'gallery', name: '相册', icon: '🖼️' },
+  { id: 'treehole', name: '树洞管理', icon: '🌳' },
 ]
 const currentType = ref('announcements')
 const submitting = ref(false)
@@ -348,6 +412,122 @@ function onSlideFile(e) { cmForm.value.slideFile = e.target.files[0] }
 function onHomeworkFile(e) { cmForm.value.homeworkFile = e.target.files[0] }
 function onRefFile(e, idx) { cmForm.value.references[idx].file = e.target.files[0] }
 function onCoverFile(e) { albForm.value.coverFile = e.target.files[0] }
+
+// ===== 树洞管理 =====
+const treeholeAdminVerified = ref(false)
+const treeholeTokenInput = ref('')
+const treeholeTokenError = ref('')
+const treeholeMessages = ref([])
+const treeholeLoading = ref(false)
+const treeholeSearch = ref('')
+const treeholeIncludeDeleted = ref(true)
+const treeholeSelected = ref([])
+const treeholePagination = ref({ page: 1, limit: 20, total: 0, totalPages: 0 })
+
+async function verifyTreeholeToken() {
+  if (!treeholeTokenInput.value.trim()) {
+    treeholeTokenError.value = '请输入Admin Token'
+    return
+  }
+  treeholeTokenError.value = ''
+  // 用一个简单的GET请求验证Token
+  try {
+    const res = await fetch(`/api/admin/treehole?page=1&limit=1`, {
+      headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
+    })
+    if (res.ok) {
+      treeholeAdminVerified.value = true
+      loadTreeholeMessages()
+    } else {
+      treeholeTokenError.value = 'Token无效'
+    }
+  } catch (e) {
+    treeholeTokenError.value = '验证失败: ' + e.message
+  }
+}
+
+async function loadTreeholeMessages() {
+  treeholeLoading.value = true
+  treeholeSelected.value = []
+  try {
+    const params = new URLSearchParams({
+      page: treeholePagination.value.page,
+      limit: treeholePagination.value.limit,
+      includeDeleted: treeholeIncludeDeleted.value,
+    })
+    if (treeholeSearch.value.trim()) {
+      params.set('search', treeholeSearch.value.trim())
+    }
+    const res = await fetch(`/api/admin/treehole?${params}`, {
+      headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
+    })
+    const data = await res.json()
+    if (res.ok) {
+      treeholeMessages.value = data.data || []
+      treeholePagination.value = data.pagination || treeholePagination.value
+    } else {
+      alert('加载失败: ' + (data.error || res.statusText))
+    }
+  } catch (e) {
+    alert('加载失败: ' + e.message)
+  } finally {
+    treeholeLoading.value = false
+  }
+}
+
+async function deleteSingleTreehole(id) {
+  if (!confirm('确定删除这条留言吗？')) return
+  try {
+    const res = await fetch(`/api/treehole/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
+    })
+    const data = await res.json()
+    if (res.ok) {
+      loadTreeholeMessages()
+    } else {
+      alert('删除失败: ' + (data.error || res.statusText))
+    }
+  } catch (e) {
+    alert('删除失败: ' + e.message)
+  }
+}
+
+async function batchDeleteTreehole() {
+  if (treeholeSelected.value.length === 0) return
+  if (!confirm(`确定批量删除选中的 ${treeholeSelected.value.length} 条留言吗？`)) return
+  try {
+    const res = await fetch('/api/admin/treehole/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${treeholeTokenInput.value.trim()}`
+      },
+      body: JSON.stringify({ ids: treeholeSelected.value })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert(data.message)
+      loadTreeholeMessages()
+    } else {
+      alert('删除失败: ' + (data.error || res.statusText))
+    }
+  } catch (e) {
+    alert('删除失败: ' + e.message)
+  }
+}
+
+function treeholePageChange(page) {
+  if (page < 1 || page > treeholePagination.value.totalPages) return
+  treeholePagination.value.page = page
+  loadTreeholeMessages()
+}
+
+function formatTreeholeTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 
 // ===== 提交记录（数据源：GitHub admin-history.json）=====
 const submitHistory = ref([])
@@ -695,5 +875,39 @@ onMounted(() => {
   .token-bar { flex-direction: column; align-items: stretch; }
   .admin-panel { padding: 20px 16px; }
   .checkbox-row { flex-direction: column; gap: 8px; }
+  .treehole-toolbar { flex-direction: column; align-items: stretch; }
+  .treehole-item { flex-direction: column; gap: 8px; }
 }
+
+/* ===== 树洞管理样式 ===== */
+.treehole-auth { text-align: center; padding: 24px; }
+.treehole-auth-desc { font-size: 14px; color: var(--c-text-secondary); margin: 0 0 16px; }
+.treehole-auth-row { display: flex; gap: 8px; justify-content: center; }
+.treehole-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.treehole-search { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid var(--c-border); border-radius: 10px; font-size: 14px; background: var(--c-bg-secondary); color: var(--c-text-primary); }
+.treehole-search:focus { outline: none; border-color: var(--c-accent); }
+.treehole-checkbox { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--c-text-secondary); cursor: pointer; white-space: nowrap; }
+.treehole-delete-btn { padding: 10px 18px; background: #ff3b30; color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.treehole-delete-btn:hover { opacity: 0.85; }
+.treehole-stats { font-size: 13px; color: var(--c-text-tertiary); margin-bottom: 12px; }
+.treehole-loading, .treehole-empty { text-align: center; padding: 32px; color: var(--c-text-tertiary); font-size: 14px; }
+.treehole-list { display: flex; flex-direction: column; gap: 10px; }
+.treehole-item { display: flex; gap: 12px; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-bg-secondary); align-items: flex-start; }
+.treehole-item.deleted { opacity: 0.5; background: var(--c-bg-card); }
+.treehole-item-check { padding-top: 2px; }
+.treehole-item-content { flex: 1; min-width: 0; }
+.treehole-item-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.treehole-item-nickname { font-size: 13px; font-weight: 600; color: var(--c-accent); }
+.treehole-item-time { font-size: 12px; color: var(--c-text-tertiary); }
+.treehole-item-ip { font-size: 11px; color: var(--c-text-tertiary); font-family: monospace; }
+.treehole-item-deleted-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(255,59,48,0.15); color: #ff3b30; }
+.treehole-item-text { font-size: 14px; line-height: 1.5; color: var(--c-text-primary); margin: 0; word-break: break-word; }
+.treehole-item-actions { flex-shrink: 0; }
+.treehole-single-delete { padding: 6px 12px; background: transparent; border: 1px solid #ff3b30; color: #ff3b30; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.treehole-single-delete:hover { background: #ff3b30; color: #fff; }
+.treehole-pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; }
+.treehole-page-btn { padding: 8px 16px; background: var(--c-bg-secondary); border: 1px solid var(--c-border); border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--c-text-primary); }
+.treehole-page-btn:hover:not(:disabled) { border-color: var(--c-accent); }
+.treehole-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.treehole-page-info { font-size: 13px; color: var(--c-text-secondary); }
 </style>
