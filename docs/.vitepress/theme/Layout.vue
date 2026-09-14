@@ -1,6 +1,7 @@
 <script setup>
 import DefaultTheme from 'vitepress/theme'
 import MobileTabBar from './components/MobileTabBar.vue'
+import UserNavMenu from './components/UserNavMenu.vue'
 import { useScrollReveal } from './composables/useScrollReveal'
 import { onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useData } from 'vitepress'
@@ -109,6 +110,9 @@ onMounted(() => {
 
 <template>
   <DefaultTheme.Layout>
+    <template #nav-bar-content-after>
+      <UserNavMenu />
+    </template>
     <template #layout-bottom>
       <!-- 移动端底部 Tab Bar（仅 <768px 显示） -->
       <MobileTabBar />

@@ -234,6 +234,46 @@
         "financeAmount": 0,
         "financeCategory": null
       }
+    },
+    {
+      "id": "act-test-001",
+      "title": {
+        "zh": "测试活动·中秋班级聚餐",
+        "en": "Test Event · Mid-Autumn Class Dinner",
+        "th": "กิจกรรมทดสอบ · งานเลี้ยงไหว้พระจันทร์"
+      },
+      "date": "2026-09-20",
+      "endDate": "2026-09-20",
+      "time": "18:00 - 21:00",
+      "location": {
+        "zh": "五角场某餐厅（待定）",
+        "en": "Wujiaochang Restaurant (TBD)",
+        "th": "ร้านอาหารอู่เจียอู่ชาง (ยังไม่แน่นอน)"
+      },
+      "organizer": {
+        "zh": "体验运营官",
+        "en": "Experience Officers",
+        "th": "เจ้าหน้าที่ประสบการณ์"
+      },
+      "description": {
+        "zh": "中秋假期班级聚餐，同学们一起吃月饼赏月，增进感情。AA制。",
+        "en": "Mid-Autumn class dinner, mooncakes and moon gazing. AA split.",
+        "th": "งานเลี้ยงไหว้พระจันทร์ของชั้นเรียน กินขนมไหว้พระจันทร์และชมพระจันทร์ แบบแบ่งจ่าย"
+      },
+      "status": "upcoming",
+      "capacity": 40,
+      "registered": 12,
+      "tags": {
+        "type": "social",
+        "hasMedia": false,
+        "mediaUrl": null,
+        "mediaType": null,
+        "cover": null,
+        "involvesFinance": false,
+        "financeAmount": 0,
+        "financeCategory": "activity",
+        "financeNote": "同学们AA制，不经过班费"
+      }
     }
   ]
 }

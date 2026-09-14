@@ -1,9 +1,14 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vitepress'
 import { useLang, formatDate, formatRelative } from '../composables/useLang'
 import { useNow } from '../composables/useNow.js'
 import { parseDate } from '../utils/dateUtils.js'
 import { useData } from '../composables/useData.js'
+import { useAuth } from '../composables/useAuth.js'
+
+const router = useRouter()
+const { currentUser, isAuthenticated, authToken } = useAuth()
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -70,6 +75,111 @@ const activities = computed(() => activitiesData.value?.activities || [])
 
 /* ========== 时钟（每分钟刷新一次，倒计时不秒跳） ========== */
 const { now } = useNow()
+
+/* ========== 活动报名（数据库存储，通过API操作） ========== */
+const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
+const signupCounts = ref({}) // activityId -> count
+const userSignedUpIds = ref([]) // 当前用户已报名的活动ID列表
+
+// 加载所有活动的报名数据
+async function loadAllSignups() {
+  if (!activities.value.length) return
+  try {
+    const counts = {}
+    const userIds = []
+    for (const act of activities.value) {
+      const res = await fetch(`${API_PREFIX}/api/activities/${act.id}/signups`)
+      if (res.ok) {
+        const result = await res.json()
+        counts[act.id] = result.count || 0
+        if (currentUser.value && result.data?.some(s => s.username === currentUser.value.username)) {
+          userIds.push(act.id)
+        }
+      }
+    }
+    signupCounts.value = counts
+    userSignedUpIds.value = userIds
+  } catch (e) {
+    console.warn('加载报名数据失败:', e.message)
+  }
+}
+
+// 当前用户是否已报名某活动
+function isSignedUp(actId) {
+  return userSignedUpIds.value.includes(actId)
+}
+
+// 活动实际报名人数
+function getRegisteredCount(act) {
+  return signupCounts.value[act.id] ?? (act.registered || 0)
+}
+
+// 活动是否已满
+function isFull(act) {
+  if (!act.capacity || act.capacity <= 0) return false
+  return getRegisteredCount(act) >= act.capacity
+}
+
+// 报名
+async function doSignup(actId) {
+  if (!currentUser.value) { goToAuth(); return }
+  const act = activities.value.find(a => a.id === actId)
+  if (!act) return
+  if (isFull(act)) { alert('名额已满'); return }
+  if (isSignedUp(actId)) return
+
+  try {
+    const res = await fetch(`${API_PREFIX}/api/activities/${actId}/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken.value}`,
+      },
+    })
+    if (res.ok) {
+      signupCounts.value[actId] = (signupCounts.value[actId] || 0) + 1
+      userSignedUpIds.value.push(actId)
+    } else if (res.status === 409) {
+      alert('您已报名此活动')
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || '报名失败，请重试')
+    }
+  } catch (e) {
+    alert('网络错误，请稍后重试')
+  }
+}
+
+// 取消报名
+async function cancelSignup(actId) {
+  if (!currentUser.value) return
+  if (!confirm('确定取消报名这个活动吗？')) return
+  try {
+    const res = await fetch(`${API_PREFIX}/api/activities/${actId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken.value}`,
+      },
+    })
+    if (res.ok) {
+      signupCounts.value[actId] = Math.max(0, (signupCounts.value[actId] || 0) - 1)
+      userSignedUpIds.value = userSignedUpIds.value.filter(id => id !== actId)
+    }
+  } catch (e) {
+    alert('网络错误，请稍后重试')
+  }
+}
+
+// 跳转到登录页
+function goToAuth() {
+  router.go('/auth/')
+}
+
+// 活动数据加载完成后，加载报名数据
+watch(activities, (newVal) => {
+  if (newVal.length) loadAllSignups()
+}, { immediate: true })
 
 /* ========== 日期+开始时间解析：从 time 字段提取开始时间（如 "17:00 - 18:00" → 17:00） ========== */
 const parseEventDateTime = (act) => {
@@ -140,11 +250,11 @@ const RING_C = 2 * Math.PI * RING_R
 const ringOffset = computed(() => {
   if (!heroEvent.value) return RING_C
   const cap = heroEvent.value.capacity || 1
-  const p = Math.min(1, heroEvent.value.registered / cap)
+  const p = Math.min(1, getRegisteredCount(heroEvent.value) / cap)
   return RING_C * (1 - p)
 })
 const heroFull = computed(
-  () => !!heroEvent.value && heroEvent.value.registered >= (heroEvent.value.capacity || 0)
+  () => !!heroEvent.value && getRegisteredCount(heroEvent.value) >= (heroEvent.value.capacity || 0)
 )
 
 /* ========== 方案4.1：垂直脊柱时间线（按日期倒序） ========== */
@@ -225,11 +335,27 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
                 transform="rotate(-90 30 30)" />
             </svg>
             <span class="hero-ring-text" v-if="heroFull">✓</span>
-            <span class="hero-ring-text hero-ring-count" v-else>{{ heroEvent.registered }}/{{ heroEvent.capacity }}</span>
+            <span class="hero-ring-text hero-ring-count" v-else>{{ getRegisteredCount(heroEvent) }}/{{ heroEvent.capacity }}</span>
           </div>
           <span class="hero-ring-label" v-if="heroFull">{{ t.full }}</span>
           <span class="hero-ring-label" v-else>{{ t.spotsLeft }}</span>
         </div>
+      </div>
+
+      <!-- Hero 报名按钮 -->
+      <div class="hero-signup-row" v-if="heroEvent && heroEvent.capacity > 0">
+        <template v-if="!isAuthenticated">
+          <button class="hero-signup-btn" @click="goToAuth">登录后报名</button>
+        </template>
+        <template v-else-if="isSignedUp(heroEvent.id)">
+          <button class="hero-signup-btn signed" @click="cancelSignup(heroEvent.id)">✓ 已报名 · 点击取消</button>
+        </template>
+        <template v-else-if="heroFull">
+          <button class="hero-signup-btn full" disabled>名额已满</button>
+        </template>
+        <template v-else>
+          <button class="hero-signup-btn" @click="doSignup(heroEvent.id)">立即报名</button>
+        </template>
       </div>
 
       <!-- 无未来活动兜底 -->
@@ -242,11 +368,11 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
     <div class="timeline" v-if="sortedEvents.length">
       <template v-for="(act, idx) in sortedEvents" :key="act.id">
         <div class="timeline-item" :class="{ future: isUpcoming(act), past: !isUpcoming(act) }">
-          <span class="timeline-dot"></span>
           <article class="tl-card">
             <div class="tl-card-head">
               <!-- 日期块 -->
               <div class="tl-date-block">
+                <span class="tl-date-dot"></span>
                 <span class="tl-month">{{ formatDate(act.date, { year: undefined, month: 'long', day: 'numeric' }) }}</span>
               </div>
 
@@ -278,8 +404,6 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
                       {{ t.involvesFinance }}
                     </a>
                   </div>
-                  <span v-if="isUpcoming(act)" class="tl-soon">{{ formatRelative(act.date) }}</span>
-                  <span v-else class="tl-ended">{{ t.ended }}</span>
                 </div>
 
                 <div class="tl-meta">
@@ -295,7 +419,36 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
                   <div class="progress-bar">
                     <div class="progress-fill" :style="{ width: registrationProgress(act) + '%' }"></div>
                   </div>
-                  <span class="progress-count">{{ act.registered }}/{{ act.capacity }} {{ t.people }}</span>
+                  <span class="progress-count">{{ getRegisteredCount(act) }}/{{ act.capacity }} {{ t.people }}</span>
+                </div>
+              </div>
+
+              <!-- 右侧栏：状态 + 报名按钮 -->
+              <div class="tl-side">
+                <span v-if="isUpcoming(act)" class="tl-soon">{{ formatRelative(act.date) }}</span>
+                <span v-else class="tl-ended">{{ t.ended }}</span>
+                <!-- 报名按钮（未来活动） -->
+                <div class="tl-signup" v-if="isUpcoming(act) && act.capacity > 0">
+                  <template v-if="!isAuthenticated">
+                    <button class="signup-btn" @click="goToAuth">
+                      登录后报名
+                    </button>
+                  </template>
+                  <template v-else-if="isSignedUp(act.id)">
+                    <button class="signup-btn signed" @click="cancelSignup(act.id)">
+                      ✓ 已报名
+                    </button>
+                  </template>
+                  <template v-else-if="isFull(act)">
+                    <button class="signup-btn full" disabled>
+                      名额已满
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button class="signup-btn" @click="doSignup(act.id)">
+                      立即报名
+                    </button>
+                  </template>
                 </div>
               </div>
             </div>
@@ -452,27 +605,6 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   position: relative;
   padding-bottom: 22px;
 }
-.timeline-dot {
-  position: absolute;
-  left: 16px;
-  top: 26px;
-  transform: translateX(-50%);
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--c-bg-primary);
-  border: 3px solid var(--c-accent);
-  z-index: 1;
-}
-/* 未来节点发光 */
-.timeline-item.future .timeline-dot {
-  box-shadow: 0 0 0 4px var(--c-accent-glow), 0 0 10px var(--c-accent);
-}
-/* 过去节点归档色 */
-.timeline-item.past .timeline-dot {
-  border-color: var(--c-text-quaternary);
-  box-shadow: none;
-}
 
 /* 今天分割线 */
 .today-divider {
@@ -506,10 +638,11 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   background: var(--c-bg-tertiary);
   opacity: 0.88;
 }
-.tl-card-head { display: flex; gap: 18px; }
+.tl-card-head { display: flex; gap: 16px; align-items: stretch; }
 
 /* 日期块 */
 .tl-date-block {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -518,6 +651,24 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   padding: 14px 18px;
   background: var(--c-accent);
   border-radius: var(--radius-lg);
+}
+.tl-date-dot {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c-bg-primary);
+  border: 3px solid var(--c-accent);
+  z-index: 2;
+}
+.timeline-item.future .tl-date-dot {
+  box-shadow: 0 0 0 4px var(--c-accent-glow), 0 0 10px var(--c-accent);
+}
+.timeline-item.past .tl-date-dot {
+  border-color: var(--c-text-quaternary);
+  box-shadow: none;
 }
 .timeline-item.past .tl-date-block { background: var(--c-bg-elevated); }
 .tl-month {
@@ -541,6 +692,20 @@ html.dark .timeline-item.past .tl-month {
 }
 
 .tl-main { flex: 1; min-width: 0; }
+.tl-side {
+  flex-shrink: 0;
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+}
+.tl-side .tl-soon,
+.tl-side .tl-ended {
+  width: 100%;
+  text-align: center;
+}
 .tl-title-row {
   display: flex;
   align-items: center;
@@ -725,5 +890,74 @@ html.dark .timeline-item.past .tl-month {
     padding: 10px 14px;
   }
   .tl-month { font-size: 15px; }
+}
+
+/* ========== 报名按钮 ========== */
+.hero-signup-row {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+.hero-signup-btn {
+  padding: 14px 48px;
+  background: var(--c-accent);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 200px;
+}
+.hero-signup-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.hero-signup-btn.signed {
+  background: rgba(52, 199, 89, 0.15);
+  color: #34c759;
+  border: 1.5px solid #34c759;
+}
+.hero-signup-btn.signed:hover { background: rgba(52, 199, 89, 0.25); }
+.hero-signup-btn.full {
+  background: var(--c-bg-secondary);
+  color: var(--c-text-tertiary);
+  cursor: not-allowed;
+  border: 1px solid var(--c-border);
+}
+
+.tl-signup {
+  width: 100%;
+  display: flex;
+}
+.signup-btn {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--c-accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.signup-btn:hover:not(:disabled) { opacity: 0.9; }
+.signup-btn.signed {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+  border: 1px solid #34c759;
+}
+.signup-btn.signed:hover { background: rgba(52, 199, 89, 0.2); }
+.signup-btn.full {
+  background: var(--c-bg-secondary);
+  color: var(--c-text-tertiary);
+  cursor: not-allowed;
+  border: 1px solid var(--c-border);
+}
+
+@media (max-width: 640px) {
+  .hero-signup-btn { width: 100%; padding: 14px 24px; }
+  .tl-signup { width: 100%; }
+  .signup-btn { width: 100%; padding: 11px; }
 }
 </style>

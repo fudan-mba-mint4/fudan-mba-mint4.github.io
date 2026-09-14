@@ -4,9 +4,6 @@ import markdownItPangu from 'markdown-it-pangu'
 // ========== 共享配置（所有语言共用） ==========
 const sharedThemeConfig = {
   logo: '/images/logo.webp',
-  socialLinks: [
-    { icon: 'github', link: 'https://github.com/fudan-mba-mint4' },
-  ],
 }
 
 // ========== 各语言导航 / 侧边栏 / 页脚 / 搜索文案 ==========
@@ -27,6 +24,7 @@ const zhNav = [
   {
     text: '体验运营',
     items: [
+      { text: '班级投票', link: '/polls/' },
       { text: '活动日历', link: '/activities/' },
       { text: '同学名录', link: '/directory/' },
       { text: '职业发展', link: '/career/' },
@@ -53,6 +51,7 @@ const zhNav = [
     items: [
       { text: '入学测试知识库', link: '/quiz/' },
       { text: '实用小工具', link: '/tools/' },
+      { text: '管理后台', link: '/admin/' },
     ],
   },
 ]
@@ -96,6 +95,7 @@ const enNav = [
   {
     text: 'Experience',
     items: [
+      { text: 'Polls', link: '/en/polls/' },
       { text: 'Activities', link: '/en/activities/' },
       { text: 'Directory', link: '/en/directory/' },
       { text: 'Career', link: '/en/career/' },
@@ -122,6 +122,7 @@ const enNav = [
     items: [
       { text: 'Entry Quiz KB', link: '/en/quiz/' },
       { text: 'Utilities', link: '/en/tools/' },
+      { text: 'Admin Panel', link: '/en/admin/' },
     ],
   },
 ]
@@ -165,6 +166,7 @@ const thNav = [
   {
     text: 'ประสบการณ์',
     items: [
+      { text: 'โหวต', link: '/th/polls/' },
       { text: 'กิจกรรม', link: '/th/activities/' },
       { text: 'รายชื่อ', link: '/th/directory/' },
       { text: 'อาชีพ', link: '/th/career/' },
@@ -191,6 +193,7 @@ const thNav = [
     items: [
       { text: 'คลังข้อสอบเข้า', link: '/th/quiz/' },
       { text: 'เครื่องมือทั่วไป', link: '/th/tools/' },
+      { text: 'แผงควบคุม', link: '/th/admin/' },
     ],
   },
 ]

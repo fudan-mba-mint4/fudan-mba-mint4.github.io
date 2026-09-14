@@ -148,12 +148,12 @@ const fmtNodeDate = (d) => {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-xl);
-  padding: var(--space-5) var(--space-6);
-  margin-bottom: var(--space-8);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
 }
 
 .highway-head {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-3);
 }
 .highway-head h3 {
   font-size: var(--text-lg);
@@ -169,7 +169,7 @@ const fmtNodeDate = (d) => {
 
 /* ========== 单条车道 ========== */
 .lane {
-  padding: var(--space-4) 0;
+  padding: var(--space-3) 0;
   border-top: 1px solid var(--c-border-light);
 }
 .lane:first-of-type { border-top: none; padding-top: 0; }
@@ -179,7 +179,7 @@ const fmtNodeDate = (d) => {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .lane-title {
@@ -254,7 +254,7 @@ const fmtNodeDate = (d) => {
   align-items: flex-start;
   gap: 0;
   overflow-x: auto;
-  padding: var(--space-2) 0 var(--space-3);
+  padding: var(--space-1) 0 var(--space-2);
 }
 /* 虚线连接线：贯穿轨道 */
 .lane-track::before {

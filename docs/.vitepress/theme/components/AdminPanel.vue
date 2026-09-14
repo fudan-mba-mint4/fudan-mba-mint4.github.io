@@ -92,10 +92,13 @@
             <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="actForm.date" required /></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>时间（如 "17:00 - 18:00"）</label><input v-model="actForm.time" placeholder="17:00 - 18:00" /></div>
-            <div class="form-group"><label>地点</label><input v-model="actForm.locationZh" placeholder="政立院区 B403" /></div>
+            <div class="form-group"><label>开始时间</label><input type="time" v-model="actForm.startTime" /></div>
+            <div class="form-group"><label>结束时间</label><input type="time" v-model="actForm.endTime" /></div>
           </div>
-          <div class="form-group"><label>组织者</label><input v-model="actForm.organizerZh" placeholder="班级筹备组" /></div>
+          <div class="form-row">
+            <div class="form-group"><label>地点</label><input v-model="actForm.locationZh" placeholder="政立院区 B403" /></div>
+            <div class="form-group"><label>组织者</label><input v-model="actForm.organizerZh" placeholder="班级筹备组" /></div>
+          </div>
           <div class="form-group"><label>活动描述</label><textarea v-model="actForm.descriptionZh" rows="3"></textarea></div>
           <div class="form-row">
             <div class="form-group"><label>报名人数上限</label><input type="number" v-model.number="actForm.capacity" placeholder="84" /></div>
@@ -107,6 +110,61 @@
           </div>
           <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
             {{ submitting ? '提交中...' : '提交并发布' }}
+          </button>
+        </form>
+      </div>
+
+      <!-- ===== 投票表单 ===== -->
+      <div v-if="currentType === 'polls'" class="form-section">
+        <h3>🗳️ 发布投票</h3>
+        <form @submit.prevent="submitPoll" class="data-form">
+          <div class="form-group"><label>投票标题 <span class="required">*</span></label><input v-model="pollForm.titleZh" placeholder="下次班级聚餐地点投票" /></div>
+          <div class="form-group"><label>投票描述</label><textarea v-model="pollForm.descriptionZh" rows="2" placeholder="简单说明投票背景"></textarea></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>投票类型</label>
+              <select v-model="pollForm.type">
+                <option value="single">单选</option>
+                <option value="multiple">多选</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>匿名方式</label>
+              <select v-model="pollForm.anonymous">
+                <option :value="false">实名投票</option>
+                <option :value="true">匿名投票</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>结果可见性</label>
+              <select v-model="pollForm.visibility">
+                <option value="always">实时可见</option>
+                <option value="after_vote">投票后可见</option>
+                <option value="after_deadline">截止后可见</option>
+                <option value="creator_only">仅发起人可见</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>截止时间 <span class="required">*</span></label><input type="datetime-local" v-model="pollForm.deadline" /></div>
+
+          <div class="form-group">
+            <label>投票选项 <span class="required">*</span></label>
+            <div class="poll-options-editor">
+              <div v-for="(opt, idx) in pollForm.options" :key="idx" class="poll-option-row">
+                <span class="poll-option-num">{{ idx + 1 }}</span>
+                <input v-model="opt.textZh" :placeholder="`选项 ${idx + 1} 文字`" class="poll-option-input" />
+                <label class="poll-option-img-btn">
+                  <input type="file" accept="image/*" class="hidden-file" @change="onPollOptionImage($event, idx)" />
+                  {{ opt.imageFile ? '✓ 已选图' : '📷 图片' }}
+                </label>
+                <button type="button" class="poll-option-del" @click="removePollOption(idx)" :disabled="pollForm.options.length <= 2">×</button>
+              </div>
+            </div>
+            <button type="button" class="add-option-btn" @click="addPollOption">+ 添加选项</button>
+          </div>
+
+          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
+            {{ submitting ? '提交中...' : '发布投票' }}
           </button>
         </form>
       </div>
@@ -188,7 +246,12 @@
             <div class="form-group"><label>金额（元）<span class="required">*</span></label><input type="number" step="0.01" v-model.number="finForm.amount" required placeholder="0.00" /></div>
           </div>
           <div class="form-group"><label>描述 <span class="required">*</span></label><input v-model="finForm.description" required placeholder="如：8月1日班级见面会晚宴" /></div>
-          <div class="form-group"><label>关联活动ID（可选）</label><input v-model="finForm.activityId" placeholder="如 act-001，不关联留空" /></div>
+          <div class="form-group"><label>关联活动（可选）</label>
+            <select v-model="finForm.activityId">
+              <option value="">不关联任何活动</option>
+              <option v-for="act in activitiesList" :key="act.id" :value="act.id">{{ act.date }} · {{ act.title.zh || act.title }}</option>
+            </select>
+          </div>
           <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
@@ -203,14 +266,33 @@
             <div class="form-group"><label>活动标题 <span class="required">*</span></label><input v-model="albForm.title" required /></div>
             <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="albForm.date" required /></div>
           </div>
-          <div class="form-group"><label>图片直播链接 <span class="required">*</span></label><input v-model="albForm.url" required placeholder="https://live.photoplus.cn/live/..." /></div>
+          <div class="form-group">
+            <label>相册类型 <span class="required">*</span></label>
+            <div class="radio-row">
+              <label class="radio-label"><input type="radio" value="live" v-model="albForm.albumType" /> 🔗 图片直播链接</label>
+              <label class="radio-label"><input type="radio" value="local" v-model="albForm.albumType" /> 📁 本地上传照片</label>
+            </div>
+          </div>
+          <div v-if="albForm.albumType === 'live'" class="form-group"><label>图片直播链接 <span class="required">*</span></label><input v-model="albForm.url" placeholder="https://live.photoplus.cn/live/..." /></div>
+          <div v-if="albForm.albumType === 'local'" class="form-group">
+            <label>上传照片（超过1M自动压缩，可多选）</label>
+            <input type="file" accept="image/*" multiple @change="onLocalPhotos" class="file-input" />
+            <div v-if="albForm.localPhotos.length" class="photo-preview-list">
+              <div v-for="(p, i) in albForm.localPhotos" :key="i" class="photo-preview-item">
+                <img :src="p.previewUrl" class="photo-thumb" />
+                <span class="photo-name">{{ p.name }}</span>
+                <span class="photo-size">{{ formatSize(p.compressedSize || p.size) }}</span>
+                <button type="button" class="photo-remove" @click="removeLocalPhoto(i)">×</button>
+              </div>
+            </div>
+          </div>
           <div class="form-group"><label>封面图 <span class="required">*</span></label>
             <input type="file" accept="image/*" @change="onCoverFile" class="file-input" />
             <span v-if="albForm.coverFile" class="file-info">🖼️ {{ albForm.coverFile.name }} ({{ formatSize(albForm.coverFile.size) }})</span>
           </div>
           <div class="form-group"><label>描述（可选）</label><input v-model="albForm.description" placeholder="一句话描述活动" /></div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid || !albForm.coverFile">
-            {{ submitting ? '上传中...' : '上传封面并提交' }}
+          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid || !albForm.coverFile || (albForm.albumType === 'live' && !albForm.url) || (albForm.albumType === 'local' && albForm.localPhotos.length === 0)">
+            {{ submitting ? '上传中...' : '上传并提交' }}
           </button>
         </form>
       </div>
@@ -343,11 +425,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { fetchHistory, appendHistory, markReverted } from '../utils/adminHistory'
 
 const REPO = 'fudan-mba-mint4/fudan-mba-mint4.github.io'
-const PASSWORD_HASH = '0b8a55bb3079977fb8b4e8305b0b8c1c81f162fe1f88525a97de074e800b7ca3'
+const PASSWORD_HASH = '3d0c0717ae88423229d3dbe5c67c0d9ba38d1ba6b6a84d175914081233db713f'
+const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
 
 // ===== 认证 =====
 const authenticated = ref(false)
@@ -432,6 +515,7 @@ async function translateBoth(text) {
 const dataTypes = [
   { id: 'announcements', name: '公告', icon: '📢' },
   { id: 'activities', name: '活动', icon: '🎉' },
+  { id: 'polls', name: '投票', icon: '🗳️' },
   { id: 'courseMaterials', name: '课程资料', icon: '📚' },
   { id: 'finance', name: '班费', icon: '💰' },
   { id: 'gallery', name: '相册', icon: '🖼️' },
@@ -443,15 +527,93 @@ const submitting = ref(false)
 // ===== 表单数据 =====
 const today = new Date().toISOString().split('T')[0]
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
-const actForm = ref({ titleZh:'', date:today, time:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false })
+const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false })
 const cmForm = ref({ courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] })
 const finForm = ref({ type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' })
-const albForm = ref({ title:'', date:today, url:'', coverFile:null, description:'' })
+const activitiesList = ref([])
+async function loadActivitiesForSelect() {
+  try {
+    const res = await fetch('/data/activities.json')
+    if (res.ok) {
+      const data = await res.json()
+      activitiesList.value = (data.activities || []).slice().sort((a, b) => b.date.localeCompare(a.date))
+    }
+  } catch (e) { console.warn('加载活动列表失败:', e) }
+}
+const albForm = ref({ title:'', date:today, url:'', albumType:'live', coverFile:null, localPhotos:[], description:'' })
+
+// 投票表单
+const pollForm = ref({
+  titleZh: '', descriptionZh: '',
+  type: 'single', anonymous: false,
+  visibility: 'after_vote',
+  deadline: '',
+  options: [
+    { textZh: '', imageFile: null },
+    { textZh: '', imageFile: null },
+  ],
+})
+function addPollOption() { pollForm.value.options.push({ textZh: '', imageFile: null }) }
+function removePollOption(idx) { if (pollForm.value.options.length > 2) pollForm.value.options.splice(idx, 1) }
+function onPollOptionImage(e, idx) { pollForm.value.options[idx].imageFile = e.target.files[0] }
 
 function onSlideFile(e) { cmForm.value.slideFile = e.target.files[0] }
 function onHomeworkFile(e) { cmForm.value.homeworkFile = e.target.files[0] }
 function onRefFile(e, idx) { cmForm.value.references[idx].file = e.target.files[0] }
 function onCoverFile(e) { albForm.value.coverFile = e.target.files[0] }
+
+// ===== 图片压缩（超过1M自动压缩到质量0.8）=====
+const MAX_IMAGE_SIZE = 1024 * 1024 // 1MB
+async function compressImage(file) {
+  if (file.size <= MAX_IMAGE_SIZE) return file
+  return new Promise((resolve) => {
+    const img = new Image()
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        // 限制最大边长1920
+        let w = img.width, h = img.height
+        const maxDim = 1920
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h)
+          w = Math.round(w * ratio); h = Math.round(h * ratio)
+        }
+        canvas.width = w; canvas.height = h
+        ctx.drawImage(img, 0, 0, w, h)
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
+            resolve(compressed)
+          } else resolve(file)
+        }, 'image/jpeg', 0.82)
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+// 本地上传照片
+async function onLocalPhotos(e) {
+  const files = Array.from(e.target.files)
+  for (const file of files) {
+    const compressed = await compressImage(file)
+    albForm.value.localPhotos.push({
+      file: compressed,
+      name: compressed.name,
+      size: file.size,
+      compressedSize: compressed.size,
+      previewUrl: URL.createObjectURL(compressed),
+    })
+  }
+  e.target.value = ''
+}
+function removeLocalPhoto(index) {
+  URL.revokeObjectURL(albForm.value.localPhotos[index].previewUrl)
+  albForm.value.localPhotos.splice(index, 1)
+}
 
 // ===== 树洞管理 =====
 const treeholeAdminVerified = ref(false)
@@ -484,7 +646,7 @@ async function verifyTreeholeToken(silent = false) {
   }
   treeholeTokenError.value = ''
   try {
-    const res = await fetch(`/api/admin/treehole?page=1&limit=1`, {
+    const res = await fetch(`${API_PREFIX}/api/admin/treehole?page=1&limit=1`, {
       headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
     })
     if (res.ok) {
@@ -527,7 +689,7 @@ async function loadTreeholeMessages() {
     if (treeholeSearch.value.trim()) {
       params.set('search', treeholeSearch.value.trim())
     }
-    const res = await fetch(`/api/admin/treehole?${params}`, {
+    const res = await fetch(`${API_PREFIX}/api/admin/treehole?${params}`, {
       headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
     })
     const data = await res.json()
@@ -578,7 +740,7 @@ function toggleExpand(id) {
 async function deleteSingleTreehole(id) {
   if (!confirm('确定删除这条留言吗？删除后可在"包含已删除"中恢复。')) return
   try {
-    const res = await fetch(`/api/treehole/${id}`, {
+    const res = await fetch(`${API_PREFIX}/api/treehole/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
     })
@@ -596,7 +758,7 @@ async function deleteSingleTreehole(id) {
 // 单条恢复
 async function restoreSingleTreehole(id) {
   try {
-    const res = await fetch('/api/admin/treehole/restore', {
+    const res = await fetch(`${API_PREFIX}/api/admin/treehole/restore`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -620,7 +782,7 @@ async function batchDeleteTreehole() {
   if (treeholeSelected.value.length === 0) return
   if (!confirm(`确定批量删除选中的 ${treeholeSelected.value.length} 条留言吗？`)) return
   try {
-    const res = await fetch('/api/admin/treehole/delete', {
+    const res = await fetch(`${API_PREFIX}/api/admin/treehole/delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -645,7 +807,7 @@ async function batchRestoreTreehole() {
   if (treeholeSelected.value.length === 0) return
   if (!confirm(`确定批量恢复选中的 ${treeholeSelected.value.length} 条留言吗？`)) return
   try {
-    const res = await fetch('/api/admin/treehole/restore', {
+    const res = await fetch(`${API_PREFIX}/api/admin/treehole/restore`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -849,7 +1011,7 @@ async function submitActivity() {
     ])
     const { data, sha } = await getFile('docs/public/data/activities.json')
     const act = {
-      id: 'act-' + Date.now(), date: actForm.value.date, time: actForm.value.time || '待定',
+      id: 'act-' + Date.now(), date: actForm.value.date, time: (actForm.value.startTime && actForm.value.endTime) ? `${actForm.value.startTime} - ${actForm.value.endTime}` : '待定',
       title: { zh: actForm.value.titleZh, en: titleT.en, th: titleT.th },
       location: { zh: actForm.value.locationZh || '待定', en: locT.en, th: locT.th },
       organizer: { zh: actForm.value.organizerZh || '班级筹备组', en: 'Class Committee', th: 'คณะกรรมการชั้นเรียน' },
@@ -860,7 +1022,7 @@ async function submitActivity() {
     data.activities.push(act)
     rec.commitSha = await putFile('docs/public/data/activities.json', data, sha, `[Admin] 添加活动: ${actForm.value.titleZh}`)
     rec.status = 'success'
-    actForm.value = { titleZh:'', date:today, time:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false }
+    actForm.value = { titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
   if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
@@ -951,15 +1113,106 @@ async function submitAlbum() {
     // 1. 上传封面
     await uploadBinary(coverPath, albForm.value.coverFile, `[Admin] 上传相册封面: ${coverName}`)
 
-    // 2. 更新JSON
+    // 2. 如果是本地相册，上传所有照片
+    let localPhotoPaths = []
+    if (albForm.value.albumType === 'local') {
+      const albumDir = `docs/public/images/albums/local-${dateStr}`
+      for (let i = 0; i < albForm.value.localPhotos.length; i++) {
+        const p = albForm.value.localPhotos[i]
+        const fileName = `${String(i+1).padStart(2,'0')}.jpg`
+        const filePath = `${albumDir}/${fileName}`
+        await uploadBinary(filePath, p.file, `[Admin] 上传相册照片: ${fileName}`)
+        localPhotoPaths.push(`/images/albums/local-${dateStr}/${fileName}`)
+      }
+    }
+
+    // 3. 更新JSON
     const { data, sha } = await getFile('docs/public/data/albums.json')
     const newId = Math.max(...data.albums.map(a=>a.id), 0) + 1
-    data.albums.push({ id: newId, title: albForm.value.title, date: albForm.value.date, url: albForm.value.url, cover: `/images/albums/${coverName}`, description: albForm.value.description || '' })
+    const albumEntry = {
+      id: newId,
+      title: albForm.value.title,
+      date: albForm.value.date,
+      type: albForm.value.albumType,
+      cover: `/images/albums/${coverName}`,
+      description: albForm.value.description || '',
+    }
+    if (albForm.value.albumType === 'live') {
+      albumEntry.url = albForm.value.url
+    } else {
+      albumEntry.photos = localPhotoPaths
+      albumEntry.photoCount = localPhotoPaths.length
+    }
+    data.albums.push(albumEntry)
     data.albums.sort((a,b) => new Date(b.date) - new Date(a.date))
 
     rec.commitSha = await putFile('docs/public/data/albums.json', data, sha, `[Admin] 添加相册: ${albForm.value.title}`)
     rec.status = 'success'
-    albForm.value = { title:'', date:today, url:'', coverFile:null, description:'' }
+    albForm.value.localPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl))
+    albForm.value = { title:'', date:today, url:'', albumType:'live', coverFile:null, localPhotos:[], description:'' }
+  } catch(e) { rec.status='failed'; rec.error=e.message }
+  submitting.value = false
+  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
+}
+
+// ===== 提交投票 =====
+async function submitPoll() {
+  submitting.value = true
+  const rec = createRecord('polls', `发布投票: ${pollForm.value.titleZh}`)
+  try {
+    // 自动翻译标题和描述
+    const [titleT, descT] = await Promise.all([
+      translateBoth(pollForm.value.titleZh),
+      translateBoth(pollForm.value.descriptionZh || ''),
+    ])
+    // 翻译选项文字
+    const optionTranslations = await Promise.all(
+      pollForm.value.options.map(opt => translateBoth(opt.textZh || ''))
+    )
+
+    // 上传选项图片
+    const pollId = 'poll-' + Date.now()
+    const optionImages = []
+    for (let i = 0; i < pollForm.value.options.length; i++) {
+      const opt = pollForm.value.options[i]
+      if (opt.imageFile) {
+        const ext = opt.imageFile.name.split('.').pop()
+        const imgName = `opt-${i + 1}.${ext}`
+        const imgPath = `docs/public/images/polls/${pollId}/${imgName}`
+        await uploadBinary(imgPath, opt.imageFile, `[Admin] 上传投票选项图: ${imgName}`)
+        optionImages.push(`/images/polls/${pollId}/${imgName}`)
+      } else {
+        optionImages.push(null)
+      }
+    }
+
+    const { data, sha } = await getFile('docs/public/data/polls.json')
+    const poll = {
+      id: pollId,
+      title: { zh: pollForm.value.titleZh, en: titleT.en, th: titleT.th },
+      description: { zh: pollForm.value.descriptionZh || '', en: descT.en, th: descT.th },
+      type: pollForm.value.type,
+      anonymous: pollForm.value.anonymous,
+      visibility: pollForm.value.visibility,
+      deadline: pollForm.value.deadline ? new Date(pollForm.value.deadline).toISOString() : '',
+      created_at: new Date().toISOString(),
+      creator: 'admin',
+      options: pollForm.value.options.map((opt, i) => ({
+        id: 'opt-' + (i + 1),
+        text: { zh: opt.textZh, en: optionTranslations[i].en, th: optionTranslations[i].th },
+        image: optionImages[i],
+        votes: 0,
+      })),
+      voters: [],
+    }
+    data.polls.unshift(poll)
+    rec.commitSha = await putFile('docs/public/data/polls.json', data, sha, `[Admin] 发布投票: ${pollForm.value.titleZh}`)
+    rec.status = 'success'
+    pollForm.value = {
+      titleZh: '', descriptionZh: '', type: 'single', anonymous: false,
+      visibility: 'after_vote', deadline: '',
+      options: [{ textZh: '', imageFile: null }, { textZh: '', imageFile: null }],
+    }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
   if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
@@ -968,6 +1221,9 @@ async function submitAlbum() {
 // ===== 初始化 =====
 onMounted(() => {
   const t = localStorage.getItem('github_token'); if (t) { githubToken.value = t; testToken() }
+})
+watch(currentType, (val) => {
+  if (val === 'finance' && activitiesList.value.length === 0) loadActivitiesForSelect()
 })
 </script>
 
@@ -1010,6 +1266,15 @@ onMounted(() => {
 .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--c-text-primary); cursor: pointer; }
 .file-input { padding: 8px; }
 .file-info { font-size: 13px; color: var(--c-accent); margin-top: 4px; }
+.radio-row { display: flex; gap: 24px; flex-wrap: wrap; }
+.radio-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; }
+.photo-preview-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.photo-preview-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--c-bg-secondary); border-radius: 10px; }
+.photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+.photo-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-size { font-size: 12px; color: var(--c-text-tertiary); }
+.photo-remove { width: 24px; height: 24px; border: none; background: var(--c-bg-tertiary); border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; color: var(--c-text-secondary); }
+.photo-remove:hover { background: #ff3b30; color: #fff; }
 .i18n-details { border: 1px solid var(--c-border); border-radius: 10px; padding: 12px 16px; }
 .i18n-details summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--c-text-secondary); }
 .i18n-details .form-group { margin-top: 12px; }
@@ -1020,6 +1285,22 @@ onMounted(() => {
 .ref-remove:hover { border-color: #ff3b30; color: #ff3b30; }
 .add-ref-btn { padding: 8px 16px; background: transparent; border: 1px dashed var(--c-accent); border-radius: 8px; color: var(--c-accent); cursor: pointer; font-size: 13px; align-self: flex-start; }
 .add-ref-btn:hover { background: var(--c-accent-light); }
+
+/* 投票选项编辑器 */
+.poll-options-editor { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.poll-option-row { display: flex; align-items: center; gap: 10px; }
+.poll-option-num { width: 24px; height: 24px; border-radius: 50%; background: var(--c-accent-light); color: var(--c-accent); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.poll-option-input { flex: 1; padding: 9px 12px; border: 1px solid var(--c-border); border-radius: 8px; font-size: 13px; background: var(--c-bg-secondary); color: var(--c-text-primary); }
+.poll-option-input:focus { outline: none; border-color: var(--c-accent); }
+.poll-option-img-btn { padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 8px; font-size: 12px; color: var(--c-text-secondary); cursor: pointer; white-space: nowrap; background: var(--c-bg-secondary); transition: all 0.2s; }
+.poll-option-img-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.hidden-file { display: none; }
+.poll-option-del { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--c-border); background: transparent; color: var(--c-text-tertiary); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+.poll-option-del:hover:not(:disabled) { border-color: #ff3b30; color: #ff3b30; }
+.poll-option-del:disabled { opacity: 0.3; cursor: not-allowed; }
+.add-option-btn { padding: 8px 16px; background: transparent; border: 1px dashed var(--c-accent); border-radius: 8px; color: var(--c-accent); cursor: pointer; font-size: 13px; }
+.add-option-btn:hover { background: var(--c-accent-light); }
+
 .submit-btn { padding: 14px; background: var(--c-accent); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .history-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 24px; }

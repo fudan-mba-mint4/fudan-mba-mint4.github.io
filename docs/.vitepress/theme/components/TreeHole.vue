@@ -19,6 +19,49 @@
         <span class="stat-item"><strong>{{ stats.total }}</strong> {{ t.totalMessages }}</span>
         <span v-if="stats.todayCount > 0" class="stat-item stat-today"><strong>{{ stats.todayCount }}</strong> {{ t.todayNew }}</span>
       </div>
+
+      <!-- 匿名性说明 -->
+      <div class="privacy-notice" :class="{ expanded: privacyOpen }">
+        <button class="privacy-toggle" @click="privacyOpen = !privacyOpen">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>{{ t.privacyTitle }}</span>
+          <svg class="privacy-arrow" :class="{ rotated: privacyOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div v-if="privacyOpen" class="privacy-content">
+          <div class="privacy-row">
+            <div class="privacy-icon anon">🕵️</div>
+            <div class="privacy-text">
+              <strong>{{ t.privacyAnonTitle }}</strong>
+              <p>{{ t.privacyAnonDesc }}</p>
+            </div>
+          </div>
+          <div class="privacy-row">
+            <div class="privacy-icon login">👤</div>
+            <div class="privacy-text">
+              <strong>{{ t.privacyLoginTitle }}</strong>
+              <p>{{ t.privacyLoginDesc }}</p>
+            </div>
+          </div>
+          <div class="privacy-row">
+            <div class="privacy-icon limit">⏱️</div>
+            <div class="privacy-text">
+              <strong>{{ t.privacyLimitTitle }}</strong>
+              <p>{{ t.privacyLimitDesc }}</p>
+            </div>
+          </div>
+          <div class="privacy-row">
+            <div class="privacy-icon mod">🛡️</div>
+            <div class="privacy-text">
+              <strong>{{ t.privacyModTitle }}</strong>
+              <p>{{ t.privacyModDesc }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 留言列表 -->
@@ -156,6 +199,15 @@ const i18n = {
     anonymous: '匿名同学',
     totalMessages: '条留言',
     todayNew: '条今日新增',
+    privacyTitle: '匿名性说明',
+    privacyAnonTitle: '真匿名：不登录也能留言',
+    privacyAnonDesc: '无需注册登录即可留言，管理员仅能看到IP哈希（不可逆），无法追溯到具体个人。你的身份真正受到保护。',
+    privacyLoginTitle: '登录留言：可选实名',
+    privacyLoginDesc: '登录后留言可选择实名或匿名。匿名留言前台不显示身份，但管理员后台可见，用于处理恶意留言。',
+    privacyLimitTitle: '频率限制',
+    privacyLimitDesc: '同一IP/用户每分钟最多留言3条，防止刷屏和恶意灌水。',
+    privacyModTitle: '内容管理',
+    privacyModDesc: '管理员可删除违法、违规、辱骂等不当留言。请友善表达，共同维护树洞环境。',
     formTitle: '写下你的心声',
     nicknameLabel: '昵称',
     optional: '选填',
@@ -181,6 +233,15 @@ const i18n = {
     anonymous: 'Anonymous',
     totalMessages: 'messages',
     todayNew: 'new today',
+    privacyTitle: 'Privacy & Anonymity',
+    privacyAnonTitle: 'Truly Anonymous: No Login Required',
+    privacyAnonDesc: 'Post without registering. Admins only see an irreversible IP hash—your identity is truly protected.',
+    privacyLoginTitle: 'Logged-in Posts: Optional Real Name',
+    privacyLoginDesc: 'When logged in, choose real name or anonymous. Anonymous posts are visible to admins only for moderation.',
+    privacyLimitTitle: 'Rate Limiting',
+    privacyLimitDesc: 'Max 3 messages per minute per IP/user to prevent spam.',
+    privacyModTitle: 'Content Moderation',
+    privacyModDesc: 'Admins may remove illegal, abusive, or inappropriate posts. Please be kind.',
     formTitle: 'Write Your Thoughts',
     nicknameLabel: 'Nickname',
     optional: 'optional',
@@ -206,6 +267,15 @@ const i18n = {
     anonymous: 'นักเรียนนิรนาม',
     totalMessages: 'ข้อความ',
     todayNew: 'ใหม่วันนี้',
+    privacyTitle: 'คำอธิบายความเป็นส่วนตัว',
+    privacyAnonTitle: 'นิรนามแท้: ไม่ต้องเข้าสู่ระบบ',
+    privacyAnonDesc: 'โพสต์ได้โดยไม่ต้องลงทะเบียน ผู้ดูแลเห็นแค่แฮช IP ที่ไม่สามารถย้อนกลับได้—ตัวตนของคุณได้รับการปกป้องอย่างแท้จริง',
+    privacyLoginTitle: 'โพสต์เมื่อเข้าสู่ระบบ: ใส่ชื่อจริงได้',
+    privacyLoginDesc: 'เมื่อเข้าสู่ระบบแล้ว สามารถเลือกใส่ชื่อจริงหรือนิรนามได้ โพสต์นิรนามผู้ดูแลเห็นได้เพื่อการดูแลเนื้อหา',
+    privacyLimitTitle: 'จำกัดความถี่',
+    privacyLimitDesc: 'สูงสุด 3 ข้อความต่อนาทีต่อ IP/ผู้ใช้ เพื่อป้องกันสแปม',
+    privacyModTitle: 'การดูแลเนื้อหา',
+    privacyModDesc: 'ผู้ดูแลสามารถลบโพสต์ที่ผิดกฎหมาย หยาบคาย หรือไม่เหมาะสมได้ กรุณาแสดงความเห็นอย่างมีมารยาท',
     formTitle: 'เขียนสิ่งที่อยากพูด',
     nicknameLabel: 'ชื่อเล่น',
     optional: 'ไม่บังคับ',
@@ -223,6 +293,52 @@ const i18n = {
 const { t } = useLang(i18n)
 
 const API_BASE = '/api/treehole'
+const isMock = import.meta.env.DEV
+
+// ========== Mock 数据层（开发环境用 localStorage 模拟） ==========
+const MOCK_KEY = 'mint4_treehole_mock'
+function getMockMessages() {
+  try {
+    return JSON.parse(localStorage.getItem(MOCK_KEY) || '[]')
+  } catch { return [] }
+}
+function saveMockMessages(list) {
+  localStorage.setItem(MOCK_KEY, JSON.stringify(list))
+}
+function mockFetchMessages(page, limit) {
+  const all = getMockMessages().sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  const total = all.length
+  const totalPages = Math.ceil(total / limit)
+  const data = all.slice((page - 1) * limit, page * limit)
+  const todayCount = all.filter(m => {
+    const d = new Date(m.created_at)
+    const now = new Date()
+    return d.toDateString() === now.toDateString()
+  }).length
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({
+      data,
+      pagination: { page, limit, total, totalPages },
+      stats: { total, todayCount },
+    }),
+  })
+}
+function mockPostMessage(body) {
+  const all = getMockMessages()
+  const newMsg = {
+    id: 'mock-' + Date.now(),
+    nickname: body.nickname || null,
+    content: body.content,
+    created_at: new Date().toISOString(),
+  }
+  all.unshift(newMsg)
+  saveMockMessages(all)
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ message: '留言提交成功', data: newMsg }),
+  })
+}
 
 // 状态
 const messages = ref([])
@@ -245,6 +361,7 @@ const textareaRef = ref(null)
 // 无限滚动
 const sentinelRef = ref(null)
 const pageRef = ref(null)
+const privacyOpen = ref(false)
 let observer = null
 
 onMounted(() => {
@@ -271,7 +388,9 @@ async function loadMessages() {
   loadError.value = false
   page.value = 1
   try {
-    const res = await fetch(`${API_BASE}?page=1&limit=20`)
+    const res = isMock
+      ? await mockFetchMessages(1, 20)
+      : await fetch(`${API_BASE}?page=1&limit=20`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = data.data || []
@@ -290,7 +409,9 @@ async function loadMore() {
   autoLoading.value = true
   try {
     const nextPage = page.value + 1
-    const res = await fetch(`${API_BASE}?page=${nextPage}&limit=20`)
+    const res = isMock
+      ? await mockFetchMessages(nextPage, 20)
+      : await fetch(`${API_BASE}?page=${nextPage}&limit=20`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = [...messages.value, ...(data.data || [])]
@@ -326,14 +447,17 @@ async function submitMessage() {
   submitting.value = true
   formError.value = ''
   try {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nickname: form.value.nickname.trim() || undefined,
-        content: form.value.content.trim(),
-      }),
-    })
+    const body = {
+      nickname: form.value.nickname.trim() || undefined,
+      content: form.value.content.trim(),
+    }
+    const res = isMock
+      ? await mockPostMessage(body)
+      : await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
     const data = await res.json()
     if (!res.ok) {
       if (res.status === 429) {
@@ -447,6 +571,79 @@ function formatTime(isoString) {
 .stat-item { font-size: 13px; color: var(--c-text-secondary); }
 .stat-item strong { color: var(--c-text-primary); font-weight: 700; }
 .stat-today strong { color: var(--c-accent); }
+
+/* 匿名性说明 */
+.privacy-notice {
+  margin-top: 16px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.privacy-notice.expanded { border-color: var(--c-accent-light); }
+.privacy-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-secondary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.privacy-toggle:hover { color: var(--c-accent); }
+.privacy-toggle svg:first-child { color: var(--c-accent); }
+.privacy-arrow {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+  color: var(--c-text-tertiary);
+}
+.privacy-arrow.rotated { transform: rotate(180deg); }
+.privacy-content {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.privacy-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.privacy-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  background: var(--c-bg-card);
+}
+.privacy-icon.anon { background: rgba(94, 196, 172, 0.15); }
+.privacy-icon.login { background: rgba(0, 122, 255, 0.12); }
+.privacy-icon.limit { background: rgba(255, 149, 0, 0.12); }
+.privacy-icon.mod { background: rgba(255, 59, 48, 0.1); }
+.privacy-text { flex: 1; min-width: 0; }
+.privacy-text strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin-bottom: 2px;
+}
+.privacy-text p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--c-text-secondary);
+  margin: 0;
+}
 
 /* 状态居中 */
 .state-center {

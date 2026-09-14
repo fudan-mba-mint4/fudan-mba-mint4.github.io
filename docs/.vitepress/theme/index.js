@@ -29,6 +29,9 @@ import QuizHub from './components/QuizHub.vue'
 import CareerDev from './components/CareerDev.vue'
 import AdminPanel from './components/AdminPanel.vue'
 import TreeHole from './components/TreeHole.vue'
+import AuthPage from './components/AuthPage.vue'
+import ProfilePage from './components/ProfilePage.vue'
+import Polls from './components/Polls.vue'
 import './styles/index.css'
 
 export default {
@@ -60,5 +63,8 @@ export default {
     app.component('CareerDev', CareerDev)
     app.component('AdminPanel', AdminPanel)
     app.component('TreeHole', TreeHole)
+    app.component('AuthPage', AuthPage)
+    app.component('ProfilePage', ProfilePage)
+    app.component('Polls', Polls)
   }
 }
