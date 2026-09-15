@@ -16,10 +16,8 @@ export async function onRequest(context) {
 
   if (request.method === 'POST') {
     try { await ensureDb(env) } catch { return corsResponse({ error: 'db fail' }, 503) }
-    // 返回所有 header key
-    const keys = []
-    request.headers.forEach((v, k) => keys.push(k + '=' + v))
-    return corsResponse({ headers: keys }, 200)
+    // 简单测试
+    return corsResponse({ ok: true, ua: request.headers.get('user-agent') }, 200)
   }
 
   try { await ensureDb(env) } catch { return corsResponse({ error: 'db fail' }, 503) }
