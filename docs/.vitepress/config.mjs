@@ -36,6 +36,7 @@ const zhNav = [
     items: [
       { text: '活动相册', link: '/gallery/' },
       { text: '匿名树洞', link: '/treehole/' },
+      { text: '城市足迹', link: '/city-footprint/' },
     ],
   },
   {
@@ -107,6 +108,7 @@ const enNav = [
     items: [
       { text: 'Gallery', link: '/en/gallery/' },
       { text: 'Anonymous Tree Hole', link: '/en/treehole/' },
+      { text: 'City Footprint', link: '/en/city-footprint/' },
     ],
   },
   {
@@ -178,6 +180,7 @@ const thNav = [
     items: [
       { text: 'อัลบั้ม', link: '/th/gallery/' },
       { text: 'กระบอกไม้ไผ่', link: '/th/treehole/' },
+      { text: 'ร่องรอยเมือง', link: '/th/city-footprint/' },
     ],
   },
   {

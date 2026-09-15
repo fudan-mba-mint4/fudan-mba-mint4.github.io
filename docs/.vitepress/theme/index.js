@@ -32,6 +32,7 @@ import TreeHole from './components/TreeHole.vue'
 import AuthPage from './components/AuthPage.vue'
 import ProfilePage from './components/ProfilePage.vue'
 import Polls from './components/Polls.vue'
+import CityFootprint from './components/CityFootprint.vue'
 import './styles/index.css'
 
 export default {
@@ -66,5 +67,6 @@ export default {
     app.component('AuthPage', AuthPage)
     app.component('ProfilePage', ProfilePage)
     app.component('Polls', Polls)
+    app.component('CityFootprint', CityFootprint)
   }
 }
