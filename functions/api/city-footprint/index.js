@@ -1,5 +1,5 @@
 // 城市足迹 API
-import { getSql, initDatabase, hashIp, getClientIp, corsResponse, optionsResponse } from '../../_utils.js'
+import { getSql, initDatabase, corsResponse, optionsResponse } from '../../_utils.js'
 
 let dbReady = false
 let initPromise = null
@@ -18,10 +18,7 @@ export async function onRequest(context) {
   const sql = getSql(env)
 
   if (request.method === 'POST') {
-    const ip = getClientIp(request)
-    let ipHash = 'err'
-    try { ipHash = await hashIp(ip) } catch(e) { ipHash = 'hash_fail:' + String(e) }
-    return corsResponse({ ip, ipHash }, 200)
+    return corsResponse({ ok: true }, 200)
   }
 
   const totalResult = await sql`SELECT COUNT(DISTINCT ip_hash)::int as total FROM city_visits WHERE visited_at >= DATE_TRUNC('month', NOW())`
