@@ -53,11 +53,10 @@ export async function onRequest(context) {
     let lng = parseFloat(h.get('x-edgeone-ip-lng') || h.get('x-geoip-lng') || '0')
 
     // 如果 headers 没有，用 ipinfo.io
+    let ipInfoError = ''
     if (!city) {
       try {
-        const res = await fetch(`https://ipinfo.io/${ip}/json`, {
-          headers: { 'User-Agent': 'mint4-class/1.0' },
-        })
+        const res = await fetch(`https://ipinfo.io/${ip}/json`)
         if (res.ok) {
           const data = await res.json()
           if (data.city) {
@@ -66,9 +65,15 @@ export async function onRequest(context) {
             const loc = (data.loc || '0,0').split(',')
             lat = parseFloat(loc[0]) || 0
             lng = parseFloat(loc[1]) || 0
+          } else {
+            ipInfoError = 'no city in response: ' + JSON.stringify(data).slice(0, 200)
           }
+        } else {
+          ipInfoError = 'HTTP ' + res.status
         }
-      } catch (e) { /* 静默 */ }
+      } catch (e) {
+        ipInfoError = e.message || String(e)
+      }
     }
 
     const loc = { country: country || 'Unknown', city: city || 'Unknown', lat, lng }
@@ -78,7 +83,7 @@ export async function onRequest(context) {
     } else {
       await sql`INSERT INTO city_visits (ip_hash, country, city, lat, lng) VALUES (${ipHash}, ${loc.country}, ${loc.city}, ${loc.lat}, ${loc.lng})`
     }
-    return corsResponse({ message: 'tracked', city: loc.city }, 201)
+    return corsResponse({ message: 'tracked', city: loc.city, debug: { ip, ipInfoError, hasHeaders: !!(h.get('x-edgeone-ip-city')) } }, 201)
   }
 
   const totalResult = await sql`SELECT COUNT(DISTINCT ip_hash)::int as total FROM city_visits WHERE visited_at >= DATE_TRUNC('month', NOW())`
