@@ -6,7 +6,23 @@ let initPromise = null
 async function ensureDb(env) {
   if (dbReady) return true
   if (initPromise) return initPromise
-  initPromise = (async () => { try { await initDatabase(env); dbReady = true } catch (e) { initPromise = null; throw e } })()
+  initPromise = (async () => {
+    await initDatabase(env)
+    // 只在本函数里建表，失败不影响其他API
+    try {
+      const sql = getSql(env)
+      await sql`CREATE TABLE IF NOT EXISTS city_visits (
+        id SERIAL PRIMARY KEY,
+        ip_hash TEXT NOT NULL,
+        country TEXT,
+        city TEXT,
+        lat FLOAT DEFAULT 0,
+        lng FLOAT DEFAULT 0,
+        visited_at TIMESTAMPTZ DEFAULT NOW()
+      )`
+    } catch (e) { /* 表可能已存在 */ }
+    dbReady = true
+  })()
   return initPromise
 }
 
