@@ -70,20 +70,6 @@ export async function initDatabase(env) {
     )
   `
   await sql`CREATE INDEX IF NOT EXISTS idx_activity_signups_activity ON activity_signups (activity_id)`
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS city_visits (
-      id SERIAL PRIMARY KEY,
-      ip_hash TEXT NOT NULL,
-      country TEXT,
-      city TEXT,
-      lat DOUBLE PRECISION DEFAULT 0,
-      lng DOUBLE PRECISION DEFAULT 0,
-      visited_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    )
-  `
-  await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_city ON city_visits (city, visited_at DESC)`
-  await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_ip ON city_visits (ip_hash, visited_at DESC)`
 }
 
 // 密码哈希（SHA-256，和前端一致）
