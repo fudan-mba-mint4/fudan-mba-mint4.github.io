@@ -47,7 +47,11 @@ export async function onRequest(context) {
     }
 
     const h = request.headers
-    const geo = request.cf?.geo || request.eo?.geo || {}
+    let geo = {}
+    try { geo = context.request?.cf?.geo || context.request?.eo?.geo || {} } catch (e) {}
+    if (geo && !geo.cityName) {
+      try { geo = request.cf?.geo || request.eo?.geo || {} } catch (e) {}
+    }
 
     let city = geo.cityName || h.get('x-edgeone-ip-city') || ''
     let country = geo.countryCodeAlpha2 || h.get('x-edgeone-ip-country') || ''
