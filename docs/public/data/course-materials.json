@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-13",
+  "last_updated": "2026-09-15",
   "note": "课程资料按课程分类，每门课按节次排列。文件较大，建议右键另存为下载。",
   "courses": [
     {
@@ -40,6 +40,21 @@
             "url": "/files/courses/dmd/20260910/DMD_Homework1.pdf",
             "size": "92 KB"
           }
+        },
+        {
+          "session": 2,
+          "date": "2026-09-17",
+          "title": "第2讲：概率与概率分布",
+          "files": [
+            {
+              "name": "DMD 第2讲课件（学生版）",
+              "filename": "DMD_Lecture02_student_2604.pdf",
+              "url": "/files/courses/dmd/20260917/DMD_Lecture02_student_2604.pdf",
+              "size": "13 MB",
+              "type": "slide"
+            }
+          ],
+          "references": []
         }
       ]
     },
