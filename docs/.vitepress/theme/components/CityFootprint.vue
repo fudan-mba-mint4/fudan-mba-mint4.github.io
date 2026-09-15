@@ -58,7 +58,10 @@ const stats = ref({
 })
 const loading = ref(true)
 const mapCanvas = ref(null)
+const worldGeo = ref(null)
 let resizeObserver = null
+let animFrame = null
+let htmlObserver = null
 
 // 经纬度 → canvas坐标（以中国为中心的等距圆柱投影，中央经线110°E）
 const CENTER_LNG = 110
@@ -70,20 +73,19 @@ function project(lng, lat, w, h) {
 }
 
 function getColors() {
-  const isDark = document.documentElement.classList.contains('dark') ||
-    window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDark = document.documentElement.classList.contains('dark')
   return isDark ? {
     land: 'rgba(94, 196, 172, 0.08)',
     line: 'rgba(94, 196, 172, 0.25)',
     bg: '#111820',
     dot: '#5ec4ac',
-    dotGlow: 'rgba(94, 196, 172, 0.5)',
+    dotGlow: 'rgba(94, 196, 172, 0.6)',
   } : {
     land: 'rgba(45, 122, 108, 0.05)',
     line: 'rgba(45, 122, 108, 0.18)',
     bg: '#f0f4f5',
-    dot: '#2d7a6c',
-    dotGlow: 'rgba(45, 122, 108, 0.35)',
+    dot: '#1ab890',
+    dotGlow: 'rgba(26, 184, 144, 0.45)',
   }
 }
 
@@ -94,6 +96,7 @@ async function drawMap() {
   const dpr = window.devicePixelRatio || 1
   const w = canvas.clientWidth
   const h = canvas.clientHeight
+  if (w === 0 || h === 0) { loading.value = false; return }
   canvas.width = w * dpr
   canvas.height = h * dpr
   ctx.scale(dpr, dpr)
@@ -104,10 +107,18 @@ async function drawMap() {
   ctx.fillStyle = colors.bg
   ctx.fillRect(0, 0, w, h)
 
-  // 加载 GeoJSON 画大陆轮廓
-  try {
-    const res = await fetch('/data/world.json')
-    const geo = await res.json()
+  // 加载 GeoJSON 画大陆轮廓（缓存避免重复 fetch）
+  if (!worldGeo.value) {
+    try {
+      const res = await fetch('/data/world.json')
+      worldGeo.value = await res.json()
+    } catch (e) {
+      console.warn('map load failed', e)
+      loading.value = false
+      return
+    }
+  }
+  const geo = worldGeo.value
 
     ctx.fillStyle = colors.land
     ctx.strokeStyle = colors.line
@@ -130,46 +141,63 @@ async function drawMap() {
       }
     }
 
-    // 手动画南极洲（底部一条带）
+  // 画城市圆点：简单圆点 + 扩散圆环
+  const cities = [...stats.value.allCities].filter(c => c.lat && c.lng)
+  const dots = cities.map(c => {
+    const p = project(parseFloat(c.lng), parseFloat(c.lat), w, h)
+    return { ...p, visits: c.visits, name: c.city }
+  })
+
+  // 静态部分：背景 + 大陆（animate 里每帧重画，这里只做一次数据准备）
+  loading.value = false
+
+  // 动画循环：扩散圆环
+  if (animFrame) cancelAnimationFrame(animFrame)
+  let t = 0
+  const animate = () => {
+    const colors = getColors()
+    // 重画背景和大陆
+    ctx.fillStyle = colors.bg
+    ctx.fillRect(0, 0, w, h)
     ctx.fillStyle = colors.land
     ctx.strokeStyle = colors.line
-    const antY = ((90 - 75) / 180) * h
-    ctx.beginPath()
-    ctx.moveTo(0, h)
-    ctx.lineTo(0, antY + 10)
-    ctx.quadraticCurveTo(w * 0.25, antY - 5, w * 0.5, antY + 5)
-    ctx.quadraticCurveTo(w * 0.75, antY + 12, w, antY)
-    ctx.lineTo(w, h)
-    ctx.closePath()
-    ctx.fill()
-    ctx.stroke()
-  } catch (e) {
-    console.warn('map load failed', e)
+    for (const feature of geo.features) {
+      const name = (feature.properties?.name || '').toLowerCase()
+      if (name.includes('antarctic')) continue
+      const coords = feature.geometry.coordinates
+      if (coords[0][0][0] === undefined) continue
+      if (feature.geometry.type === 'Polygon') drawPolygon(ctx, coords, w, h)
+      else if (feature.geometry.type === 'MultiPolygon') for (const polygon of coords) drawPolygon(ctx, polygon, w, h)
+    }
+
+    for (const dot of dots) {
+      // 扩散圆环
+      const progress = (t % 60) / 60
+      const ringR = 4 + progress * 16
+      const alpha = (1 - progress) * 0.5
+      ctx.strokeStyle = hexToRgba(colors.dot, alpha)
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(dot.x, dot.y, ringR, 0, Math.PI * 2)
+      ctx.stroke()
+
+      // 中心圆点
+      ctx.fillStyle = colors.dot
+      ctx.beginPath()
+      ctx.arc(dot.x, dot.y, 3, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    t++
+    animFrame = requestAnimationFrame(animate)
   }
+  animate()
+}
 
-  // 画城市圆点
-  for (const city of stats.value.allCities) {
-    if (!city.lat || !city.lng) continue
-    const p = project(parseFloat(city.lng), parseFloat(city.lat), w, h)
-    const r = city.visits > 5 ? 6 : city.visits > 2 ? 4.5 : 3
-
-    // 光晕
-    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3)
-    gradient.addColorStop(0, colors.dotGlow)
-    gradient.addColorStop(1, 'transparent')
-    ctx.fillStyle = gradient
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, r * 3, 0, Math.PI * 2)
-    ctx.fill()
-
-    // 中心点
-    ctx.fillStyle = colors.dot
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
-    ctx.fill()
-  }
-
-  loading.value = false
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3), 16)
+  const g = parseInt(hex.slice(3,5), 16)
+  const b = parseInt(hex.slice(5,7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
 }
 
 function drawPolygon(ctx, rings, w, h) {
@@ -223,12 +251,13 @@ onMounted(async () => {
   resizeObserver.observe(mapCanvas.value)
 
   // 监听 VitePress 深色模式切换（html.dark class）
-  const htmlObserver = new MutationObserver(() => drawMap())
+  htmlObserver = new MutationObserver(() => drawMap())
   htmlObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 
   onUnmounted(() => {
     if (resizeObserver) resizeObserver.disconnect()
-    htmlObserver.disconnect()
+    if (htmlObserver) htmlObserver.disconnect()
+    if (animFrame) cancelAnimationFrame(animFrame)
   })
 })
 </script>

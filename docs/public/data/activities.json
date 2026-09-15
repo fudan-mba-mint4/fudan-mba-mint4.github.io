@@ -1,45 +1,144 @@
 {
   "activities": [
     {
-      "id": "act-001",
+      "id": "act-007",
       "title": {
-        "zh": "新生见面会",
-        "en": "New Student Meet & Greet",
-        "th": "งานพบเพื่อนร่วมชั้น"
+        "zh": "班委选举",
+        "en": "Class Committee Election",
+        "th": "การเลือกตั้งคณะกรรมการชั้นเรียน"
       },
-      "date": "2026-08-01",
-      "endDate": "2026-08-01",
-      "time": "14:00 - 18:00",
+      "date": "2026-09-13",
+      "endDate": "2026-09-13",
+      "time": "17:00 - 18:00",
+      "location": {
+        "zh": "政立院区 B403教室",
+        "en": "Zhengli Campus Room B403",
+        "th": "วิทยาเขตเจิ้งหลี่ ห้อง B403"
+      },
+      "organizer": {
+        "zh": "班级筹备组",
+        "en": "Class Preparatory Group",
+        "th": "กลุ่มเตรียมการชั้นเรียน"
+      },
+      "description": {
+        "zh": "会计学下课后进行班委选举，产生第一届班委会。",
+        "en": "Class committee election after Accounting class. First class committee elected.",
+        "th": "การเลือกตั้งคณะกรรมการชั้นเรียนหลังวิชาบัญชี คณะกรรมการชั้นเรียนรุ่นแรกถูกเลือกตั้ง"
+      },
+      "reviewSummary": {
+        "zh": "第一届班委会选举产生，彭皓宁当选班级主理人，相婉玲、雷振宇当选副主理人。",
+        "en": "First class committee elected. Peng Haoning as Class Lead, Xiang Wanling and Lei Zhenyu as Deputy Leads.",
+        "th": "คณะกรรมการชั้นเรียนรุ่นแรกถูกเลือกตั้ง เผิง เฮ่าหนิงเป็นผู้นำชั้น เซียง หว่านหลิงและเหลย เจินอวี่เป็นรองผู้นำ"
+      },
+      "status": "ended",
+      "capacity": 84,
+      "registered": 84,
+      "tags": {
+        "type": "governance",
+        "hasMedia": true,
+        "mediaUrl": null,
+        "mediaType": "local",
+        "cover": "/images/albums/cover-election.webp",
+        "localPhotos": [
+          "/images/albums/election-20260913/01.jpg",
+          "/images/albums/election-20260913/02.jpg",
+          "/images/albums/election-20260913/03.jpg",
+          "/images/albums/election-20260913/04.jpg",
+          "/images/albums/election-20260913/05.jpg",
+          "/images/albums/election-20260913/06.jpg",
+          "/images/albums/election-20260913/07.jpg"
+        ],
+        "photoCount": 7,
+        "involvesFinance": false,
+        "financeAmount": 0,
+        "financeCategory": null
+      }
+    },
+    {
+      "id": "act-004",
+      "title": {
+        "zh": "Orientation迎新活动",
+        "en": "Orientation Welcome Event",
+        "th": "กิจกรรมต้อนรับ Orientation"
+      },
+      "date": "2026-09-05",
+      "endDate": "2026-09-05",
+      "time": "09:00 - 17:00",
       "location": {
         "zh": "复旦管理学院",
         "en": "Fudan School of Management",
         "th": "โรงเรียนบริหารธุรกิจ ม.ฝูด่าน"
       },
       "organizer": {
-        "zh": "班委会",
-        "en": "Class Committee",
-        "th": "คณะกรรมการชั้นเรียน"
+        "zh": "学院+传承人",
+        "en": "School + Mentors",
+        "th": "โรงเรียน + ผู้ให้คำปรึกษา"
       },
       "description": {
-        "zh": "班级初次见面会，同学分组互相认识，建立班级初步联系。",
-        "en": "First class meeting, classmates get to know each other in groups.",
-        "th": "การพบปะครั้งแรกของชั้นเรียน แบ่งกลุ่มทำความรู้จักกัน"
+        "zh": "2026级MBA迎新Orientation，团队建设、学院介绍、学长学姐分享。",
+        "en": "2026 MBA Orientation: team building, school introduction, senior sharing.",
+        "th": "โอเรียนเตชั่น MBA 2026: กิจกรรมสร้างทีม แนะนำโรงเรียน แชร์จากรุ่นพี่"
       },
       "reviewSummary": {
-        "zh": "84位同学初次相聚，分组破冰游戏，班徽与班级口号初步成型。",
-        "en": "84 classmates met for the first time, broke the ice in groups; class emblem and slogan took shape.",
-        "th": "เพื่อนร่วมชั้น 84 คนพบกันครั้งแรก ทำกิจกรรมละลายพฤติกรรม ตราระดับและคำขวัญชั้นเรียนเริ่มเป็นรูปเป็นร่าง"
+        "zh": "学院与传承人联合组织迎新，团队游戏与学长经验分享。",
+        "en": "School and mentors co-hosted the welcome day: team games and senior sharing.",
+        "th": "โรงเรียนและผู้ให้คำปรึกษาจัดงานต้อนรับร่วมกัน: เกมทีมและรุ่นพี่แชร์ประสบการณ์"
       },
       "status": "ended",
-      "capacity": 84,
-      "registered": 84,
+      "capacity": 300,
+      "registered": 280,
       "tags": {
-        "type": "orientation",
+        "hasMedia": false,
+        "mediaUrl": null,
+        "mediaType": null,
+        "cover": null,
+        "involvesFinance": false,
+        "financeAmount": 0,
+        "financeCategory": null,
+        "financeNote": null,
+        "type": "orientation"
+      }
+    },
+    {
+      "id": "act-003",
+      "title": {
+        "zh": "开学典礼",
+        "en": "Opening Ceremony",
+        "th": "พิธีเปิดภาคเรียน"
+      },
+      "date": "2026-09-04",
+      "endDate": "2026-09-09",
+      "time": "全天",
+      "location": {
+        "zh": "复旦管理学院",
+        "en": "Fudan School of Management",
+        "th": "โรงเรียนบริหารธุรกิจ ม.ฝูด่าน"
+      },
+      "organizer": {
+        "zh": "学院",
+        "en": "School",
+        "th": "โรงเรียน"
+      },
+      "description": {
+        "zh": "2026级MBA开学典礼，为期三天，包含学院介绍、课程说明、团队建设等。",
+        "en": "2026 MBA Opening Ceremony, three days including school introduction, course briefing, and team building.",
+        "th": "พิธีเปิดภาคเรียน MBA ปี 2026 ระยะเวลา 3 วัน"
+      },
+      "reviewSummary": {
+        "zh": "为期三天的2026级开学典礼圆满完成，学院介绍、课程说明与团队建设环环相扣。",
+        "en": "The three-day 2026 MBA opening ceremony wrapped up: school intro, course briefing, and team building.",
+        "th": "พิธีเปิดภาคเรียน MBA 2026 ระยะ 3 วันเสร็จสิ้น: แนะนำโรงเรียน แนะนำหลักสูตร และสร้างทีม"
+      },
+      "status": "ended",
+      "capacity": 300,
+      "registered": 280,
+      "tags": {
+        "type": "ceremony",
         "hasMedia": true,
-        "photoCount": 120,
-        "mediaUrl": "https://live.photoplus.cn/live/76223991",
+        "photoCount": 150,
+        "mediaUrl": "https://live.photoplus.cn/live/18618886",
         "mediaType": "photoplus",
-        "cover": "/images/albums/cover-meeting.webp",
+        "cover": "/images/albums/cover-opening.webp",
         "involvesFinance": false,
         "financeAmount": 0,
         "financeCategory": null
@@ -92,144 +191,45 @@
       }
     },
     {
-      "id": "act-003",
+      "id": "act-001",
       "title": {
-        "zh": "开学典礼",
-        "en": "Opening Ceremony",
-        "th": "พิธีเปิดภาคเรียน"
+        "zh": "新生见面会",
+        "en": "New Student Meet & Greet",
+        "th": "งานพบเพื่อนร่วมชั้น"
       },
-      "date": "2026-09-04",
-      "endDate": "2026-09-09",
-      "time": "全天",
+      "date": "2026-08-01",
+      "endDate": "2026-08-01",
+      "time": "14:00 - 18:00",
       "location": {
         "zh": "复旦管理学院",
         "en": "Fudan School of Management",
         "th": "โรงเรียนบริหารธุรกิจ ม.ฝูด่าน"
       },
       "organizer": {
-        "zh": "学院",
-        "en": "School",
-        "th": "โรงเรียน"
+        "zh": "班委会",
+        "en": "Class Committee",
+        "th": "คณะกรรมการชั้นเรียน"
       },
       "description": {
-        "zh": "2026级MBA开学典礼，为期三天，包含学院介绍、课程说明、团队建设等。",
-        "en": "2026 MBA Opening Ceremony, three days including school introduction, course briefing, and team building.",
-        "th": "พิธีเปิดภาคเรียน MBA ปี 2026 ระยะเวลา 3 วัน"
+        "zh": "班级初次见面会，同学分组互相认识，建立班级初步联系。",
+        "en": "First class meeting, classmates get to know each other in groups.",
+        "th": "การพบปะครั้งแรกของชั้นเรียน แบ่งกลุ่มทำความรู้จักกัน"
       },
       "reviewSummary": {
-        "zh": "为期三天的2026级开学典礼圆满完成，学院介绍、课程说明与团队建设环环相扣。",
-        "en": "The three-day 2026 MBA opening ceremony wrapped up: school intro, course briefing, and team building.",
-        "th": "พิธีเปิดภาคเรียน MBA 2026 ระยะ 3 วันเสร็จสิ้น: แนะนำโรงเรียน แนะนำหลักสูตร และสร้างทีม"
-      },
-      "status": "ended",
-      "capacity": 300,
-      "registered": 280,
-      "tags": {
-        "type": "ceremony",
-        "hasMedia": true,
-        "photoCount": 150,
-        "mediaUrl": "https://live.photoplus.cn/live/18618886",
-        "mediaType": "photoplus",
-        "cover": "/images/albums/cover-opening.webp",
-        "involvesFinance": false,
-        "financeAmount": 0,
-        "financeCategory": null
-      }
-    },
-    {
-      "id": "act-004",
-      "title": {
-        "zh": "Orientation迎新活动",
-        "en": "Orientation Welcome Event",
-        "th": "กิจกรรมต้อนรับ Orientation"
-      },
-      "date": "2026-09-05",
-      "endDate": "2026-09-05",
-      "time": "09:00 - 17:00",
-      "location": {
-        "zh": "复旦管理学院",
-        "en": "Fudan School of Management",
-        "th": "โรงเรียนบริหารธุรกิจ ม.ฝูด่าน"
-      },
-      "organizer": {
-        "zh": "学院+传承人",
-        "en": "School + Mentors",
-        "th": "โรงเรียน + ผู้ให้คำปรึกษา"
-      },
-      "description": {
-        "zh": "2026级MBA迎新Orientation，团队建设、学院介绍、学长学姐分享。",
-        "en": "2026 MBA Orientation: team building, school introduction, senior sharing.",
-        "th": "โอเรียนเตชั่น MBA 2026: กิจกรรมสร้างทีม แนะนำโรงเรียน แชร์จากรุ่นพี่"
-      },
-      "reviewSummary": {
-        "zh": "学院与传承人联合组织迎新，团队游戏与学长经验分享。",
-        "en": "School and mentors co-hosted the welcome day: team games and senior sharing.",
-        "th": "โรงเรียนและผู้ให้คำปรึกษาจัดงานต้อนรับร่วมกัน: เกมทีมและรุ่นพี่แชร์ประสบการณ์"
-      },
-      "status": "ended",
-      "capacity": 300,
-      "registered": 280,
-      "tags": {
-        "hasMedia": false,
-        "mediaUrl": null,
-        "mediaType": null,
-        "cover": null,
-        "involvesFinance": false,
-        "financeAmount": 0,
-        "financeCategory": null,
-        "financeNote": null,
-        "type": "orientation"
-      }
-    },
-    {
-      "id": "act-007",
-      "title": {
-        "zh": "班委选举",
-        "en": "Class Committee Election",
-        "th": "การเลือกตั้งคณะกรรมการชั้นเรียน"
-      },
-      "date": "2026-09-13",
-      "endDate": "2026-09-13",
-      "time": "17:00 - 18:00",
-      "location": {
-        "zh": "政立院区 B403教室",
-        "en": "Zhengli Campus Room B403",
-        "th": "วิทยาเขตเจิ้งหลี่ ห้อง B403"
-      },
-      "organizer": {
-        "zh": "班级筹备组",
-        "en": "Class Preparatory Group",
-        "th": "กลุ่มเตรียมการชั้นเรียน"
-      },
-      "description": {
-        "zh": "会计学下课后进行班委选举，产生第一届班委会。",
-        "en": "Class committee election after Accounting class. First class committee elected.",
-        "th": "การเลือกตั้งคณะกรรมการชั้นเรียนหลังวิชาบัญชี คณะกรรมการชั้นเรียนรุ่นแรกถูกเลือกตั้ง"
-      },
-      "reviewSummary": {
-        "zh": "第一届班委会选举产生，彭皓宁当选班级主理人，相婉玲、雷振宇当选副主理人。",
-        "en": "First class committee elected. Peng Haoning as Class Lead, Xiang Wanling and Lei Zhenyu as Deputy Leads.",
-        "th": "คณะกรรมการชั้นเรียนรุ่นแรกถูกเลือกตั้ง เผิง เฮ่าหนิงเป็นผู้นำชั้น เซียง หว่านหลิงและเหลย เจินอวี่เป็นรองผู้นำ"
+        "zh": "84位同学初次相聚，分组破冰游戏，班徽与班级口号初步成型。",
+        "en": "84 classmates met for the first time, broke the ice in groups; class emblem and slogan took shape.",
+        "th": "เพื่อนร่วมชั้น 84 คนพบกันครั้งแรก ทำกิจกรรมละลายพฤติกรรม ตราระดับและคำขวัญชั้นเรียนเริ่มเป็นรูปเป็นร่าง"
       },
       "status": "ended",
       "capacity": 84,
       "registered": 84,
       "tags": {
-        "type": "governance",
+        "type": "orientation",
         "hasMedia": true,
-        "mediaUrl": null,
-        "mediaType": "local",
-        "cover": "/images/albums/cover-election.webp",
-        "localPhotos": [
-          "/images/albums/election-20260913/01.jpg",
-          "/images/albums/election-20260913/02.jpg",
-          "/images/albums/election-20260913/03.jpg",
-          "/images/albums/election-20260913/04.jpg",
-          "/images/albums/election-20260913/05.jpg",
-          "/images/albums/election-20260913/06.jpg",
-          "/images/albums/election-20260913/07.jpg"
-        ],
-        "photoCount": 7,
+        "photoCount": 120,
+        "mediaUrl": "https://live.photoplus.cn/live/76223991",
+        "mediaType": "photoplus",
+        "cover": "/images/albums/cover-meeting.webp",
         "involvesFinance": false,
         "financeAmount": 0,
         "financeCategory": null

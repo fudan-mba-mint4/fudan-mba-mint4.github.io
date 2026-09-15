@@ -5,75 +5,178 @@
       "date": "2026-09-01",
       "type": "income",
       "category": "tuition",
-      "amount": 21702.30,
+      "amount": 21702.3,
       "description": "班费缴纳（暂记，与活动支出对冲）",
       "activityId": null
-    },
-    {
-      "id": "tx-002",
-      "date": "2026-08-01",
-      "type": "expense",
-      "category": "activity",
-      "amount": 11761.40,
-      "description": "8月1日班级见面会晚宴",
-      "activityId": "act-001"
     },
     {
       "id": "tx-003",
       "date": "2026-08-29",
       "type": "expense",
       "category": "activity",
-      "amount": 9940.90,
+      "amount": 9940.9,
       "description": "8月29日班级团建聚餐",
       "activityId": "act-002"
+    },
+    {
+      "id": "tx-002",
+      "date": "2026-08-01",
+      "type": "expense",
+      "category": "activity",
+      "amount": 11761.4,
+      "description": "8月1日班级见面会晚宴",
+      "activityId": "act-001"
     }
   ],
   "activityFinances": [
     {
-      "activityId": "act-001",
-      "date": "2026-08-01",
-      "venue": { "zh": "监利早酒（大学路店）", "en": "Jianli Zao Jiu (University Road Branch)", "th": "เจียนหลี่ จ้าวจิ่ว (สาขา University Road)" },
-      "attendees": 52,
-      "totalAmount": 11761.40,
-      "perPerson": 226.2,
-      "perPersonNote": { "zh": "传承人和班主任被请客，按实际参加同学均摊，酒水均摊", "en": "Mentors and head teacher were treated; split among attending classmates, drinks shared equally", "th": "ผู้ให้คำปรึกษาและครูที่ปรึกษาถูกเลี้ยง แบ่งให้เพื่อนร่วมชั้นที่เข้าร่วม เครื่องดื่มแบ่งเท่าๆ กัน" },
-      "attendanceNote": { "zh": "除王抒星、贺婧、叶宏颖、杜曼丽外均参加", "en": "All attended except Wang Shuxing, He Jing, Ye Hongying, Du Manli", "th": "ทุกคนเข้าร่วม ยกเว้น Wang Shuxing, He Jing, Ye Hongying, Du Manli" },
-      "items": [
-        { "category": "餐饮", "description": "晚饭", "amount": 9848.00, "payer": "李浩鹏", "note": "鲈鱼花生米免费，原价10048，大众点评券后9848" },
-        { "category": "酒水", "description": "鹅岛20L*3", "amount": 1800.00, "payer": "王炜泽", "note": "600 RMB/罐，待支付，周五晚上确定风味" },
-        { "category": "布置", "description": "班级横幅+桌卡", "amount": 72.00, "payer": "叶宏颖", "note": "横幅+桌卡" },
-        { "category": "道具", "description": "喝酒游戏吸管", "amount": 41.40, "payer": "王炜泽", "note": "5*4一共20个" }
-      ],
-      "payers": [
-        { "name": "李浩鹏", "amount": 9848.00 },
-        { "name": "王炜泽", "amount": 1841.40 },
-        { "name": "叶宏颖", "amount": 72.00 }
-      ],
-      "sponsors": []
-    },
-    {
       "activityId": "act-002",
       "date": "2026-08-29",
-      "venue": { "zh": "炙·YU烧鸟 Bistro·Bar·Cafe", "en": "Zhi·YU Yakitori Bistro·Bar·Cafe", "th": "จือ·YU ยากิโตริ บิสโตร·บาร์·คาเฟ่" },
+      "venue": {
+        "zh": "炙·YU烧鸟 Bistro·Bar·Cafe",
+        "en": "Zhi·YU Yakitori Bistro·Bar·Cafe",
+        "th": "จือ·YU ยากิโตริ บิสโตร·บาร์·คาเฟ่"
+      },
       "attendees": 39,
-      "totalAmount": 9940.90,
+      "totalAmount": 9940.9,
       "perPerson": 254.8,
-      "perPersonNote": { "zh": "AA制，赞助部分不计入分摊", "en": "AA split, sponsored items excluded", "th": "แบ่งเท่าๆ กัน รายการที่ได้รับการสนับสนุนไม่รวมในการแบ่ง" },
-      "attendanceNote": { "zh": "实到39人", "en": "39 attendees", "th": "เข้าร่วม 39 คน" },
+      "perPersonNote": {
+        "zh": "AA制，赞助部分不计入分摊",
+        "en": "AA split, sponsored items excluded",
+        "th": "แบ่งเท่าๆ กัน รายการที่ได้รับการสนับสนุนไม่รวมในการแบ่ง"
+      },
+      "attendanceNote": {
+        "zh": "实到39人",
+        "en": "39 attendees",
+        "th": "เข้าร่วม 39 คน"
+      },
       "items": [
-        { "category": "餐饮", "description": "餐费", "amount": 9685.00, "payer": null, "note": "付款记录及小票详见账单长图" },
-        { "category": "饮料", "description": "饮料", "amount": 255.90, "payer": null, "note": "" }
+        {
+          "category": "餐饮",
+          "description": "餐费",
+          "amount": 9685.0,
+          "payer": null,
+          "note": "付款记录及小票详见账单长图"
+        },
+        {
+          "category": "饮料",
+          "description": "饮料",
+          "amount": 255.9,
+          "payer": null,
+          "note": ""
+        }
       ],
       "payers": [],
       "sponsors": [
-        { "item": "管院小熊/笔记本/书签/席卡等", "quantity": "若干", "sponsor": "小胖老师" },
-        { "item": "ORIZ运动产品（棒球帽/毛巾/网包/伸缩扣）", "quantity": "16件", "sponsor": "宋洁" },
-        { "item": "天山酒庄桃红、甜白葡萄酒", "quantity": "14瓶", "sponsor": "周楠骐" },
-        { "item": "卓德酒庄干红葡萄酒", "quantity": "6瓶", "sponsor": "李浩鹏" },
-        { "item": "运动手袋及盲盒", "quantity": "若干", "sponsor": "程芳芳" },
-        { "item": "横幅、手环、摄影摄像服务", "quantity": "/", "sponsor": "相婉玲" }
+        {
+          "item": "管院小熊/笔记本/书签/席卡等",
+          "quantity": "若干",
+          "sponsor": "小胖老师"
+        },
+        {
+          "item": "ORIZ运动产品（棒球帽/毛巾/网包/伸缩扣）",
+          "quantity": "16件",
+          "sponsor": "宋洁"
+        },
+        {
+          "item": "天山酒庄桃红、甜白葡萄酒",
+          "quantity": "14瓶",
+          "sponsor": "周楠骐"
+        },
+        {
+          "item": "卓德酒庄干红葡萄酒",
+          "quantity": "6瓶",
+          "sponsor": "李浩鹏"
+        },
+        {
+          "item": "运动手袋及盲盒",
+          "quantity": "若干",
+          "sponsor": "程芳芳"
+        },
+        {
+          "item": "横幅、手环、摄影摄像服务",
+          "quantity": "/",
+          "sponsor": "相婉玲"
+        }
       ],
-      "organizingTeam": ["周楠骐", "李浩鹏", "程芳芳", "彭泽云", "相婉玲", "潘芸怡", "姚天成龙", "小胖老师", "传承人"]
+      "organizingTeam": [
+        "周楠骐",
+        "李浩鹏",
+        "程芳芳",
+        "彭泽云",
+        "相婉玲",
+        "潘芸怡",
+        "姚天成龙",
+        "小胖老师",
+        "传承人"
+      ]
+    },
+    {
+      "activityId": "act-001",
+      "date": "2026-08-01",
+      "venue": {
+        "zh": "监利早酒（大学路店）",
+        "en": "Jianli Zao Jiu (University Road Branch)",
+        "th": "เจียนหลี่ จ้าวจิ่ว (สาขา University Road)"
+      },
+      "attendees": 52,
+      "totalAmount": 11761.4,
+      "perPerson": 226.2,
+      "perPersonNote": {
+        "zh": "传承人和班主任被请客，按实际参加同学均摊，酒水均摊",
+        "en": "Mentors and head teacher were treated; split among attending classmates, drinks shared equally",
+        "th": "ผู้ให้คำปรึกษาและครูที่ปรึกษาถูกเลี้ยง แบ่งให้เพื่อนร่วมชั้นที่เข้าร่วม เครื่องดื่มแบ่งเท่าๆ กัน"
+      },
+      "attendanceNote": {
+        "zh": "除王抒星、贺婧、叶宏颖、杜曼丽外均参加",
+        "en": "All attended except Wang Shuxing, He Jing, Ye Hongying, Du Manli",
+        "th": "ทุกคนเข้าร่วม ยกเว้น Wang Shuxing, He Jing, Ye Hongying, Du Manli"
+      },
+      "items": [
+        {
+          "category": "餐饮",
+          "description": "晚饭",
+          "amount": 9848.0,
+          "payer": "李浩鹏",
+          "note": "鲈鱼花生米免费，原价10048，大众点评券后9848"
+        },
+        {
+          "category": "酒水",
+          "description": "鹅岛20L*3",
+          "amount": 1800.0,
+          "payer": "王炜泽",
+          "note": "600 RMB/罐，待支付，周五晚上确定风味"
+        },
+        {
+          "category": "布置",
+          "description": "班级横幅+桌卡",
+          "amount": 72.0,
+          "payer": "叶宏颖",
+          "note": "横幅+桌卡"
+        },
+        {
+          "category": "道具",
+          "description": "喝酒游戏吸管",
+          "amount": 41.4,
+          "payer": "王炜泽",
+          "note": "5*4一共20个"
+        }
+      ],
+      "payers": [
+        {
+          "name": "李浩鹏",
+          "amount": 9848.0
+        },
+        {
+          "name": "王炜泽",
+          "amount": 1841.4
+        },
+        {
+          "name": "叶宏颖",
+          "amount": 72.0
+        }
+      ],
+      "sponsors": []
     }
   ]
 }
