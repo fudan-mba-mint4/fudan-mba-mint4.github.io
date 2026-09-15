@@ -25,7 +25,6 @@
           >
             <span class="cf-top-rank">{{ String(i + 1).padStart(2, '0') }}</span>
             <span class="cf-top-name">{{ zhCity(city.city) }}</span>
-            <span class="cf-top-country">{{ zhCountry(city.country) }}</span>
             <span class="cf-top-count">{{ city.visits }}</span>
           </div>
           <div v-if="!stats.topCities.length" class="cf-empty">
