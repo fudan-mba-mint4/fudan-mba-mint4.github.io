@@ -138,23 +138,18 @@ async function handleUpdateProfile(request, env) {
   if (!user) return corsResponse({ error: '未登录或登录已过期' }, 401)
 
   const body = await parseBody(request)
-  const allowedFields = ['name', 'nickname', 'group_no']
-  const updates = {}
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) updates[field] = body[field]
-  }
-  if (Object.keys(updates).length === 0) return corsResponse({ error: '没有可更新的字段' }, 400)
+  const { name, nickname, group_no } = body
 
-  // 手动构建SET子句
-  const setClauses = []
-  const params = []
-  for (const [key, value] of Object.entries(updates)) {
-    setClauses.push(`${key} = $${params.length + 1}`)
-    params.push(value)
+  if (name !== undefined) {
+    await sql`UPDATE users SET name = ${String(name).trim()} WHERE id = ${user.id}`
   }
-  params.push(user.id)
-
-  await sql.unsafe(`UPDATE users SET ${setClauses.join(', ')} WHERE id = $${params.length}`, params)
+  if (nickname !== undefined) {
+    await sql`UPDATE users SET nickname = ${String(nickname).trim()} WHERE id = ${user.id}`
+  }
+  if (group_no !== undefined) {
+    const gno = group_no === '' || group_no === null ? null : parseInt(group_no, 10)
+    await sql`UPDATE users SET group_no = ${gno} WHERE id = ${user.id}`
+  }
 
   const result = await sql`SELECT id, username, name, nickname, group_no, created_at FROM users WHERE id = ${user.id}`
   return corsResponse({ message: '更新成功', data: result[0] })
