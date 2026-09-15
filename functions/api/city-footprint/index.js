@@ -60,13 +60,15 @@ export async function onRequest(context) {
     const ip = getClientIp(request)
     const ipHash = await hashIp(ip)
 
-    // 30分钟内同IP不重复记录
+    // 30分钟内同IP不重复记录，但Unknown记录允许更新
     const recent = await sql`
-      SELECT id FROM city_visits
+      SELECT id, city FROM city_visits
       WHERE ip_hash = ${ipHash} AND visited_at > NOW() - INTERVAL '30 minutes'
-      LIMIT 1
+      ORDER BY visited_at DESC LIMIT 1
     `
-    if (recent.length > 0) return corsResponse({ message: 'already tracked', skipped: true })
+    if (recent.length > 0 && recent[0].city && recent[0].city !== 'Unknown') {
+      return corsResponse({ message: 'already tracked', skipped: true })
+    }
 
     // 获取地理位置
     let loc = getLocationFromHeaders(request)
@@ -75,10 +77,18 @@ export async function onRequest(context) {
     }
     if (!loc) loc = { country: 'Unknown', city: 'Unknown', lat: 0, lng: 0 }
 
-    await sql`
-      INSERT INTO city_visits (ip_hash, country, city, lat, lng)
-      VALUES (${ipHash}, ${loc.country}, ${loc.city}, ${loc.lat}, ${loc.lng})
-    `
+    // 如果之前有 Unknown 记录，更新它；否则插入新记录
+    if (recent.length > 0 && recent[0].city === 'Unknown') {
+      await sql`
+        UPDATE city_visits SET country = ${loc.country}, city = ${loc.city}, lat = ${loc.lat}, lng = ${loc.lng}
+        WHERE id = ${recent[0].id}
+      `
+    } else {
+      await sql`
+        INSERT INTO city_visits (ip_hash, country, city, lat, lng)
+        VALUES (${ipHash}, ${loc.country}, ${loc.city}, ${loc.lat}, ${loc.lng})
+      `
+    }
     return corsResponse({ message: 'tracked', city: loc.city }, 201)
   }
 
