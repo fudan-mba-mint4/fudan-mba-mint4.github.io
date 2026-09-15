@@ -47,7 +47,7 @@ export async function onRequest(context) {
     }
 
     const h = request.headers
-    const geo = context.request.cf?.geo || context.request.eo?.geo || {}
+    const geo = request.cf?.geo || request.eo?.geo || {}
 
     let city = geo.cityName || h.get('x-edgeone-ip-city') || ''
     let country = geo.countryCodeAlpha2 || h.get('x-edgeone-ip-country') || ''
