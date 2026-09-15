@@ -7,7 +7,7 @@
           <h1 class="treehole-title">{{ t.title }}</h1>
           <p class="treehole-subtitle">{{ t.subtitle }}</p>
         </div>
-        <button class="write-btn" @click="openForm">
+        <button class="write-btn disabled" disabled title="尚未开放">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
           </svg>
@@ -552,6 +552,9 @@ function formatTime(isoString) {
 }
 .write-btn:hover { opacity: 0.85; }
 .write-btn:active { transform: scale(0.97); }
+.write-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+.write-btn.disabled:hover { opacity: 0.4; }
+.write-btn.disabled:active { transform: none; }
 
 /* 统计条 */
 .treehole-stats {
