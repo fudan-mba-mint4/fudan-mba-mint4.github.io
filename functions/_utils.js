@@ -74,11 +74,11 @@ export async function initDatabase(env) {
   await sql`
     CREATE TABLE IF NOT EXISTS city_visits (
       id SERIAL PRIMARY KEY,
-      ip_hash VARCHAR(64) NOT NULL,
-      country VARCHAR(100),
-      city VARCHAR(100),
-      lat DECIMAL(10, 6),
-      lng DECIMAL(10, 6),
+      ip_hash TEXT NOT NULL,
+      country TEXT,
+      city TEXT,
+      lat DOUBLE PRECISION DEFAULT 0,
+      lng DOUBLE PRECISION DEFAULT 0,
       visited_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     )
   `
