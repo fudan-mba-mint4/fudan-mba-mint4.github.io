@@ -34,7 +34,6 @@ async function locateByApi(ip) {
     const url = ip ? `https://ipapi.co/${ip}/json/` : 'https://ipapi.co/json/'
     const res = await fetch(url, {
       headers: { 'User-Agent': 'mint4-class/1.0' },
-      signal: AbortSignal.timeout(5000),
     })
     if (!res.ok) return null
     const data = await res.json()
