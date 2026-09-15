@@ -47,46 +47,12 @@ export async function onRequest(context) {
     }
 
     const h = request.headers
-    // 打印所有 header 调试
-    const allHeaders = {}
-    h.forEach((v, k) => { allHeaders[k] = v })
+    const geo = context.request.cf?.geo || context.request.eo?.geo || {}
 
-    let city = h.get('x-edgeone-ip-city') || h.get('x-geoip-city') || h.get('x-forwarded-city') || ''
-    let country = h.get('x-edgeone-ip-country') || h.get('x-geoip-country') || h.get('x-forwarded-country') || ''
-    let lat = parseFloat(h.get('x-edgeone-ip-lat') || h.get('x-geoip-lat') || '0')
-    let lng = parseFloat(h.get('x-edgeone-ip-lng') || h.get('x-geoip-lng') || '0')
-
-    // 如果 headers 没有，尝试多个 IP 定位 API
-    let ipInfoError = ''
-    if (!city) {
-      const apis = [
-        `https://ipapi.co/${ip}/json/`,
-        `https://ipinfo.io/${ip}/json`,
-      ]
-      for (const apiUrl of apis) {
-        try {
-          const res = await fetch(apiUrl)
-          if (res.ok) {
-            const data = await res.json()
-            if (data.city) {
-              city = data.city
-              country = data.country || ''
-              const loc = (data.loc || data.latitude + ',' + data.longitude || '0,0').toString().split(',')
-              lat = parseFloat(loc[0]) || 0
-              lng = parseFloat(loc[1]) || 0
-              ipInfoError = 'OK via ' + apiUrl
-              break
-            } else {
-              ipInfoError = 'no city in ' + apiUrl + ': ' + JSON.stringify(data).slice(0, 200)
-            }
-          } else {
-            ipInfoError = 'HTTP ' + res.status + ' from ' + apiUrl
-          }
-        } catch (e) {
-          ipInfoError = apiUrl + ': ' + (e.message || String(e))
-        }
-      }
-    }
+    let city = geo.cityName || h.get('x-edgeone-ip-city') || ''
+    let country = geo.countryCodeAlpha2 || h.get('x-edgeone-ip-country') || ''
+    let lat = parseFloat(geo.latitude || '0')
+    let lng = parseFloat(geo.longitude || '0')
 
     const loc = { country: country || 'Unknown', city: city || 'Unknown', lat, lng }
 
@@ -95,9 +61,7 @@ export async function onRequest(context) {
     } else {
       await sql`INSERT INTO city_visits (ip_hash, country, city, lat, lng) VALUES (${ipHash}, ${loc.country}, ${loc.city}, ${loc.lat}, ${loc.lng})`
     }
-    let debugInfo = {}
-    try { debugInfo = { cf: context.request.cf, eo: context.request.eo } } catch (e) { debugInfo = { err: e.message } }
-    return corsResponse({ message: 'tracked', city: loc.city, debug: { ip, ipInfoError, allHeaders, ...debugInfo } }, 201)
+    return corsResponse({ message: 'tracked', city: loc.city }, 201)
   }
 
   const totalResult = await sql`SELECT COUNT(DISTINCT ip_hash)::int as total FROM city_visits WHERE visited_at >= DATE_TRUNC('month', NOW())`
