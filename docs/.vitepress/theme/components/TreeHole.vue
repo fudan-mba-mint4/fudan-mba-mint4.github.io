@@ -128,17 +128,6 @@
             </div>
             <form class="modal-body" @submit.prevent="submitMessage">
               <div class="form-group">
-                <label class="form-label">{{ t.nicknameLabel }} <span class="form-optional">({{ t.optional }})</span></label>
-                <input
-                  v-model="form.nickname"
-                  type="text"
-                  class="form-input"
-                  :placeholder="t.nicknamePlaceholder"
-                  maxlength="50"
-                  autocomplete="off"
-                />
-              </div>
-              <div class="form-group">
                 <label class="form-label">{{ t.contentLabel }} <span class="form-required">*</span></label>
                 <textarea
                   v-model="form.content"
@@ -151,6 +140,10 @@
                 ></textarea>
                 <div class="char-count" :class="{ 'char-warn': form.content.length > 450 }">{{ form.content.length }}/500</div>
               </div>
+              <label v-if="isAuthenticated" class="realname-toggle">
+                <input type="checkbox" v-model="form.realname" />
+                <span>实名显示（将显示你的真名 {{ currentUser?.name || '' }}）</span>
+              </label>
               <Transition name="fade">
                 <div v-if="formError" class="form-error">{{ formError }}</div>
               </Transition>
@@ -182,8 +175,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useAuth } from '../composables/useAuth.js'
 
 const i18n = {
   zh: {
@@ -294,6 +288,7 @@ const { t } = useLang(i18n)
 
 const API_BASE = '/api/treehole'
 const isMock = import.meta.env.DEV
+const { currentUser, isAuthenticated } = useAuth()
 
 // ========== Mock 数据层（开发环境用 localStorage 模拟） ==========
 const MOCK_KEY = 'mint4_treehole_mock'
@@ -354,7 +349,7 @@ const newMessageId = ref(null)
 const showForm = ref(false)
 const submitting = ref(false)
 const formError = ref('')
-const form = ref({ nickname: '', content: '' })
+const form = ref({ realname: false, content: '' })
 const showSuccess = ref(false)
 const textareaRef = ref(null)
 
@@ -438,7 +433,7 @@ function openForm() {
 
 function closeForm() {
   showForm.value = false
-  form.value = { nickname: '', content: '' }
+  form.value = { realname: false, content: '' }
   formError.value = ''
 }
 
@@ -448,7 +443,7 @@ async function submitMessage() {
   formError.value = ''
   try {
     const body = {
-      nickname: form.value.nickname.trim() || undefined,
+      nickname: (form.value.realname && currentUser.value?.name) ? currentUser.value.name : undefined,
       content: form.value.content.trim(),
     }
     const res = isMock
@@ -871,6 +866,20 @@ function formatTime(isoString) {
   font-size: 13px;
   color: #ff3b30;
   margin-bottom: 16px;
+}
+.realname-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--c-text-secondary);
+  cursor: pointer;
+}
+.realname-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--c-accent);
 }
 .form-actions {
   display: flex;

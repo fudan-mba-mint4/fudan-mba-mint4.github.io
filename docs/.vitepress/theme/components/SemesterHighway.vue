@@ -148,12 +148,12 @@ const fmtNodeDate = (d) => {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-xl);
-  padding: var(--space-4) var(--space-5);
-  margin-bottom: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .highway-head {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 .highway-head h3 {
   font-size: var(--text-lg);
@@ -169,7 +169,7 @@ const fmtNodeDate = (d) => {
 
 /* ========== 单条车道 ========== */
 .lane {
-  padding: var(--space-3) 0;
+  padding: var(--space-1) 0;
   border-top: 1px solid var(--c-border-light);
 }
 .lane:first-of-type { border-top: none; padding-top: 0; }
@@ -178,8 +178,8 @@ const fmtNodeDate = (d) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-2);
+  gap: var(--space-3);
+  margin-bottom: 4px;
 }
 
 .lane-title {
@@ -254,13 +254,13 @@ const fmtNodeDate = (d) => {
   align-items: flex-start;
   gap: 0;
   overflow-x: auto;
-  padding: var(--space-1) 0 var(--space-2);
+  padding: 2px 0 4px;
 }
 /* 虚线连接线：贯穿轨道 */
 .lane-track::before {
   content: '';
   position: absolute;
-  top: 14px;
+  top: 11px;
   left: 8px;
   right: 8px;
   border-top: 2px dashed var(--c-border);
@@ -272,7 +272,7 @@ const fmtNodeDate = (d) => {
   flex-direction: column;
   align-items: center;
   flex: 1 0 auto;
-  min-width: 44px;
+  min-width: 40px;
   z-index: 1;
 }
 
@@ -280,7 +280,7 @@ const fmtNodeDate = (d) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -288,8 +288,8 @@ const fmtNodeDate = (d) => {
   font-family: inherit;
 }
 .node-dot {
-  width: 14px;
-  height: 14px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--course-text, var(--c-accent));
   border: 2px solid var(--c-bg-card);
@@ -297,7 +297,7 @@ const fmtNodeDate = (d) => {
   transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 .node-label {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--c-text-tertiary);
   font-variant-numeric: tabular-nums;
 }

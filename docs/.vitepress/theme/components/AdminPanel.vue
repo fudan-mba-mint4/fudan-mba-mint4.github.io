@@ -622,7 +622,6 @@ let searchDebounceTimer = null
 // 页面加载时自动加载树洞数据
 if (typeof window !== 'undefined') {
   setTimeout(() => { loadTreeholeMessages() }, 300)
-  }
 }
 
 async function verifyTreeholeToken(silent = false) {
