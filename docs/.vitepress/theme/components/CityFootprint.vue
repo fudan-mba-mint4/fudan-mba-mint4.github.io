@@ -24,8 +24,8 @@
             class="cf-top-item"
           >
             <span class="cf-top-rank">{{ String(i + 1).padStart(2, '0') }}</span>
-            <span class="cf-top-name">{{ city.city }}</span>
-            <span class="cf-top-country">{{ city.country }}</span>
+            <span class="cf-top-name">{{ zhCity(city.city) }}</span>
+            <span class="cf-top-country">{{ zhCountry(city.country) }}</span>
             <span class="cf-top-count">{{ city.visits }}</span>
           </div>
           <div v-if="!stats.topCities.length" class="cf-empty">
@@ -62,6 +62,27 @@ const worldGeo = ref(null)
 let resizeObserver = null
 let animFrame = null
 let htmlObserver = null
+
+// 城市名/国家名中英文映射
+const CITY_ZH = {
+  'Shanghai': '上海', 'Beijing': '北京', 'Shenzhen': '深圳', 'Guangzhou': '广州',
+  'Hangzhou': '杭州', 'Chengdu': '成都', 'Nanjing': '南京', 'Wuhan': '武汉',
+  'Xi\'an': '西安', "Xi'an": '西安', 'Chongqing': '重庆', 'Suzhou': '苏州',
+  'Tianjin': '天津', 'Hong Kong': '香港', 'Taipei': '台北', 'Qingdao': '青岛',
+  'Dalian': '大连', 'Xiamen': '厦门', 'Changsha': '长沙', 'Zhengzhou': '郑州',
+  'Jinan': '济南', 'Shenyang': '沈阳', 'Harbin': '哈尔滨', 'Kunming': '昆明',
+  'Fuzhou': '福州', 'Hefei': '合肥', 'Ningbo': '宁波', 'Wuxi': '无锡',
+  'Dongguan': '东莞', 'Foshan': '佛山', 'Macau': '澳门', 'Taichung': '台中',
+  'Kaohsiung': '高雄',
+}
+const COUNTRY_ZH = {
+  'China': '中国', 'Taiwan': '中国台湾', 'Hong Kong': '中国香港', 'Macau': '中国澳门',
+  'United States': '美国', 'Japan': '日本', 'South Korea': '韩国',
+  'Singapore': '新加坡', 'United Kingdom': '英国', 'Germany': '德国',
+  'France': '法国', 'Australia': '澳大利亚', 'Canada': '加拿大',
+}
+function zhCity(name) { return CITY_ZH[name] || name }
+function zhCountry(name) { return COUNTRY_ZH[name] || name }
 
 // 经纬度 → canvas坐标（以中国为中心的等距圆柱投影，中央经线110°E）
 const CENTER_LNG = 110
