@@ -55,9 +55,11 @@ export async function onRequest(context) {
 async function handleGetSignups(env, activityId) {
   const sql = getSql(env)
   const result = await sql`
-    SELECT id, username, created_at FROM activity_signups
-    WHERE activity_id = ${activityId}
-    ORDER BY created_at ASC
+    SELECT s.id, s.username, u.name, u.nickname, s.created_at
+    FROM activity_signups s
+    LEFT JOIN users u ON s.user_id = u.id
+    WHERE s.activity_id = ${activityId}
+    ORDER BY s.created_at ASC
   `
   return corsResponse({ data: result, count: result.length })
 }

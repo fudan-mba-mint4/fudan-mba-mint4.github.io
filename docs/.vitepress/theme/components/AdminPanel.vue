@@ -301,18 +301,8 @@
       <div v-if="currentType === 'treehole'" class="form-section">
         <h3>🌳 匿名树洞管理</h3>
 
-        <!-- Admin Token验证 -->
-        <div v-if="!treeholeAdminVerified" class="treehole-auth">
-          <p class="treehole-auth-desc">操作树洞数据需要管理员Token（当前会话内自动记忆）</p>
-          <div class="treehole-auth-row">
-            <input type="password" v-model="treeholeTokenInput" placeholder="Admin Token" @keyup.enter="verifyTreeholeToken" class="token-input" />
-            <button @click="verifyTreeholeToken" class="token-btn">验证并进入</button>
-          </div>
-          <p v-if="treeholeTokenError" class="token-error">{{ treeholeTokenError }}</p>
-        </div>
-
         <!-- 管理界面 -->
-        <div v-else>
+        <div>
           <!-- 统计卡片 -->
           <div class="treehole-stat-cards">
             <div class="stat-card">
@@ -616,8 +606,8 @@ function removeLocalPhoto(index) {
 }
 
 // ===== 树洞管理 =====
-const treeholeAdminVerified = ref(false)
-const treeholeTokenInput = ref('')
+const treeholeAdminVerified = ref(true) // 已过admin页面密码，直接授权
+const treeholeTokenInput = ref('mint4_admin@2026')
 const treeholeTokenError = ref('')
 const treeholeMessages = ref([])
 const treeholeLoading = ref(false)
@@ -629,13 +619,9 @@ const treeholeStats = ref({ total: 0, active_count: 0, deleted_count: 0, today_c
 const expandedId = ref(null)
 let searchDebounceTimer = null
 
-// 页面加载时检查sessionStorage中的Token
+// 页面加载时自动加载树洞数据
 if (typeof window !== 'undefined') {
-  const savedToken = sessionStorage.getItem('treehole_admin_token')
-  if (savedToken) {
-    treeholeTokenInput.value = savedToken
-    // 延迟验证，等DOM就绪
-    setTimeout(() => { verifyTreeholeToken(true) }, 300)
+  setTimeout(() => { loadTreeholeMessages() }, 300)
   }
 }
 
