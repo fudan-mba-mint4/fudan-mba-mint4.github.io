@@ -47,10 +47,30 @@ export async function onRequest(context) {
     }
 
     const h = request.headers
-    const city = h.get('x-edgeone-ip-city') || h.get('x-geoip-city') || ''
-    const country = h.get('x-edgeone-ip-country') || h.get('x-geoip-country') || ''
-    const lat = parseFloat(h.get('x-edgeone-ip-lat') || h.get('x-geoip-lat') || '0')
-    const lng = parseFloat(h.get('x-edgeone-ip-lng') || h.get('x-geoip-lng') || '0')
+    let city = h.get('x-edgeone-ip-city') || h.get('x-geoip-city') || ''
+    let country = h.get('x-edgeone-ip-country') || h.get('x-geoip-country') || ''
+    let lat = parseFloat(h.get('x-edgeone-ip-lat') || h.get('x-geoip-lat') || '0')
+    let lng = parseFloat(h.get('x-edgeone-ip-lng') || h.get('x-geoip-lng') || '0')
+
+    // 如果 headers 没有，用 ipinfo.io
+    if (!city) {
+      try {
+        const res = await fetch(`https://ipinfo.io/${ip}/json`, {
+          headers: { 'User-Agent': 'mint4-class/1.0' },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.city) {
+            city = data.city
+            country = data.country || ''
+            const loc = (data.loc || '0,0').split(',')
+            lat = parseFloat(loc[0]) || 0
+            lng = parseFloat(loc[1]) || 0
+          }
+        }
+      } catch (e) { /* 静默 */ }
+    }
+
     const loc = { country: country || 'Unknown', city: city || 'Unknown', lat, lng }
 
     if (recent.length > 0) {

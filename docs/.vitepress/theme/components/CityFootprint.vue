@@ -114,6 +114,10 @@ async function drawMap() {
     ctx.lineWidth = 0.5
 
     for (const feature of geo.features) {
+      // 跳过南极洲（跨边缘检测会把它断开），手动画
+      const name = (feature.properties?.name || '').toLowerCase()
+      if (name.includes('antarctic')) continue
+
       const coords = feature.geometry.coordinates
       const type = feature.geometry.type
 
@@ -125,6 +129,20 @@ async function drawMap() {
         }
       }
     }
+
+    // 手动画南极洲（底部一条带）
+    ctx.fillStyle = colors.land
+    ctx.strokeStyle = colors.line
+    const antY = ((90 - 75) / 180) * h
+    ctx.beginPath()
+    ctx.moveTo(0, h)
+    ctx.lineTo(0, antY + 10)
+    ctx.quadraticCurveTo(w * 0.25, antY - 5, w * 0.5, antY + 5)
+    ctx.quadraticCurveTo(w * 0.75, antY + 12, w, antY)
+    ctx.lineTo(w, h)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
   } catch (e) {
     console.warn('map load failed', e)
   }
@@ -158,13 +176,26 @@ function drawPolygon(ctx, rings, w, h) {
   for (const ring of rings) {
     if (ring.length < 3) continue
     ctx.beginPath()
-    const start = project(ring[0][0], ring[0][1], w, h)
-    ctx.moveTo(start.x, start.y)
-    for (let i = 1; i < ring.length; i++) {
+    let prevX = null
+    let prevY = null
+    for (let i = 0; i < ring.length; i++) {
       const p = project(ring[i][0], ring[i][1], w, h)
-      ctx.lineTo(p.x, p.y)
+      if (i === 0) {
+        ctx.moveTo(p.x, p.y)
+      } else if (prevX !== null && Math.abs(p.x - prevX) > w * 0.5) {
+        // 跨越地图左右边缘，断开
+        ctx.moveTo(p.x, p.y)
+      } else {
+        ctx.lineTo(p.x, p.y)
+      }
+      prevX = p.x
+      prevY = p.y
     }
-    ctx.closePath()
+    // 手动闭合，检测首尾是否跨越
+    const start = project(ring[0][0], ring[0][1], w, h)
+    if (Math.abs(start.x - prevX) <= w * 0.5) {
+      ctx.lineTo(start.x, start.y)
+    }
     ctx.fill()
     ctx.stroke()
   }
@@ -191,13 +222,14 @@ onMounted(async () => {
   resizeObserver = new ResizeObserver(() => drawMap())
   resizeObserver.observe(mapCanvas.value)
 
-  // 监听主题切换
-  const mq = window.matchMedia('(prefers-color-scheme: dark)')
-  mq.addEventListener('change', () => drawMap())
-})
+  // 监听 VitePress 深色模式切换（html.dark class）
+  const htmlObserver = new MutationObserver(() => drawMap())
+  htmlObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 
-onUnmounted(() => {
-  if (resizeObserver) resizeObserver.disconnect()
+  onUnmounted(() => {
+    if (resizeObserver) resizeObserver.disconnect()
+    htmlObserver.disconnect()
+  })
 })
 </script>
 
