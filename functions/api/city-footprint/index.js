@@ -95,7 +95,9 @@ export async function onRequest(context) {
     } else {
       await sql`INSERT INTO city_visits (ip_hash, country, city, lat, lng) VALUES (${ipHash}, ${loc.country}, ${loc.city}, ${loc.lat}, ${loc.lng})`
     }
-    return corsResponse({ message: 'tracked', city: loc.city, debug: { ip, ipInfoError, allHeaders, cf: context.request.cf || 'none', eo: context.request.eo || 'none' } }, 201)
+    let debugInfo = {}
+    try { debugInfo = { cf: context.request.cf, eo: context.request.eo } } catch (e) { debugInfo = { err: e.message } }
+    return corsResponse({ message: 'tracked', city: loc.city, debug: { ip, ipInfoError, allHeaders, ...debugInfo } }, 201)
   }
 
   const totalResult = await sql`SELECT COUNT(DISTINCT ip_hash)::int as total FROM city_visits WHERE visited_at >= DATE_TRUNC('month', NOW())`
