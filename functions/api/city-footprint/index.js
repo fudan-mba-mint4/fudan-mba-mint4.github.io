@@ -28,14 +28,23 @@ function getLocationFromHeaders(request) {
   return null
 }
 
-// 用 ip-api.com 定位（免费版 HTTP）
+// 用 ipapi.co 定位（免费版 HTTPS，1000次/天）
 async function locateByApi(ip) {
   try {
-    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city,lat,lon`)
+    const url = ip ? `https://ipapi.co/${ip}/json/` : 'https://ipapi.co/json/'
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'mint4-class/1.0' },
+      signal: AbortSignal.timeout(5000),
+    })
     if (!res.ok) return null
     const data = await res.json()
-    if (data.status !== 'success') return null
-    return { country: data.country, city: data.city, lat: data.lat, lng: data.lon }
+    if (data.error) return null
+    return {
+      country: data.country_name || 'Unknown',
+      city: data.city || 'Unknown',
+      lat: data.latitude || 0,
+      lng: data.longitude || 0,
+    }
   } catch { return null }
 }
 
