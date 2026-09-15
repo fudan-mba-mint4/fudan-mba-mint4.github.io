@@ -38,63 +38,16 @@ export async function onRequest(context) {
 
   if (request.method === 'POST') {
     try {
-      const ip = getClientIp(request)
-      const ipHash = await hashIp(ip)
-
-      const recent = await sql`
-        SELECT id, city FROM city_visits
-        WHERE ip_hash = ${ipHash} AND visited_at > NOW() - INTERVAL '30 minutes'
-        ORDER BY visited_at DESC LIMIT 1
-      `
-      if (recent.length > 0 && recent[0].city && recent[0].city !== 'Unknown') {
-        return corsResponse({ message: 'already tracked', skipped: true })
-      }
-
-      // 获取地理位置：优先用 headers
-      let loc = getLocationFromHeaders(request)
-
-      // 如果 headers 没有，尝试外部 API（超时5秒）
-      if (!loc || !loc.city || loc.city === 'Unknown') {
-        try {
-          const controller = new AbortController()
-          const timer = setTimeout(() => controller.abort(), 5000)
-          const res = await fetch(`https://ipapi.co/${ip}/json/`, {
-            headers: { 'User-Agent': 'mint4-class/1.0' },
-            signal: controller.signal,
-          })
-          clearTimeout(timer)
-          if (res.ok) {
-            const data = await res.json()
-            if (!data.error && data.city) {
-              loc = {
-                country: data.country_name || 'Unknown',
-                city: data.city,
-                lat: data.latitude || 0,
-                lng: data.longitude || 0,
-              }
-            }
-          }
-        } catch (e) {
-          // 外部API失败，用headers或Unknown
+      // 调试：返回所有 headers
+      const headersObj = {}
+      for (const [k, v] of request.headers.entries()) {
+        if (k.includes('geo') || k.includes('ip') || k.includes('country') || k.includes('city') || k.includes('edgeone') || k.includes('tencent')) {
+          headersObj[k] = v
         }
       }
-
-      if (!loc) loc = { country: 'Unknown', city: 'Unknown', lat: 0, lng: 0 }
-
-      if (recent.length > 0 && recent[0].city === 'Unknown') {
-        await sql`
-          UPDATE city_visits SET country = ${loc.country}, city = ${loc.city}, lat = ${loc.lat}, lng = ${loc.lng}
-          WHERE id = ${recent[0].id}
-        `
-      } else {
-        await sql`
-          INSERT INTO city_visits (ip_hash, country, city, lat, lng)
-          VALUES (${ipHash}, ${loc.country}, ${loc.city}, ${loc.lat}, ${loc.lng})
-        `
-      }
-      return corsResponse({ message: 'tracked', city: loc.city }, 201)
+      return corsResponse({ debug: true, headers: headersObj, ip: getClientIp(request) }, 200)
     } catch (e) {
-      return corsResponse({ error: 'track failed', detail: String(e) }, 500)
+      return corsResponse({ error: String(e) }, 500)
     }
   }
 
