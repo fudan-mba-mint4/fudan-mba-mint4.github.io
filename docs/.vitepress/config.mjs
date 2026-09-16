@@ -52,6 +52,7 @@ const zhNav = [
     items: [
       { text: '入学测试知识库', link: '/quiz/' },
       { text: '实用小工具', link: '/tools/' },
+      { text: '复旦活动雷达', link: 'https://events.fdmba.cn' },
       { text: '管理后台', link: '/admin/' },
     ],
   },
@@ -124,6 +125,7 @@ const enNav = [
     items: [
       { text: 'Entry Quiz KB', link: '/en/quiz/' },
       { text: 'Utilities', link: '/en/tools/' },
+      { text: 'Fudan Event Radar', link: 'https://events.fdmba.cn' },
       { text: 'Admin Panel', link: '/en/admin/' },
     ],
   },
@@ -196,6 +198,7 @@ const thNav = [
     items: [
       { text: 'คลังข้อสอบเข้า', link: '/th/quiz/' },
       { text: 'เครื่องมือทั่วไป', link: '/th/tools/' },
+      { text: 'Fudan Event Radar', link: 'https://events.fdmba.cn' },
       { text: 'แผงควบคุม', link: '/th/admin/' },
     ],
   },
