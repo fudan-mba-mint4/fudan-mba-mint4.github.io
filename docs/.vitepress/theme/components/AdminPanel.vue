@@ -614,11 +614,6 @@ const treeholeStats = ref({ total: 0, active_count: 0, deleted_count: 0, today_c
 const expandedId = ref(null)
 let searchDebounceTimer = null
 
-// 页面加载时自动加载树洞数据
-if (typeof window !== 'undefined') {
-  setTimeout(() => { loadTreeholeMessages() }, 300)
-}
-
 async function verifyTreeholeToken(silent = false) {
   if (!treeholeTokenInput.value.trim()) {
     treeholeTokenError.value = '请输入Admin Token'
