@@ -86,5 +86,20 @@ export default {
       } catch (e) { /* 静默 */ }
     }
     setTimeout(trackVisit, 2000)
+
+    // 路由切换顶部进度条
+    const bar = document.createElement('div')
+    bar.style.cssText = 'position:fixed;top:0;left:0;height:2px;background:var(--c-accent,#2D7A6C);z-index:99999;transition:width .2s ease,opacity .3s ease;width:0;opacity:0;box-shadow:0 0 8px rgba(45,122,108,.5)'
+    document.body.appendChild(bar)
+
+    router.onBeforeRouteChange = () => {
+      bar.style.opacity = '1'
+      bar.style.width = '30%'
+      setTimeout(() => { bar.style.width = '60%' }, 200)
+    }
+    router.onAfterRouteChanged = () => {
+      bar.style.width = '100%'
+      setTimeout(() => { bar.style.opacity = '0'; bar.style.width = '0' }, 200)
+    }
   }
 }
