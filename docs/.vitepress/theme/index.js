@@ -87,6 +87,9 @@ export default {
     }
     setTimeout(trackVisit, 2000)
 
+    // 以下 DOM 操作仅在浏览器端执行（SSR 时无 document）
+    if (typeof window === 'undefined') return
+
     // 路由切换顶部进度条
     const bar = document.createElement('div')
     bar.style.cssText = 'position:fixed;top:0;left:0;height:2px;background:var(--c-accent,#2D7A6C);z-index:99999;transition:width .2s ease,opacity .3s ease;width:0;opacity:0;box-shadow:0 0 8px rgba(45,122,108,.5)'
@@ -97,12 +100,8 @@ export default {
       bar.style.width = '30%'
       setTimeout(() => { bar.style.width = '60%' }, 200)
     }
-    router.onAfterRouteChanged = () => {
-      bar.style.width = '100%'
-      setTimeout(() => { bar.style.opacity = '0'; bar.style.width = '0' }, 200)
-    }
 
-    // 全局截止提醒弹窗：进首页后检测24h内截止的作业/课程/活动
+    // 全局截止提醒弹窗：进首页后检测今日/明日截止的作业
     const showDeadlinePopup = async () => {
       if (sessionStorage.getItem('deadline_popup_shown') === '1') return
       if (router.route.path !== '/' && router.route.path !== '/index.html') return
@@ -115,7 +114,6 @@ export default {
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
         const items = []
 
-        // 作业：按日历日判断
         for (const hw of (hwData.homework || [])) {
           if (hw.status !== 'pending') continue
           const due = new Date(hw.deadline + 'T00:00:00')
@@ -136,7 +134,6 @@ export default {
         if (items.length === 0) return
         sessionStorage.setItem('deadline_popup_shown', '1')
 
-        // 创建弹窗容器
         const popup = document.createElement('div')
         popup.style.cssText = 'position:fixed;top:16px;right:16px;z-index:99998;display:flex;flex-direction:column;gap:8px;max-width:340px'
         items.forEach((item, i) => {
@@ -153,7 +150,6 @@ export default {
           setTimeout(() => { card.style.opacity = '0'; card.style.transform = 'translateX(40px)' }, 6000 + i * 100)
         })
 
-        // 加 CSS keyframes
         if (!document.getElementById('deadline-popup-style')) {
           const style = document.createElement('style')
           style.id = 'deadline-popup-style'
