@@ -33,7 +33,7 @@ const i18n = {
     links: {
       schedule: '课表',
       announcements: '公告',
-      knowledge: '知识库',
+      slides: '课件',
       activities: '活动',
       gallery: '相册',
       finance: '班费',
@@ -95,7 +95,7 @@ const i18n = {
     links: {
       schedule: 'Schedule',
       announcements: 'Announcements',
-      knowledge: 'Knowledge',
+      slides: 'Courseware',
       activities: 'Activities',
       gallery: 'Gallery',
       finance: 'Finance',
@@ -149,7 +149,7 @@ const i18n = {
     links: {
       schedule: 'ตารางเรียน',
       announcements: 'ประกาศ',
-      knowledge: 'ความรู้',
+      slides: 'เอกสารรายวิชา',
       activities: 'กิจกรรม',
       gallery: 'อัลบั้ม',
       finance: 'การเงิน',
@@ -453,7 +453,7 @@ const quickLinks = computed(() => [
   { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
   { key: 'activities', label: t.value.links.activities, href: `${langPrefix.value}/activities/`, icon: 'party-popper' },
   { key: 'gallery', label: t.value.links.gallery, href: `${langPrefix.value}/gallery/`, icon: 'image' },
-  { key: 'knowledge', label: t.value.links.knowledge, href: `${langPrefix.value}/knowledge/`, icon: 'book' },
+  { key: 'slides', label: t.value.links.slides, href: `${langPrefix.value}/slides/`, icon: 'book' },
 ])
 
 /* ========== 传承人列表（全部13人） ========== */
