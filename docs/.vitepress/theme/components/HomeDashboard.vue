@@ -33,7 +33,7 @@ const i18n = {
     links: {
       schedule: '课表',
       announcements: '公告',
-      slides: '课程资料',
+      slides: '课件',
       activities: '活动',
       gallery: '相册',
       finance: '班费',
