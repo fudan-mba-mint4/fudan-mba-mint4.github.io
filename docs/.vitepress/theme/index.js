@@ -112,20 +112,23 @@ export default {
         if (!hwRes.ok) return
         const hwData = await hwRes.json()
         const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
         const items = []
 
-        // 作业
+        // 作业：按日历日判断
         for (const hw of (hwData.homework || [])) {
           if (hw.status !== 'pending') continue
-          const due = new Date(hw.deadline + 'T23:59:59')
-          const hoursLeft = (due - now) / 36e5
-          if (hoursLeft > 0 && hoursLeft <= 24) {
+          const due = new Date(hw.deadline + 'T00:00:00')
+          const diffDays = Math.round((due - today) / 864e5)
+          if (diffDays === 0) {
             items.push({
-              type: '作业',
-              color: '#FF9500',
-              title: hw.title,
-              desc: hw.course,
-              time: Math.ceil(hoursLeft) <= 1 ? '今天截止' : `明天截止 (${hw.deadline})`,
+              type: '作业', color: '#FF3B30',
+              title: hw.title, desc: hw.course, time: '今日截止！',
+            })
+          } else if (diffDays === 1) {
+            items.push({
+              type: '作业', color: '#FF9500',
+              title: hw.title, desc: hw.course, time: '明天截止',
             })
           }
         }
