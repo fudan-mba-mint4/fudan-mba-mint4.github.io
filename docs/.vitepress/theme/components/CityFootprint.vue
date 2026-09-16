@@ -128,6 +128,68 @@ const CITY_ZH = {
   'London': '伦敦', 'Paris': '巴黎', 'Berlin': '柏林',
   'New York': '纽约', 'Los Angeles': '洛杉矶', 'San Francisco': '旧金山',
   'Sydney': '悉尼', 'Melbourne': '墨尔本', 'Toronto': '多伦多', 'Vancouver': '温哥华',
+  // 日本
+  'Yokohama': '横滨', 'Nagoya': '名古屋', 'Sapporo': '札幌', 'Kobe': '神户', 'Kyoto': '京都',
+  'Fukuoka': '福冈', 'Kawasaki': '川崎', 'Saitama': '埼玉', 'Hiroshima': '广岛', 'Sendai': '仙台',
+  'Chiba': '千叶', 'Kitakyushu': '北九州', 'Sakai': '堺市', 'Niigata': '新潟', 'Hamamatsu': '滨松',
+  'Shizuoka': '静冈', 'Sagamihara': '相模原', 'Okayama': '冈山', 'Kumamoto': '熊本',
+  'Sasayama': '篠山',
+  // 韩国
+  'Incheon': '仁川', 'Daegu': '大邱', 'Daejeon': '大田', 'Gwangju': '光州', 'Ulsan': '蔚山',
+  'Suwon': '水原', 'Changwon': '昌原', 'Seongnam': '城南', 'Goyang': '高阳', 'Yongin': '龙仁',
+  'Cheongju': '清州', 'Jeonju': '全州', 'Cheonan': '天安',
+  // 东南亚
+  'Kuala Lumpur': '吉隆坡', 'George Town': '乔治市', 'Johor Bahru': '新山', 'Ipoh': '怡保',
+  'Manila': '马尼拉', 'Cebu': '宿务', 'Davao': '达沃', 'Jakarta': '雅加达', 'Surabaya': '泗水',
+  'Bandung': '万隆', 'Medan': '棉兰', 'Hanoi': '河内', 'Ho Chi Minh City': '胡志明市',
+  'Da Nang': '岘港', 'Haiphong': '海防', 'Phnom Penh': '金边', 'Siem Reap': '暹粒',
+  'Vientiane': '万象', 'Yangon': '仰光', 'Naypyidaw': '内比都',
+  // 南亚
+  'Mumbai': '孟买', 'Delhi': '德里', 'Bangalore': '班加罗尔', 'Chennai': '金奈',
+  'Kolkata': '加尔各答', 'Hyderabad': '海得拉巴', 'Ahmedabad': '艾哈迈达巴德',
+  'Pune': '浦那', 'Jaipur': '斋浦尔', 'Lahore': '拉合尔', 'Karachi': '卡拉奇',
+  'Dhaka': '达卡', 'Colombo': '科伦坡', 'Kathmandu': '加德满都',
+  // 中东
+  'Dubai': '迪拜', 'Abu Dhabi': '阿布扎比', 'Riyadh': '利雅得', 'Jeddah': '吉达',
+  'Doha': '多哈', 'Kuwait City': '科威特城', 'Muscat': '马斯喀特', 'Amman': '安曼',
+  'Beirut': '贝鲁特', 'Tel Aviv': '特拉维夫', 'Jerusalem': '耶路撒冷', 'Istanbul': '伊斯坦布尔',
+  'Ankara': '安卡拉',
+  // 欧洲
+  'Manchester': '曼彻斯特', 'Birmingham': '伯明翰', 'Liverpool': '利物浦', 'Edinburgh': '爱丁堡',
+  'Glasgow': '格拉斯哥', 'Dublin': '都柏林', 'Marseille': '马赛', 'Lyon': '里昂',
+  'Nice': '尼斯', 'Bordeaux': '波尔多', 'Munich': '慕尼黑', 'Frankfurt': '法兰克福',
+  'Hamburg': '汉堡', 'Cologne': '科隆', 'Düsseldorf': '杜塞尔多夫', 'Stuttgart': '斯图加特',
+  'Madrid': '马德里', 'Barcelona': '巴塞罗那', 'Valencia': '瓦伦西亚', 'Seville': '塞维利亚',
+  'Milan': '米兰', 'Rome': '罗马', 'Naples': '那不勒斯', 'Turin': '都灵', 'Florence': '佛罗伦萨',
+  'Venice': '威尼斯', 'Amsterdam': '阿姆斯特丹', 'Rotterdam': '鹿特丹', 'Brussels': '布鲁塞尔',
+  'Zurich': '苏黎世', 'Geneva': '日内瓦', 'Vienna': '维也纳', 'Salzburg': '萨尔茨堡',
+  'Stockholm': '斯德哥尔摩', 'Gothenburg': '哥德堡', 'Oslo': '奥斯陆', 'Bergen': '卑尔根',
+  'Copenhagen': '哥本哈根', 'Helsinki': '赫尔辛基', 'Reykjavik': '雷克雅未克',
+  'Warsaw': '华沙', 'Krakow': '克拉科夫', 'Prague': '布拉格', 'Budapest': '布达佩斯',
+  'Bucharest': '布加勒斯特', 'Sofia': '索非亚', 'Athens': '雅典', 'Lisbon': '里斯本',
+  'Porto': '波尔图', 'Moscow': '莫斯科', 'St Petersburg': '圣彼得堡', 'Kiev': '基辅',
+  // 北美
+  'Chicago': '芝加哥', 'Houston': '休斯顿', 'Phoenix': '凤凰城', 'Philadelphia': '费城',
+  'San Antonio': '圣安东尼奥', 'San Diego': '圣地亚哥', 'Dallas': '达拉斯', 'San Jose': '圣何塞',
+  'Austin': '奥斯汀', 'Jacksonville': '杰克逊维尔', 'Fort Worth': '沃斯堡', 'Columbus': '哥伦布',
+  'Charlotte': '夏洛特', 'Indianapolis': '印第安纳波利斯', 'San Francisco': '旧金山',
+  'Seattle': '西雅图', 'Denver': '丹佛', 'Boston': '波士顿', 'Nashville': '纳什维尔',
+  'Portland': '波特兰', 'Las Vegas': '拉斯维加斯', 'Detroit': '底特律', 'Atlanta': '亚特兰大',
+  'Miami': '迈阿密', 'Orlando': '奥兰多', 'Tampa': '坦帕', 'New Orleans': '新奥尔良',
+  'Minneapolis': '明尼阿波利斯', 'Salt Lake City': '盐湖城', 'Honolulu': '檀香山',
+  'Mexico City': '墨西哥城', 'Guadalajara': '瓜达拉哈拉', 'Monterrey': '蒙特雷',
+  // 南美
+  'São Paulo': '圣保罗', 'Rio de Janeiro': '里约热内卢', 'Brasilia': '巴西利亚',
+  'Buenos Aires': '布宜诺斯艾利斯', 'Santiago': '圣地亚哥', 'Lima': '利马',
+  'Bogota': '波哥大', 'Caracas': '加拉加斯', 'Montevideo': '蒙得维的亚', 'Asuncion': '亚松森',
+  'La Paz': '拉巴斯', 'Quito': '基多', 'Guayaquil': '瓜亚基尔',
+  // 大洋洲
+  'Brisbane': '布里斯班', 'Perth': '珀斯', 'Adelaide': '阿德莱德', 'Gold Coast': '黄金海岸',
+  'Auckland': '奥克兰', 'Wellington': '惠灵顿', 'Christchurch': '基督城',
+  // 非洲
+  'Cairo': '开罗', 'Alexandria': '亚历山大', 'Cape Town': '开普敦', 'Johannesburg': '约翰内斯堡',
+  'Lagos': '拉各斯', 'Nairobi': '内罗毕', 'Casablanca': '卡萨布兰卡', 'Tunis': '突尼斯',
+  'Addis Ababa': '亚的斯亚贝巴',
 }
 
 // 国家代码→中文
