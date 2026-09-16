@@ -68,5 +68,15 @@ export default {
     app.component('ProfilePage', ProfilePage)
     app.component('Polls', Polls)
     app.component('CityFootprint', CityFootprint)
+
+    // 全局IP追踪：每次路由切换时静默记录城市足迹
+    let tracked = false
+    router.onAfterRouteChanged = (to) => {
+      if (tracked) return
+      tracked = true
+      setTimeout(() => {
+        fetch('/api/city-footprint', { method: 'POST' }).catch(() => {})
+      }, 2000)
+    }
   }
 }
