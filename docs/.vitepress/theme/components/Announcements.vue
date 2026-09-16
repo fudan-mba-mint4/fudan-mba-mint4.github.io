@@ -233,7 +233,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
         <div class="tl-node-col">
           <div class="tl-node" :class="{ today: isTodayNode(item.date) }">
             <span class="tl-node-day">{{ new Date(item.date).getDate() }}</span>
-            <span class="tl-node-month">{{ formatNodeDate(item.date).replace(/\s*\d+\s*/, ' ') }}</span>
+            <span class="tl-node-month">{{ new Date(item.date).getMonth() + 1 }}月</span>
           </div>
           <div class="tl-line"></div>
         </div>
