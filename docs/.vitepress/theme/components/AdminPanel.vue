@@ -72,7 +72,7 @@
             <label>内容主体 <span class="required">*</span></label>
             <textarea v-model="annForm.contentZh" rows="5" required></textarea>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
+          <button type="submit" class="submit-btn" :disabled="submitting">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
         </form>
@@ -103,7 +103,7 @@
             <label class="checkbox-label"><input type="checkbox" v-model="actForm.hasMedia" /> 📷 有相册/图片直播</label>
             <label class="checkbox-label"><input type="checkbox" v-model="actForm.involvesFinance" /> 💰 涉及班费</label>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
+          <button type="submit" class="submit-btn" :disabled="submitting">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
         </form>
@@ -158,7 +158,7 @@
             <button type="button" class="add-option-btn" @click="addPollOption">+ 添加选项</button>
           </div>
 
-          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
+          <button type="submit" class="submit-btn" :disabled="submitting">
             {{ submitting ? '提交中...' : '发布投票' }}
           </button>
         </form>
@@ -208,7 +208,7 @@
             </div>
             <button type="button" @click="cmForm.references.push({name:'',file:null,desc:''})" class="add-ref-btn">+ 添加参考资料</button>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid || !cmForm.slideFile">
+          <button type="submit" class="submit-btn" :disabled="submitting || !cmForm.slideFile">
             {{ submitting ? '上传中...（PDF较大请稍候）' : '上传文件并提交' }}
           </button>
         </form>
@@ -247,7 +247,7 @@
               <option v-for="act in activitiesList" :key="act.id" :value="act.id">{{ act.date }} · {{ act.title.zh || act.title }}</option>
             </select>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid">
+          <button type="submit" class="submit-btn" :disabled="submitting">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
         </form>
@@ -286,7 +286,7 @@
             <span v-if="albForm.coverFile" class="file-info">🖼️ {{ albForm.coverFile.name }} ({{ formatSize(albForm.coverFile.size) }})</span>
           </div>
           <div class="form-group"><label>描述（可选）</label><input v-model="albForm.description" placeholder="一句话描述活动" /></div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !tokenValid || !albForm.coverFile || (albForm.albumType === 'live' && !albForm.url) || (albForm.albumType === 'local' && albForm.localPhotos.length === 0)">
+          <button type="submit" class="submit-btn" :disabled="submitting || !albForm.coverFile || (albForm.albumType === 'live' && !albForm.url) || (albForm.albumType === 'local' && albForm.localPhotos.length === 0)">
             {{ submitting ? '上传中...' : '上传并提交' }}
           </button>
         </form>
