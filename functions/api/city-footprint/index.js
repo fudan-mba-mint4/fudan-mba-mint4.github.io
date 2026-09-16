@@ -30,10 +30,15 @@ export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
 
-  try { await ensureDb(env) } catch { return corsResponse({ error: 'db fail' }, 503) }
+  try {
+    await ensureDb(env)
+  } catch (e) {
+    return corsResponse({ error: 'db init fail', detail: String(e) }, 503)
+  }
   const sql = getSql(env)
 
-  if (request.method === 'POST') {
+  try {
+    if (request.method === 'POST') {
     const ip = getClientIp(request)
     const ipHash = await hashIp(ip)
 
@@ -72,5 +77,8 @@ export async function onRequest(context) {
   const citiesResult = await sql`SELECT COUNT(DISTINCT city)::int as count FROM city_visits WHERE city != 'Unknown' AND city != ''`
   const topCities = await sql`SELECT city, country, lat, lng, COUNT(DISTINCT ip_hash)::int as visits FROM city_visits WHERE city != 'Unknown' AND city != '' GROUP BY city, country, lat, lng ORDER BY visits DESC LIMIT 20`
   const allCities = await sql`SELECT city, country, lat, lng, COUNT(DISTINCT ip_hash)::int as visits FROM city_visits WHERE city != 'Unknown' AND city != '' AND lat != 0 GROUP BY city, country, lat, lng`
-  return corsResponse({ total: totalResult[0]?.total || 0, cityCount: citiesResult[0]?.count || 0, topCities, allCities })
+    return corsResponse({ total: totalResult[0]?.total || 0, cityCount: citiesResult[0]?.count || 0, topCities, allCities })
+  } catch (e) {
+    return corsResponse({ error: 'internal', detail: String(e), stack: e.stack }, 500)
+  }
 }
