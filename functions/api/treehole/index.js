@@ -43,7 +43,7 @@ export async function onRequest(context) {
     return corsResponse({ error: '不支持的请求方法' }, 405)
   } catch (err) {
     console.error('树洞API错误:', err)
-    return corsResponse({ error: '服务器内部错误', detail: err.message }, 500)
+    return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }
 
