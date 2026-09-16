@@ -101,5 +101,72 @@ export default {
       bar.style.width = '100%'
       setTimeout(() => { bar.style.opacity = '0'; bar.style.width = '0' }, 200)
     }
+
+    // 全局截止提醒弹窗：进首页后检测24h内截止的作业/课程/活动
+    const showDeadlinePopup = async () => {
+      if (sessionStorage.getItem('deadline_popup_shown') === '1') return
+      if (router.route.path !== '/' && router.route.path !== '/index.html') return
+
+      try {
+        const hwRes = await fetch('/data/homework.json')
+        if (!hwRes.ok) return
+        const hwData = await hwRes.json()
+        const now = new Date()
+        const items = []
+
+        // 作业
+        for (const hw of (hwData.homework || [])) {
+          if (hw.status !== 'pending') continue
+          const due = new Date(hw.deadline + 'T23:59:59')
+          const hoursLeft = (due - now) / 36e5
+          if (hoursLeft > 0 && hoursLeft <= 24) {
+            items.push({
+              type: '作业',
+              color: '#FF9500',
+              title: hw.title,
+              desc: hw.course,
+              time: Math.ceil(hoursLeft) <= 1 ? '今天截止' : `明天截止 (${hw.deadline})`,
+            })
+          }
+        }
+
+        if (items.length === 0) return
+        sessionStorage.setItem('deadline_popup_shown', '1')
+
+        // 创建弹窗容器
+        const popup = document.createElement('div')
+        popup.style.cssText = 'position:fixed;top:16px;right:16px;z-index:99998;display:flex;flex-direction:column;gap:8px;max-width:340px'
+        items.forEach((item, i) => {
+          const card = document.createElement('div')
+          card.style.cssText = `background:rgba(255,255,255,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:12px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.1);border-left:4px solid ${item.color};opacity:0;transform:translateX(40px);transition:all .3s ease`
+          card.innerHTML = `
+            <div style="font-size:11px;font-weight:600;color:${item.color};margin-bottom:4px">⏰ ${item.type}提醒</div>
+            <div style="font-size:14px;font-weight:600;color:#1d1d1f">${item.title}</div>
+            <div style="font-size:12px;color:#6e6e73;margin-top:2px">${item.desc} · ${item.time}</div>
+            <div style="height:3px;background:${item.color};margin-top:8px;border-radius:2px;width:100%;transform-origin:left;animation:deadline-progress 6s linear forwards"></div>
+          `
+          popup.appendChild(card)
+          setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'translateX(0)' }, 100 + i * 100)
+          setTimeout(() => { card.style.opacity = '0'; card.style.transform = 'translateX(40px)' }, 6000 + i * 100)
+        })
+
+        // 加 CSS keyframes
+        if (!document.getElementById('deadline-popup-style')) {
+          const style = document.createElement('style')
+          style.id = 'deadline-popup-style'
+          style.textContent = '@keyframes deadline-progress { from { width: 100% } to { width: 0% } }'
+          document.head.appendChild(style)
+        }
+
+        document.body.appendChild(popup)
+        setTimeout(() => { popup.remove() }, 7000)
+      } catch (e) { /* 静默 */ }
+    }
+
+    router.onAfterRouteChanged = () => {
+      bar.style.width = '100%'
+      setTimeout(() => { bar.style.opacity = '0'; bar.style.width = '0' }, 200)
+      setTimeout(showDeadlinePopup, 800)
+    }
   }
 }
