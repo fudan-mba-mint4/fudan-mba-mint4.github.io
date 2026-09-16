@@ -28,8 +28,10 @@ async function ensureDb(env) {
 
 export async function onRequest(context) {
   const { request, env } = context
-
   if (request.method === 'OPTIONS') return optionsResponse()
+
+  // 调试：先不连数据库
+  return corsResponse({ debug: 'treehole function alive', hasEnv: !!env.DATABASE_URL }, 200)
 
   try {
     await ensureDb(env)
