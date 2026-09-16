@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-15",
+  "last_updated": "2026-09-16",
   "note": "课程资料按课程分类，每门课按节次排列。文件较大，建议右键另存为下载。",
   "courses": [
     {
@@ -126,14 +126,7 @@
               "type": "slide"
             }
           ],
-          "references": [
-            {
-              "name": "小组案例讨论分组表",
-              "filename": "《管理经济学》分组表.pdf",
-              "url": "/files/courses/managerial-economics/20260913/《管理经济学》分组表.pdf",
-              "size": "286 KB"
-            }
-          ]
+          "references": []
         }
       ]
     }

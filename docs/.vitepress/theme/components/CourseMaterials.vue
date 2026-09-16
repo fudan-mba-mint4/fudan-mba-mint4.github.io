@@ -15,7 +15,7 @@ watch(materialsData, (data) => {
 
 const i18n = {
   zh: {
-    label: '智库资源',
+    label: '课程资料 · 按节次',
     title: '课程资料',
     subtitle: '按课程分类 · 含课件与作业',
     loading: '加载课程资料中...',
@@ -37,7 +37,7 @@ const i18n = {
     sessionsShort: '讲'
   },
   en: {
-    label: 'Knowledge Base',
+    label: 'Course Materials · By Session',
     title: 'Course Materials',
     subtitle: 'By course · By session',
     loading: 'Loading materials...',
@@ -59,7 +59,7 @@ const i18n = {
     sessionsShort: 'sessions'
   },
   th: {
-    label: 'คลังความรู้',
+    label: 'เอกสารรายวิชา · แยกตามคาบเรียน',
     title: 'เอกสารรายวิชา',
     subtitle: 'แยกตามรายวิชา · รวมสื่อการสอนและการบ้าน',
     loading: 'กำลังโหลดสื่อการสอน...',

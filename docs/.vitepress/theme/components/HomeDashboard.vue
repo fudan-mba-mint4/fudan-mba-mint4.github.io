@@ -33,7 +33,7 @@ const i18n = {
     links: {
       schedule: '课表',
       announcements: '公告',
-      slides: '课件',
+      slides: '课程资料',
       activities: '活动',
       gallery: '相册',
       finance: '班费',
@@ -95,7 +95,7 @@ const i18n = {
     links: {
       schedule: 'Schedule',
       announcements: 'Announcements',
-      slides: 'Courseware',
+      slides: 'Course Materials',
       activities: 'Activities',
       gallery: 'Gallery',
       finance: 'Finance',

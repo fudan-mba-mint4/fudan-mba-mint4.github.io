@@ -61,6 +61,19 @@ const worldGeo = ref(null)
 let resizeObserver = null
 let animFrame = null
 let htmlObserver = null
+let lastDark = null
+let mounted = false
+
+// 带超时的 fetch（8s），避免 Neon 冷启动时挂起
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 // 城市名/国家名中英文映射
 const CITY_ZH = {
@@ -110,6 +123,7 @@ function getColors() {
 }
 
 async function drawMap() {
+  if (!mounted) return
   const canvas = mapCanvas.value
   if (!canvas) return
   const ctx = canvas.getContext('2d')
@@ -138,6 +152,7 @@ async function drawMap() {
       return
     }
   }
+  if (!mounted) return
   const geo = worldGeo.value
 
     ctx.fillStyle = colors.land
@@ -175,6 +190,7 @@ async function drawMap() {
   if (animFrame) cancelAnimationFrame(animFrame)
   let t = 0
   const animate = () => {
+    if (!mounted) return
     const colors = getColors()
     // 重画背景和大陆
     ctx.fillStyle = colors.bg
@@ -249,36 +265,51 @@ function drawPolygon(ctx, rings, w, h) {
   }
 }
 
-onMounted(async () => {
-  // 记录本次访问
-  try {
-    await fetch(`${API_PREFIX}/api/city-footprint`, { method: 'POST' })
-  } catch (e) { /* 静默 */ }
+// 卸载清理：必须在 setup 顶层注册，否则在 async onMounted 内注册会失效
+onUnmounted(() => {
+  mounted = false
+  if (resizeObserver) resizeObserver.disconnect()
+  if (htmlObserver) htmlObserver.disconnect()
+  if (animFrame) cancelAnimationFrame(animFrame)
+  resizeObserver = null
+  htmlObserver = null
+  animFrame = null
+})
 
-  // 获取统计
+onMounted(async () => {
+  mounted = true
+
+  // 1) 记录本次访问（fire-and-forget，不阻塞统计拉取）
+  fetchWithTimeout(`${API_PREFIX}/api/city-footprint`, { method: 'POST', keepalive: true }, 8000).catch(() => {})
+
+  // 2) 拉取统计（独立于 POST，避免 Neon 冷启动时 POST 慢拖累 GET）
   try {
-    const res = await fetch(`${API_PREFIX}/api/city-footprint`)
+    const res = await fetchWithTimeout(`${API_PREFIX}/api/city-footprint`, {}, 8000)
     if (res.ok) {
       const data = await res.json()
       stats.value = data.data || data
     }
   } catch (e) { /* 静默 */ }
 
+  if (!mounted) return
   await drawMap()
+  if (!mounted) return
 
-  // 响应式
-  resizeObserver = new ResizeObserver(() => drawMap())
+  // 3) 响应式
+  resizeObserver = new ResizeObserver(() => { if (mounted) drawMap() })
   resizeObserver.observe(mapCanvas.value)
 
-  // 监听 VitePress 深色模式切换（html.dark class）
-  htmlObserver = new MutationObserver(() => drawMap())
-  htmlObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-
-  onUnmounted(() => {
-    if (resizeObserver) resizeObserver.disconnect()
-    if (htmlObserver) htmlObserver.disconnect()
-    if (animFrame) cancelAnimationFrame(animFrame)
+  // 4) 监听 VitePress 深色模式切换（仅在 dark class 实际变化时重绘）
+  lastDark = document.documentElement.classList.contains('dark')
+  htmlObserver = new MutationObserver(() => {
+    if (!mounted) return
+    const isDark = document.documentElement.classList.contains('dark')
+    if (isDark !== lastDark) {
+      lastDark = isDark
+      drawMap()
+    }
   })
+  htmlObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 })
 </script>
 

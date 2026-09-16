@@ -69,9 +69,22 @@ export default {
     app.component('Polls', Polls)
     app.component('CityFootprint', CityFootprint)
 
-    // 全局IP追踪：首次加载时静默记录城市足迹
-    setTimeout(() => {
-      fetch('/api/city-footprint', { method: 'POST' }).catch(() => {})
-    }, 2000)
+    // 全局IP追踪：应用启动 2 秒后静默记录一次城市足迹。
+    // - enhanceApp 只在应用首次启动时执行一次，SPA 路由切换不会重复触发，
+    //   因此这里不需要 router.onAfterRouteChanged；30 分钟去重窗口由 API 负责。
+    // - 使用 sendBeacon（或 fetch keepalive），保证用户立即跳走时请求仍能送达；
+    //   不 await、不抛错、不打扰用户。
+    const trackVisit = () => {
+      try {
+        const url = '/api/city-footprint'
+        if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+          // sendBeacon 仅支持 POST，body 为空即可
+          navigator.sendBeacon(url)
+        } else {
+          fetch(url, { method: 'POST', keepalive: true }).catch(() => {})
+        }
+      } catch (e) { /* 静默 */ }
+    }
+    setTimeout(trackVisit, 2000)
   }
 }
