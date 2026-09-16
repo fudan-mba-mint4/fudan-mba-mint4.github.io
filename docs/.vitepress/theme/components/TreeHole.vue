@@ -1,176 +1,15 @@
 <template>
   <div class="treehole-page" ref="pageRef">
-    <!-- 页面头部 -->
-    <div class="treehole-header">
-      <div class="treehole-title-row">
-        <div>
-          <h1 class="treehole-title">{{ t.title }}</h1>
-          <p class="treehole-subtitle">{{ t.subtitle }}</p>
-        </div>
-        <button class="write-btn disabled" disabled title="尚未开放">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-          {{ t.writeBtn }}
-        </button>
-      </div>
-      <!-- 统计条 -->
-      <div v-if="stats.total > 0" class="treehole-stats">
-        <span class="stat-item"><strong>{{ stats.total }}</strong> {{ t.totalMessages }}</span>
-        <span v-if="stats.todayCount > 0" class="stat-item stat-today"><strong>{{ stats.todayCount }}</strong> {{ t.todayNew }}</span>
-      </div>
-
-      <!-- 匿名性说明 -->
-      <div class="privacy-notice" :class="{ expanded: privacyOpen }">
-        <button class="privacy-toggle" @click="privacyOpen = !privacyOpen">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          <span>{{ t.privacyTitle }}</span>
-          <svg class="privacy-arrow" :class="{ rotated: privacyOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
-        <div v-if="privacyOpen" class="privacy-content">
-          <div class="privacy-row">
-            <div class="privacy-icon anon">🕵️</div>
-            <div class="privacy-text">
-              <strong>{{ t.privacyAnonTitle }}</strong>
-              <p>{{ t.privacyAnonDesc }}</p>
-            </div>
-          </div>
-          <div class="privacy-row">
-            <div class="privacy-icon login">👤</div>
-            <div class="privacy-text">
-              <strong>{{ t.privacyLoginTitle }}</strong>
-              <p>{{ t.privacyLoginDesc }}</p>
-            </div>
-          </div>
-          <div class="privacy-row">
-            <div class="privacy-icon limit">⏱️</div>
-            <div class="privacy-text">
-              <strong>{{ t.privacyLimitTitle }}</strong>
-              <p>{{ t.privacyLimitDesc }}</p>
-            </div>
-          </div>
-          <div class="privacy-row">
-            <div class="privacy-icon mod">🛡️</div>
-            <div class="privacy-text">
-              <strong>{{ t.privacyModTitle }}</strong>
-              <p>{{ t.privacyModDesc }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- 装修中提示 -->
+    <div class="treehole-construction">
+      <div class="construction-icon">🌳</div>
+      <h2>匿名树洞正在装修中</h2>
+      <p>我们想把它做成一个真正敢说真话的地方，但又不会变成一个宣泄的垃圾桶。</p>
+      <p>具体怎么平衡"匿名"和"负责"，班委会讨论出一个方案再开放。</p>
+      <p class="construction-thanks">感谢等待，好的东西值得等。</p>
     </div>
-
-    <!-- 留言列表 -->
-    <div class="message-list">
-      <!-- 加载中 -->
-      <div v-if="loading && messages.length === 0" class="state-center">
-        <div class="spinner"></div>
-        <span class="state-text">{{ t.loading }}</span>
-      </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="!loading && !loadError && messages.length === 0" class="state-center empty-state">
-        <div class="empty-icon">🌱</div>
-        <p class="state-text">{{ t.empty }}</p>
-        <button class="empty-action-btn" @click="openForm">{{ t.writeFirst }}</button>
-      </div>
-
-      <!-- 错误状态（但已有数据时不打断浏览） -->
-      <div v-else-if="loadError && messages.length === 0" class="state-center">
-        <div class="error-icon">📡</div>
-        <p class="state-text error-text">{{ t.loadErrorText }}</p>
-        <button class="retry-btn" @click="retryLoad">{{ t.retry }}</button>
-      </div>
-
-      <!-- 留言卡片 -->
-      <TransitionGroup name="list">
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          class="message-card"
-          :class="{ 'message-new': msg.id === newMessageId }"
-        >
-          <div class="message-header">
-            <span class="message-nickname">{{ msg.nickname || t.anonymous }}</span>
-            <span class="message-time">{{ formatTime(msg.created_at) }}</span>
-          </div>
-          <p class="message-content">{{ msg.content }}</p>
-        </div>
-      </TransitionGroup>
-
-      <!-- 加载更多 -->
-      <div v-if="hasMore && !loading" class="load-more-sentinel" ref="sentinelRef">
-        <button v-if="!autoLoading" class="load-more-btn" @click="loadMore">
-          {{ t.loadMore }}
-        </button>
-        <div v-else class="loading-inline">
-          <div class="spinner spinner-sm"></div>
-          <span>{{ t.loading }}</span>
-        </div>
-      </div>
-
-      <!-- 没有更多了 -->
-      <div v-if="!hasMore && messages.length > 0" class="end-hint">— {{ t.endHint }} —</div>
-    </div>
-
-    <!-- 写留言弹窗 -->
-    <Teleport to="body">
-      <Transition name="modal">
-        <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3 class="modal-title">{{ t.formTitle }}</h3>
-              <button class="modal-close" @click="closeForm" aria-label="关闭">✕</button>
-            </div>
-            <form class="modal-body" @submit.prevent="submitMessage">
-              <div class="form-group">
-                <label class="form-label">{{ t.contentLabel }} <span class="form-required">*</span></label>
-                <textarea
-                  v-model="form.content"
-                  class="form-textarea"
-                  :placeholder="t.contentPlaceholder"
-                  maxlength="500"
-                  rows="5"
-                  required
-                  ref="textareaRef"
-                ></textarea>
-                <div class="char-count" :class="{ 'char-warn': form.content.length > 450 }">{{ form.content.length }}/500</div>
-              </div>
-              <label v-if="isAuthenticated" class="realname-toggle">
-                <input type="checkbox" v-model="form.realname" />
-                <span>实名显示（将显示你的真名 {{ currentUser?.name || '' }}）</span>
-              </label>
-              <Transition name="fade">
-                <div v-if="formError" class="form-error">{{ formError }}</div>
-              </Transition>
-              <div class="form-actions">
-                <button type="button" class="btn-secondary" @click="closeForm">{{ t.cancel }}</button>
-                <button type="submit" class="btn-primary" :disabled="submitting || !form.content.trim()">
-                  <span v-if="submitting" class="btn-loading"></span>
-                  {{ submitting ? t.submitting : t.submit }}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- 提交成功提示 -->
-    <Teleport to="body">
-      <Transition name="toast">
-        <div v-if="showSuccess" class="toast toast-success">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          {{ t.submitSuccess }}
-        </div>
-      </Transition>
-    </Teleport>
+  </div>
+</template>
   </div>
 </template>
 
@@ -507,6 +346,36 @@ function formatTime(isoString) {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 </script>
+
+.treehole-construction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 24px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.construction-icon {
+  font-size: 56px;
+  margin-bottom: 24px;
+}
+.treehole-construction h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0 0 16px;
+}
+.treehole-construction p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--c-text-secondary);
+  margin: 0 0 8px;
+}
+.construction-thanks {
+  margin-top: 16px !important;
+  color: var(--c-text-tertiary) !important;
+}
 
 <style scoped>
 .treehole-page {
