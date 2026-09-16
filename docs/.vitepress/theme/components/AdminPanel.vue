@@ -20,14 +20,9 @@
         <button @click="logout" class="logout-btn">退出</button>
       </header>
 
-      <!-- GitHub Token -->
+      <!-- GitHub Token 已内嵌 -->
       <div class="token-bar">
-        <input type="password" v-model="githubToken" placeholder="GitHub Personal Access Token (repo权限)"
-          class="token-input" />
-        <button @click="testToken" class="token-btn" :disabled="!githubToken">
-          {{ tokenStatus === 'testing' ? '验证中...' : tokenStatus === 'valid' ? '✓ 已验证' : '验证Token' }}
-        </button>
-        <span v-if="tokenStatus === 'invalid'" class="token-error">Token无效</span>
+        <span class="token-badge">✓ GitHub 已连接</span>
       </div>
 
       <!-- 类型标签 -->
@@ -442,17 +437,17 @@ const githubToken = ref('')
 const tokenStatus = ref('idle')
 const tokenValid = computed(() => tokenStatus.value === 'valid')
 async function testToken() {
-  tokenStatus.value = 'testing'; localStorage.setItem('github_token', githubToken.value)
+  tokenStatus.value = 'testing'
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}`, { headers: { Authorization: `token ${githubToken.value}` } })
+    const res = await fetch(`/api/github-proxy/repos/${REPO}`)
     tokenStatus.value = res.ok ? 'valid' : 'invalid'
     if (res.ok) loadHistoryFromGithub()
   } catch { tokenStatus.value = 'invalid' }
 }
 
-// ===== GitHub API 工具 =====
+// ===== GitHub API 工具（走后端代理） =====
 async function ghApi(path, opts = {}) {
-  const res = await fetch(`https://api.github.com${path}`, { ...opts, headers: { Authorization: `token ${githubToken.value}`, Accept: 'application/vnd.github.v3+json', ...opts.headers } })
+  const res = await fetch(`/api/github-proxy${path}`, { ...opts, headers: { Accept: 'application/vnd.github.v3+json', ...opts.headers } })
   return res
 }
 async function getFile(path) {
@@ -1209,7 +1204,7 @@ async function submitPoll() {
 
 // ===== 初始化 =====
 onMounted(() => {
-  const t = localStorage.getItem('github_token'); if (t) { githubToken.value = t; testToken() }
+  testToken()
 })
 watch(currentType, (val) => {
   if (val === 'finance' && activitiesList.value.length === 0) loadActivitiesForSelect()
