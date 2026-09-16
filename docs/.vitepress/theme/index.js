@@ -121,12 +121,14 @@ export default {
           if (diffDays === 0) {
             items.push({
               type: '作业', color: '#FF3B30',
-              title: hw.title, desc: hw.course, time: '今日截止！',
+              title: hw.title, desc: hw.course,
+              time: `今日截止（${hw.deadline_time || '23:59'}）`,
             })
           } else if (diffDays === 1) {
             items.push({
               type: '作业', color: '#FF9500',
-              title: hw.title, desc: hw.course, time: '明天截止',
+              title: hw.title, desc: hw.course,
+              time: `明天截止（${hw.deadline_time || '23:59'}）`,
             })
           }
         }
