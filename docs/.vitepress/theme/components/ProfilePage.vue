@@ -126,6 +126,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vitepress'
 import { useAuth } from '../composables/useAuth.js'
 import { useData } from '../composables/useData.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const router = useRouter()
 const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
@@ -171,7 +172,7 @@ async function loadMySignups() {
     const activities = activitiesData.value?.activities || []
     const userSignups = []
     for (const act of activities) {
-      const res = await fetch(`${API_PREFIX}/api/activities/${act.id}/signups`)
+      const res = await fetchWithRetry(`${API_PREFIX}/api/activities/${act.id}/signups`)
       if (res.ok) {
         const result = await res.json()
         if (result.data?.some(s => s.username === currentUser.value.username)) {
@@ -269,7 +270,7 @@ function goToActivities() {
 async function cancelSignup(eventId) {
   if (!confirm('确定取消报名这个活动吗？')) return
   try {
-    const res = await fetch(`${API_PREFIX}/api/activities/${eventId}/cancel`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/activities/${eventId}/cancel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

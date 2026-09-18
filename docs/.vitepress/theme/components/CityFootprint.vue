@@ -46,6 +46,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const API_PREFIX = import.meta.env.DEV ? 'https://mint4.cn' : ''
 
@@ -69,7 +70,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    return await fetch(url, { ...options, signal: ctrl.signal })
+    return await fetchWithRetry(url, { ...options, signal: ctrl.signal })
   } finally {
     clearTimeout(timer)
   }
@@ -300,7 +301,7 @@ async function drawMap() {
   // 加载 GeoJSON 画大陆轮廓（缓存避免重复 fetch）
   if (!worldGeo.value) {
     try {
-      const res = await fetch('/data/world.json')
+      const res = await fetchWithRetry('/data/world.json')
       worldGeo.value = await res.json()
     } catch (e) {
       console.warn('map load failed', e)

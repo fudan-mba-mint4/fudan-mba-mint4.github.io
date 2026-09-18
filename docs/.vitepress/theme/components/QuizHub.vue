@@ -66,6 +66,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const searchQuery = ref('')
 const activeCat = ref('all')
@@ -83,7 +84,7 @@ const homePath = computed(() => lang.value === 'en' ? '/en/' : lang.value === 't
 
 onMounted(async () => {
   try {
-    const res = await fetch('/data/quiz-questions.json')
+    const res = await fetchWithRetry('/data/quiz-questions.json')
     questions.value = await res.json() || []
   } catch (e) {
     console.error('Failed to load quiz data:', e)

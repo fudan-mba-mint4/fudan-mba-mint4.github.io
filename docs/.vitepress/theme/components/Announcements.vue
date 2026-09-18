@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useNow } from '../composables/useNow.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -84,7 +85,7 @@ async function fetchWithDbFallback(dbUrl, staticUrl, isUsable) {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 6000)
-    const res = await fetch(dbUrl, { signal: ctrl.signal })
+    const res = await fetchWithRetry(dbUrl, { signal: ctrl.signal })
     clearTimeout(timer)
     if (res.ok) {
       const json = await res.json()
@@ -94,7 +95,7 @@ async function fetchWithDbFallback(dbUrl, staticUrl, isUsable) {
     /* DB 不可达/超时，静默回退静态 JSON */
   }
   try {
-    const res = await fetch(staticUrl)
+    const res = await fetchWithRetry(staticUrl)
     if (!res.ok) throw new Error('HTTP ' + res.status)
     return await res.json()
   } catch (e) {

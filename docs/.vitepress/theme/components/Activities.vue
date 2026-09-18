@@ -4,6 +4,7 @@ import { useRouter } from 'vitepress'
 import { useLang, formatDate, formatRelative } from '../composables/useLang'
 import { useNow } from '../composables/useNow.js'
 import { parseDate } from '../utils/dateUtils.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useAuth } from '../composables/useAuth.js'
 
 const router = useRouter()
@@ -75,7 +76,7 @@ async function fetchActivitiesData() {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 6000)
-    const res = await fetch('/api/activities-db', { signal: ctrl.signal })
+    const res = await fetchWithRetry('/api/activities-db', { signal: ctrl.signal })
     clearTimeout(timer)
     if (res.ok) {
       const json = await res.json()
@@ -85,7 +86,7 @@ async function fetchActivitiesData() {
     /* DB 不可达/超时，静默回退 */
   }
   try {
-    const res = await fetch('/data/activities.json')
+    const res = await fetchWithRetry('/data/activities.json')
     if (!res.ok) throw new Error('HTTP ' + res.status)
     return await res.json()
   } catch (e) {
@@ -117,7 +118,7 @@ async function loadAllSignups() {
     const counts = {}
     const userIds = []
     for (const act of activities.value) {
-      const res = await fetch(`${API_PREFIX}/api/activities/${act.id}/signups`)
+      const res = await fetchWithRetry(`${API_PREFIX}/api/activities/${act.id}/signups`)
       if (res.ok) {
         const result = await res.json()
         counts[act.id] = result.count || 0
@@ -158,7 +159,7 @@ async function doSignup(actId) {
   if (isSignedUp(actId)) return
 
   try {
-    const res = await fetch(`${API_PREFIX}/api/activities/${actId}/signup`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/activities/${actId}/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -184,7 +185,7 @@ async function cancelSignup(actId) {
   if (!currentUser.value) return
   if (!confirm('确定取消报名这个活动吗？')) return
   try {
-    const res = await fetch(`${API_PREFIX}/api/activities/${actId}/cancel`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/activities/${actId}/cancel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

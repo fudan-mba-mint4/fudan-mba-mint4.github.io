@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useLang, formatDate } from '../composables/useLang.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -129,8 +130,8 @@ const catLabel = (key) => {
 onMounted(async () => {
   try {
     const [cdRes, actRes] = await Promise.all([
-      fetch('/data/career-data.json'),
-      fetch('/data/activities.json').catch(() => null),
+      fetchWithRetry('/data/career-data.json'),
+      fetchWithRetry('/data/activities.json').catch(() => null),
     ])
     const cd = await cdRes.json()
     stats.value = cd.stats || { totalStudents: 0, industries: 0, referrals: 0 }

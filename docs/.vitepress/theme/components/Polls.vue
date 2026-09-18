@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vitepress'
 import { useLang } from '../composables/useLang.js'
 import { useAuth } from '../composables/useAuth.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const router = useRouter()
 
@@ -107,7 +108,7 @@ onMounted(async () => {
     try {
       const ctrl = new AbortController()
       const timer = setTimeout(() => ctrl.abort(), 6000)
-      const res = await fetch('/api/polls-admin', { signal: ctrl.signal })
+      const res = await fetchWithRetry('/api/polls-admin', { signal: ctrl.signal })
       clearTimeout(timer)
       if (res.ok) {
         const json = await res.json()
@@ -117,7 +118,7 @@ onMounted(async () => {
       /* DB 不可达/超时，静默回退 */
     }
     if (!data) {
-      const res = await fetch('/data/polls.json')
+      const res = await fetchWithRetry('/data/polls.json')
       data = await res.json()
     }
     polls.value = data.polls || []
@@ -134,7 +135,7 @@ async function loadVoteCounts() {
   try {
     const userId = currentUser.value?.username || null
     for (const poll of polls.value) {
-      const res = await fetch(`${API_PREFIX}/api/polls/${poll.id}${userId ? `?user_id=${encodeURIComponent(userId)}` : ''}`)
+      const res = await fetchWithRetry(`${API_PREFIX}/api/polls/${poll.id}${userId ? `?user_id=${encodeURIComponent(userId)}` : ''}`)
       if (res.ok) {
         const result = await res.json()
         const votes = result.data?.votes || {}
@@ -217,7 +218,7 @@ async function submitVote(poll) {
   if (!isAuthenticated.value || !selectedOptions.value[poll.id]?.length) return
   submitting.value = true
   try {
-    const res = await fetch(`${API_PREFIX}/api/polls/${poll.id}/vote`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/polls/${poll.id}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

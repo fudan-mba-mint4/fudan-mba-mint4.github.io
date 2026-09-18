@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useData } from '../composables/useData.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import classData from '../../../public/data/class-members.json'
 
 /* ========== 多语言文案 ========== */
@@ -226,12 +227,12 @@ const galleryActivities = computed(() => {
 
 async function fetchHomework() {
   try {
-    const res = await fetch(`${langPrefix.value}/data/homework.json`)
+    const res = await fetchWithRetry(`${langPrefix.value}/data/homework.json`)
     const data = await res.json()
     homeworkData.value = data.homework || []
   } catch (e) {
     try {
-      const res = await fetch('/data/homework.json')
+      const res = await fetchWithRetry('/data/homework.json')
       const data = await res.json()
       homeworkData.value = data.homework || []
     } catch (e2) {
@@ -264,6 +265,8 @@ const pendingHomework = computed(() => {
                            `กำหนด ${(hw.deadline || '').slice(5)}`
       return { ...hw, daysLeft, courseShort, titleShort, deadlineText }
     })
+    // 首页是「待办」：已过期（daysLeft < 0，如截止 09-17、今天 09-18）不展示负数
+    .filter(hw => hw.daysLeft >= 0)
     .sort((a, b) => a.daysLeft - b.daysLeft)
 })
 
@@ -271,11 +274,11 @@ async function fetchSchedule() {
   scheduleLoading.value = true
   scheduleError.value = false
   try {
-    const res = await fetch(`${langPrefix.value}/data/schedule.json`)
+    const res = await fetchWithRetry(`${langPrefix.value}/data/schedule.json`)
     scheduleData.value = await res.json()
   } catch (e) {
     try {
-      const res = await fetch('/data/schedule.json')
+      const res = await fetchWithRetry('/data/schedule.json')
       scheduleData.value = await res.json()
     } catch (e2) {
       console.error('加载课表失败', e2)

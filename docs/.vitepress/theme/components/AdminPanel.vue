@@ -412,6 +412,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { fetchHistory, appendHistory, markReverted } from '../utils/adminHistory'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const REPO = 'fudan-mba-mint4/fudan-mba-mint4.github.io'
 const PASSWORD_HASH = '3d0c0717ae88423229d3dbe5c67c0d9ba38d1ba6b6a84d175914081233db713f'
@@ -439,7 +440,7 @@ const tokenValid = computed(() => tokenStatus.value === 'valid')
 async function testToken() {
   tokenStatus.value = 'testing'
   try {
-    const res = await fetch(`/api/github-proxy/repos/${REPO}`)
+    const res = await fetchWithRetry(`/api/github-proxy/repos/${REPO}`)
     tokenStatus.value = res.ok ? 'valid' : 'invalid'
     if (res.ok) loadHistoryFromGithub()
   } catch { tokenStatus.value = 'invalid' }
@@ -447,7 +448,7 @@ async function testToken() {
 
 // ===== GitHub API 工具（走后端代理） =====
 async function ghApi(path, opts = {}) {
-  const res = await fetch(`/api/github-proxy${path}`, { ...opts, headers: { Accept: 'application/vnd.github.v3+json', ...opts.headers } })
+  const res = await fetchWithRetry(`/api/github-proxy${path}`, { ...opts, headers: { Accept: 'application/vnd.github.v3+json', ...opts.headers } })
   return res
 }
 async function getFile(path) {
@@ -518,7 +519,7 @@ const finForm = ref({ type:'expense', date:today, category:'activity', amount:nu
 const activitiesList = ref([])
 async function loadActivitiesForSelect() {
   try {
-    const res = await fetch('/data/activities.json')
+    const res = await fetchWithRetry('/data/activities.json')
     if (res.ok) {
       const data = await res.json()
       activitiesList.value = (data.activities || []).slice().sort((a, b) => b.date.localeCompare(a.date))
@@ -654,7 +655,7 @@ function readFileAsBase64(file) {
 async function uploadFileToAdmin(file) {
   const key = `uploads/${Date.now()}-${randomHex(4)}.${extFromFileName(file.name)}`
   const dataBase64 = await readFileAsBase64(file)
-  const res = await fetch(`${API_PREFIX}/api/admin/upload`, {
+  const res = await fetchWithRetry(`${API_PREFIX}/api/admin/upload`, {
     method: 'POST',
     headers: adminHeaders(),
     body: JSON.stringify({ key, contentType: file.type || 'application/octet-stream', dataBase64 }),
@@ -672,7 +673,7 @@ async function verifyTreeholeToken(silent = false) {
   }
   treeholeTokenError.value = ''
   try {
-    const res = await fetch(`${API_PREFIX}/api/admin/treehole?page=1&limit=1`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole?page=1&limit=1`, {
       headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
     })
     if (res.ok) {
@@ -715,7 +716,7 @@ async function loadTreeholeMessages() {
     if (treeholeSearch.value.trim()) {
       params.set('search', treeholeSearch.value.trim())
     }
-    const res = await fetch(`${API_PREFIX}/api/admin/treehole?${params}`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole?${params}`, {
       headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
     })
     const data = await res.json()
@@ -766,7 +767,7 @@ function toggleExpand(id) {
 async function deleteSingleTreehole(id) {
   if (!confirm('确定删除这条留言吗？删除后可在"包含已删除"中恢复。')) return
   try {
-    const res = await fetch(`${API_PREFIX}/api/admin/treehole/delete`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole/delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -788,7 +789,7 @@ async function deleteSingleTreehole(id) {
 // 单条恢复
 async function restoreSingleTreehole(id) {
   try {
-    const res = await fetch(`${API_PREFIX}/api/admin/treehole/restore`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole/restore`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -812,7 +813,7 @@ async function batchDeleteTreehole() {
   if (treeholeSelected.value.length === 0) return
   if (!confirm(`确定批量删除选中的 ${treeholeSelected.value.length} 条留言吗？`)) return
   try {
-    const res = await fetch(`${API_PREFIX}/api/admin/treehole/delete`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole/delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -837,7 +838,7 @@ async function batchRestoreTreehole() {
   if (treeholeSelected.value.length === 0) return
   if (!confirm(`确定批量恢复选中的 ${treeholeSelected.value.length} 条留言吗？`)) return
   try {
-    const res = await fetch(`${API_PREFIX}/api/admin/treehole/restore`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole/restore`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1018,7 +1019,7 @@ async function submitAnnouncement() {
       content: { zh: annForm.value.contentZh, en: contentT.en, th: contentT.th },
     }
     if (annForm.value.deadline) ann.deadline = annForm.value.deadline
-    const res = await fetch(`${API_PREFIX}/api/admin/announcements`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/announcements`, {
       method: 'POST',
       headers: adminHeaders(),
       body: JSON.stringify(ann),
@@ -1050,7 +1051,7 @@ async function submitActivity() {
       tags: { hasMedia: actForm.value.hasMedia, involvesFinance: actForm.value.involvesFinance, cover: '' },
       capacity: actForm.value.capacity || 84, registered: actForm.value.registered || 0, status: 'upcoming',
     }
-    const res = await fetch(`${API_PREFIX}/api/admin/activities`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/activities`, {
       method: 'POST',
       headers: adminHeaders(),
       body: JSON.stringify(act),
@@ -1122,7 +1123,7 @@ async function submitCourseMaterial() {
 // 先读当前班费包（DB 优先，失败回退静态 JSON），追加新流水后整包写回。
 async function getCurrentFinancePack() {
   try {
-    const res = await fetch(`${API_PREFIX}/api/finance-db`)
+    const res = await fetchWithRetry(`${API_PREFIX}/api/finance-db`)
     if (res.ok) {
       const j = await res.json()
       if (Array.isArray(j?.transactions)) {
@@ -1130,7 +1131,7 @@ async function getCurrentFinancePack() {
       }
     }
   } catch (e) { /* 回退静态 */ }
-  const res = await fetch('/data/finance.json')
+  const res = await fetchWithRetry('/data/finance.json')
   const j = await res.json()
   return { transactions: j.transactions || [], activityFinances: j.activityFinances || [] }
 }
@@ -1141,7 +1142,7 @@ async function submitFinance() {
     const pack = await getCurrentFinancePack()
     const tx = { id: 'tx-' + Date.now(), date: finForm.value.date, type: finForm.value.type, category: finForm.value.category, amount: finForm.value.amount, description: finForm.value.description, activityId: finForm.value.activityId || null }
     pack.transactions.push(tx)
-    const res = await fetch(`${API_PREFIX}/api/admin/finance`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance`, {
       method: 'PUT',
       headers: adminHeaders(),
       body: JSON.stringify({ transactions: pack.transactions, activityFinances: pack.activityFinances }),
@@ -1254,7 +1255,7 @@ async function submitPoll() {
       })),
       voters: [],
     }
-    const res = await fetch(`${API_PREFIX}/api/admin/polls-admin`, {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/polls-admin`, {
       method: 'POST',
       headers: adminHeaders(),
       body: JSON.stringify(poll),

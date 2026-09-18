@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { parseDateTime, parseDate } from '../utils/dateUtils.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -47,7 +48,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const res = await fetch('/data/schedule.json')
+    const res = await fetchWithRetry('/data/schedule.json')
     scheduleData.value = await res.json()
   } catch (e) {
     console.error('加载课表失败', e)

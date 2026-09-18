@@ -178,6 +178,7 @@
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useAuth } from '../composables/useAuth.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const i18n = {
   zh: {
@@ -385,7 +386,7 @@ async function loadMessages() {
   try {
     const res = isMock
       ? await mockFetchMessages(1, 20)
-      : await fetch(`${API_BASE}?page=1&limit=20`)
+      : await fetchWithRetry(`${API_BASE}?page=1&limit=20`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = data.data || []
@@ -406,7 +407,7 @@ async function loadMore() {
     const nextPage = page.value + 1
     const res = isMock
       ? await mockFetchMessages(nextPage, 20)
-      : await fetch(`${API_BASE}?page=${nextPage}&limit=20`)
+      : await fetchWithRetry(`${API_BASE}?page=${nextPage}&limit=20`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = [...messages.value, ...(data.data || [])]
@@ -448,7 +449,7 @@ async function submitMessage() {
     }
     const res = isMock
       ? await mockPostMessage(body)
-      : await fetch(API_BASE, {
+      : await fetchWithRetry(API_BASE, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

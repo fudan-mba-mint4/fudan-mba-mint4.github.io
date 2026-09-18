@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { sortByDateDesc, formatShortDate } from '../utils/dateUtils.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useData } from '../composables/useData.js'
 
 /* ========== 多语言文案 ========== */
@@ -115,7 +116,7 @@ async function fetchFinanceData() {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 6000)
-    const res = await fetch('/api/finance-db', { signal: ctrl.signal })
+    const res = await fetchWithRetry('/api/finance-db', { signal: ctrl.signal })
     clearTimeout(timer)
     if (res.ok) {
       const json = await res.json()
@@ -125,7 +126,7 @@ async function fetchFinanceData() {
     /* DB 不可达/超时，静默回退 */
   }
   try {
-    const res = await fetch('/data/finance.json')
+    const res = await fetchWithRetry('/data/finance.json')
     if (!res.ok) throw new Error('HTTP ' + res.status)
     return await res.json()
   } catch (e) {

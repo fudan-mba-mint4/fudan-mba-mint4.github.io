@@ -4,6 +4,7 @@
  * 使用方式：const { data, loading, error, reload } = useData('/data/announcements.json')
  */
 import { ref, onMounted } from 'vue'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const cache = new Map()
 
@@ -28,7 +29,7 @@ export function useData(url, options = {}) {
         loading.value = false
         return
       }
-      const res = await fetch(url)
+      const res = await fetchWithRetry(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       data.value = json
