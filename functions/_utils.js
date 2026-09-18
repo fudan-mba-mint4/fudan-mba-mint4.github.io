@@ -15,13 +15,14 @@ export function getSql(env) {
   return sqlInstance
 }
 
-// 初始化数据库表（幂等）
-// 冷启动性能关键：所有建表/建索引 DDL 必须合并为单次网络往返，
-// 避免 Neon 免费层慢唤醒叠加多次串行 await 导致 EdgeOne 函数超时（545）。
+// 初始化数据库表（幂等）—— 原有 4 张表
+// 注意：@neondatabase/serverless v1.1.0 走 extended/prepared-statement 协议，
+// 单条查询只允许一条语句，严禁用 sql.unsafe 拼分号分隔的多语句 DDL。
+// 保持生产验证过的逐条 await 模板字符串写法。
 export async function initDatabase(env) {
   const sql = getSql(env)
 
-  const ddl = `
+  await sql`
     CREATE TABLE IF NOT EXISTS treehole_messages (
       id SERIAL PRIMARY KEY,
       nickname VARCHAR(50),
@@ -29,9 +30,11 @@ export async function initDatabase(env) {
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       is_deleted BOOLEAN DEFAULT FALSE,
       ip_hash VARCHAR(64)
-    );
-    CREATE INDEX IF NOT EXISTS idx_treehole_created_at ON treehole_messages (created_at DESC);
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_treehole_created_at ON treehole_messages (created_at DESC)`
 
+  await sql`
     CREATE TABLE IF NOT EXISTS poll_votes (
       id SERIAL PRIMARY KEY,
       poll_id VARCHAR(50) NOT NULL,
@@ -40,10 +43,12 @@ export async function initDatabase(env) {
       anonymous BOOLEAN DEFAULT FALSE,
       ip_hash VARCHAR(64),
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_poll_votes_poll_id ON poll_votes (poll_id);
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_poll_votes_user ON poll_votes (poll_id, user_id) WHERE user_id IS NOT NULL;
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_poll_votes_poll_id ON poll_votes (poll_id)`
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_poll_votes_user ON poll_votes (poll_id, user_id) WHERE user_id IS NOT NULL`
 
+  await sql`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username VARCHAR(50) UNIQUE NOT NULL,
@@ -54,8 +59,10 @@ export async function initDatabase(env) {
       token VARCHAR(128),
       token_expires_at TIMESTAMP WITH TIME ZONE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS activity_signups (
       id SERIAL PRIMARY KEY,
       activity_id VARCHAR(50) NOT NULL,
@@ -63,9 +70,16 @@ export async function initDatabase(env) {
       username VARCHAR(50) NOT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       UNIQUE(activity_id, user_id)
-    );
-    CREATE INDEX IF NOT EXISTS idx_activity_signups_activity ON activity_signups (activity_id);
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_activity_signups_activity ON activity_signups (activity_id)`
+}
 
+// 内容类新表（幂等）—— 逐条 await，禁止多语句 / sql.unsafe
+export async function ensureContentTables(env) {
+  const sql = getSql(env)
+
+  await sql`
     CREATE TABLE IF NOT EXISTS announcements (
       id TEXT PRIMARY KEY,
       date TEXT,
@@ -74,8 +88,10 @@ export async function initDatabase(env) {
       data JSONB,
       created_at timestamptz DEFAULT now(),
       updated_at timestamptz DEFAULT now()
-    );
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS activities (
       id TEXT PRIMARY KEY,
       date TEXT,
@@ -83,23 +99,25 @@ export async function initDatabase(env) {
       data JSONB,
       created_at timestamptz DEFAULT now(),
       updated_at timestamptz DEFAULT now()
-    );
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS finance_records (
       id TEXT PRIMARY KEY DEFAULT 'default',
       data JSONB,
       updated_at timestamptz DEFAULT now()
-    );
+    )
+  `
 
+  await sql`
     CREATE TABLE IF NOT EXISTS polls_admin (
       id TEXT PRIMARY KEY,
       data JSONB,
       created_at timestamptz DEFAULT now(),
       updated_at timestamptz DEFAULT now()
-    );
+    )
   `
-
-  await sql.unsafe(ddl)
 }
 
 // 密码哈希（SHA-256，和前端一致）

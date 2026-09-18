@@ -2,7 +2,7 @@
 // 返回 { transactions: [...], activityFinances: [...] }
 // 从 finance_records 取 id='default' 的 data，无记录则空数组
 import {
-  getSql, initDatabase, corsResponse, optionsResponse,
+  getSql, ensureContentTables, corsResponse, optionsResponse,
 } from '../../_utils.js'
 
 let dbReady = false
@@ -12,7 +12,7 @@ async function ensureDb(env) {
   if (dbReady) return true
   if (initPromise) return initPromise
   initPromise = (async () => {
-    try { await initDatabase(env); dbReady = true } catch (e) { initPromise = null; throw e }
+    try { await ensureContentTables(env); dbReady = true } catch (e) { initPromise = null; throw e }
   })()
   return initPromise
 }

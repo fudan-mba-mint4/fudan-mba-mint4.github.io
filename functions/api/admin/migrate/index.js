@@ -1,7 +1,7 @@
 // 一次性种子/迁移接口 - POST /api/admin/migrate（仅管理员）
 // 从本站静态 /data/*.json 拉取并幂等 upsert 到数据库，可重入
 import {
-  getSql, initDatabase, corsResponse, optionsResponse,
+  getSql, ensureContentTables, corsResponse, optionsResponse,
 } from '../../../_utils.js'
 
 let dbReady = false
@@ -11,7 +11,7 @@ async function ensureDb(env) {
   if (dbReady) return true
   if (initPromise) return initPromise
   initPromise = (async () => {
-    try { await initDatabase(env); dbReady = true } catch (e) { initPromise = null; throw e }
+    try { await ensureContentTables(env); dbReady = true } catch (e) { initPromise = null; throw e }
   })()
   return initPromise
 }

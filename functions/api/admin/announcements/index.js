@@ -1,6 +1,6 @@
 // 公告管理员写 API - POST/PUT/DELETE /api/admin/announcements
 import {
-  getSql, initDatabase, corsResponse, optionsResponse, parseBody,
+  getSql, ensureContentTables, corsResponse, optionsResponse, parseBody,
 } from '../../../_utils.js'
 
 let dbReady = false
@@ -10,7 +10,7 @@ async function ensureDb(env) {
   if (dbReady) return true
   if (initPromise) return initPromise
   initPromise = (async () => {
-    try { await initDatabase(env); dbReady = true } catch (e) { initPromise = null; throw e }
+    try { await ensureContentTables(env); dbReady = true } catch (e) { initPromise = null; throw e }
   })()
   return initPromise
 }

@@ -1,7 +1,7 @@
 // 活动公开只读 API - GET /api/activities-db
 // 返回 { activities: [...] }，原样返回存储的 data 对象
 import {
-  getSql, initDatabase, corsResponse, optionsResponse,
+  getSql, ensureContentTables, corsResponse, optionsResponse,
 } from '../../_utils.js'
 
 let dbReady = false
@@ -11,7 +11,7 @@ async function ensureDb(env) {
   if (dbReady) return true
   if (initPromise) return initPromise
   initPromise = (async () => {
-    try { await initDatabase(env); dbReady = true } catch (e) { initPromise = null; throw e }
+    try { await ensureContentTables(env); dbReady = true } catch (e) { initPromise = null; throw e }
   })()
   return initPromise
 }
