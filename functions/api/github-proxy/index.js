@@ -1,5 +1,5 @@
 // GitHub API 代理 - 后端持有 token，前端不暴露
-import { corsResponse, optionsResponse } from '../_utils.js'
+import { corsResponse, optionsResponse } from '../../_utils.js'
 
 export async function onRequest(context) {
   const { request, env } = context

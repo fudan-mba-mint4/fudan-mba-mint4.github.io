@@ -98,10 +98,28 @@ const submitting = ref(false)
 const MOCK_VOTES_KEY = 'mint4_poll_votes'
 
 onMounted(async () => {
+  if (typeof window === 'undefined') { loading.value = false; return }
   loadUserVotes()
   try {
-    const res = await fetch('/data/polls.json')
-    const data = await res.json()
+    // 投票内容/选项：数据库优先（/api/polls-admin，期望 {polls:[...]}），
+    // 仅当 DB 成功且 polls 非空才用 DB，否则回退静态 /data/polls.json。
+    let data = null
+    try {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 6000)
+      const res = await fetch('/api/polls-admin', { signal: ctrl.signal })
+      clearTimeout(timer)
+      if (res.ok) {
+        const json = await res.json()
+        if (Array.isArray(json?.polls) && json.polls.length > 0) data = json
+      }
+    } catch (e) {
+      /* DB 不可达/超时，静默回退 */
+    }
+    if (!data) {
+      const res = await fetch('/data/polls.json')
+      data = await res.json()
+    }
     polls.value = data.polls || []
     // 从API加载真实票数
     await loadVoteCounts()

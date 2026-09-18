@@ -614,6 +614,57 @@ const treeholeStats = ref({ total: 0, active_count: 0, deleted_count: 0, today_c
 const expandedId = ref(null)
 let searchDebounceTimer = null
 
+// ===== EdgeOne 后端 admin API（直连，不再走 GitHub 代理写文件）=====
+// Authorization 复用树洞后台在用的同一个 admin token（treeholeTokenInput），原样 Bearer 带上。
+function getAdminToken() {
+  return (treeholeTokenInput.value || '').trim()
+}
+function adminHeaders(extra = {}) {
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}`, ...extra }
+}
+// 统一处理非 2xx：读出后端错误信息
+async function throwIfNotOk(res, action) {
+  if (res.ok) return
+  let msg = `${action}失败 ${res.status}`
+  try { const e = await res.json(); if (e && e.error) msg = e.error } catch {}
+  throw new Error(msg)
+}
+function randomHex(n) {
+  const arr = new Uint8Array(n)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(arr)
+  else for (let i = 0; i < n; i++) arr[i] = Math.floor(Math.random() * 256)
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+function extFromFileName(name) {
+  const m = /\.([a-zA-Z0-9]+)$/.exec(name || '')
+  return m ? m[1].toLowerCase() : 'bin'
+}
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const s = String(reader.result || '')
+      resolve(s.includes(',') ? s.slice(s.indexOf(',') + 1) : s)
+    }
+    reader.onerror = () => reject(reader.error || new Error('FileReader 读取失败'))
+    reader.readAsDataURL(file)
+  })
+}
+// 上传图片/PDF：File -> base64 -> POST /api/admin/upload -> { url }
+async function uploadFileToAdmin(file) {
+  const key = `uploads/${Date.now()}-${randomHex(4)}.${extFromFileName(file.name)}`
+  const dataBase64 = await readFileAsBase64(file)
+  const res = await fetch(`${API_PREFIX}/api/admin/upload`, {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ key, contentType: file.type || 'application/octet-stream', dataBase64 }),
+  })
+  await throwIfNotOk(res, '上传文件')
+  const data = await res.json()
+  if (!data.url) throw new Error('上传未返回 url')
+  return data.url
+}
+
 async function verifyTreeholeToken(silent = false) {
   if (!treeholeTokenInput.value.trim()) {
     treeholeTokenError.value = '请输入Admin Token'
@@ -949,7 +1000,7 @@ async function revertCommit(record) {
   }
 }
 
-// ===== 提交公告 =====
+// ===== 提交公告（直连 EdgeOne：POST /api/admin/announcements，body 为完整公告对象含 id）=====
 async function submitAnnouncement() {
   submitting.value = true
   const rec = createRecord('announcements', `发布公告: ${annForm.value.titleZh}`)
@@ -960,7 +1011,6 @@ async function submitAnnouncement() {
       translateBoth(annForm.value.summaryZh),
       translateBoth(annForm.value.contentZh),
     ])
-    const { data, sha } = await getFile('docs/public/data/announcements.json')
     const ann = {
       id: 'ann-' + Date.now(), date: annForm.value.date, category: annForm.value.category, pinned: annForm.value.pinned,
       title: { zh: annForm.value.titleZh, en: titleT.en, th: titleT.th },
@@ -968,16 +1018,19 @@ async function submitAnnouncement() {
       content: { zh: annForm.value.contentZh, en: contentT.en, th: contentT.th },
     }
     if (annForm.value.deadline) ann.deadline = annForm.value.deadline
-    data.announcements.unshift(ann)
-    rec.commitSha = await putFile('docs/public/data/announcements.json', data, sha, `[Admin] 发布公告: ${annForm.value.titleZh}`)
+    const res = await fetch(`${API_PREFIX}/api/admin/announcements`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(ann),
+    })
+    await throwIfNotOk(res, '发布公告')
     rec.status = 'success'
     annForm.value = { titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
-  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
-// ===== 提交活动 =====
+// ===== 提交活动（直连 EdgeOne：POST /api/admin/activities，body 为完整活动对象含 id）=====
 async function submitActivity() {
   submitting.value = true
   const rec = createRecord('activities', `添加活动: ${actForm.value.titleZh}`)
@@ -988,7 +1041,6 @@ async function submitActivity() {
       translateBoth(actForm.value.locationZh || '待定'),
       translateBoth(actForm.value.descriptionZh || ''),
     ])
-    const { data, sha } = await getFile('docs/public/data/activities.json')
     const act = {
       id: 'act-' + Date.now(), date: actForm.value.date, time: (actForm.value.startTime && actForm.value.endTime) ? `${actForm.value.startTime} - ${actForm.value.endTime}` : '待定',
       title: { zh: actForm.value.titleZh, en: titleT.en, th: titleT.th },
@@ -998,13 +1050,16 @@ async function submitActivity() {
       tags: { hasMedia: actForm.value.hasMedia, involvesFinance: actForm.value.involvesFinance, cover: '' },
       capacity: actForm.value.capacity || 84, registered: actForm.value.registered || 0, status: 'upcoming',
     }
-    data.activities.push(act)
-    rec.commitSha = await putFile('docs/public/data/activities.json', data, sha, `[Admin] 添加活动: ${actForm.value.titleZh}`)
+    const res = await fetch(`${API_PREFIX}/api/admin/activities`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(act),
+    })
+    await throwIfNotOk(res, '添加活动')
     rec.status = 'success'
     actForm.value = { titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
-  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 提交课程资料 =====
@@ -1063,20 +1118,39 @@ async function submitCourseMaterial() {
   if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
-// ===== 提交班费 =====
+// ===== 提交班费（直连 EdgeOne：整包 PUT /api/admin/finance，body {transactions, activityFinances}）=====
+// 先读当前班费包（DB 优先，失败回退静态 JSON），追加新流水后整包写回。
+async function getCurrentFinancePack() {
+  try {
+    const res = await fetch(`${API_PREFIX}/api/finance-db`)
+    if (res.ok) {
+      const j = await res.json()
+      if (Array.isArray(j?.transactions)) {
+        return { transactions: j.transactions, activityFinances: Array.isArray(j.activityFinances) ? j.activityFinances : [] }
+      }
+    }
+  } catch (e) { /* 回退静态 */ }
+  const res = await fetch('/data/finance.json')
+  const j = await res.json()
+  return { transactions: j.transactions || [], activityFinances: j.activityFinances || [] }
+}
 async function submitFinance() {
   submitting.value = true
   const rec = createRecord('finance', `添加班费${finForm.value.type==='income'?'收入':'支出'}: ${finForm.value.description}`)
   try {
-    const { data, sha } = await getFile('docs/public/data/finance.json')
+    const pack = await getCurrentFinancePack()
     const tx = { id: 'tx-' + Date.now(), date: finForm.value.date, type: finForm.value.type, category: finForm.value.category, amount: finForm.value.amount, description: finForm.value.description, activityId: finForm.value.activityId || null }
-    data.transactions.push(tx)
-    rec.commitSha = await putFile('docs/public/data/finance.json', data, sha, `[Admin] 添加班费记录: ${finForm.value.description}`)
+    pack.transactions.push(tx)
+    const res = await fetch(`${API_PREFIX}/api/admin/finance`, {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify({ transactions: pack.transactions, activityFinances: pack.activityFinances }),
+    })
+    await throwIfNotOk(res, '添加班费记录')
     rec.status = 'success'
     finForm.value = { type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
-  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 提交相册 =====
@@ -1134,7 +1208,7 @@ async function submitAlbum() {
   if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
-// ===== 提交投票 =====
+// ===== 提交投票（直连 EdgeOne：POST /api/admin/polls-admin；选项图走 /api/admin/upload 拿 url）=====
 async function submitPoll() {
   submitting.value = true
   const rec = createRecord('polls', `发布投票: ${pollForm.value.titleZh}`)
@@ -1149,23 +1223,19 @@ async function submitPoll() {
       pollForm.value.options.map(opt => translateBoth(opt.textZh || ''))
     )
 
-    // 上传选项图片
+    // 上传选项图片：File -> base64 -> /api/admin/upload -> { url }，不再传 GitHub
     const pollId = 'poll-' + Date.now()
     const optionImages = []
     for (let i = 0; i < pollForm.value.options.length; i++) {
       const opt = pollForm.value.options[i]
       if (opt.imageFile) {
-        const ext = opt.imageFile.name.split('.').pop()
-        const imgName = `opt-${i + 1}.${ext}`
-        const imgPath = `docs/public/images/polls/${pollId}/${imgName}`
-        await uploadBinary(imgPath, opt.imageFile, `[Admin] 上传投票选项图: ${imgName}`)
-        optionImages.push(`/images/polls/${pollId}/${imgName}`)
+        const url = await uploadFileToAdmin(opt.imageFile)
+        optionImages.push(url)
       } else {
         optionImages.push(null)
       }
     }
 
-    const { data, sha } = await getFile('docs/public/data/polls.json')
     const poll = {
       id: pollId,
       title: { zh: pollForm.value.titleZh, en: titleT.en, th: titleT.th },
@@ -1184,8 +1254,12 @@ async function submitPoll() {
       })),
       voters: [],
     }
-    data.polls.unshift(poll)
-    rec.commitSha = await putFile('docs/public/data/polls.json', data, sha, `[Admin] 发布投票: ${pollForm.value.titleZh}`)
+    const res = await fetch(`${API_PREFIX}/api/admin/polls-admin`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(poll),
+    })
+    await throwIfNotOk(res, '发布投票')
     rec.status = 'success'
     pollForm.value = {
       titleZh: '', descriptionZh: '', type: 'single', anonymous: false,
@@ -1194,7 +1268,6 @@ async function submitPoll() {
     }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
-  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
 }
 
 // ===== 初始化 =====

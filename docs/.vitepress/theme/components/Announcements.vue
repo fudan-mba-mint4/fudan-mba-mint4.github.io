@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useNow } from '../composables/useNow.js'
-import { useData } from '../composables/useData.js'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -78,9 +77,43 @@ const categories = computed(() => [
 const activeCategory = ref('all')
 const searchQuery = ref('')
 
-/* ========== 数据 ========== */
-const { data: announcementsData } = useData('/data/announcements.json')
+/* ========== 数据：数据库优先，失败/空则静默回退静态 JSON ========== */
+// 先 GET 数据库 API；仅当请求成功且目标数组非空才用 DB，否则回退静态 JSON。
+// 任何 DB 异常都静默回退，绝不白屏。所有网络访问都在 onMounted（浏览器端）内。
+async function fetchWithDbFallback(dbUrl, staticUrl, isUsable) {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const res = await fetch(dbUrl, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (res.ok) {
+      const json = await res.json()
+      if (isUsable(json)) return json
+    }
+  } catch (e) {
+    /* DB 不可达/超时，静默回退静态 JSON */
+  }
+  try {
+    const res = await fetch(staticUrl)
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    return await res.json()
+  } catch (e) {
+    console.error(`[Announcements] 静态 JSON 加载失败 ${staticUrl}:`, e)
+    return null
+  }
+}
+
+const announcementsData = ref(null)
 const announcements = computed(() => announcementsData.value?.announcements || [])
+
+onMounted(async () => {
+  if (typeof window === 'undefined') return
+  announcementsData.value = await fetchWithDbFallback(
+    '/api/announcements',
+    '/data/announcements.json',
+    (json) => Array.isArray(json?.announcements) && json.announcements.length > 0
+  )
+})
 
 /* ========== 实时时钟（倒计时用，每分钟刷新） ========== */
 const { now } = useNow()

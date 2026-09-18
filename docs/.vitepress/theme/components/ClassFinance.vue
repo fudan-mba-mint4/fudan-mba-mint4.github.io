@@ -108,11 +108,41 @@ const i18n = {
 }
 const { lang: currentLang, t } = useLang(i18n)
 
-/* ========== 班费数据（从JSON读取） ========== */
-const { data: financeData } = useData('/data/finance.json')
+/* ========== 班费数据：数据库优先，失败/空则静默回退静态 JSON ========== */
+// 先 GET /api/finance-db（期望 {transactions, activityFinances}）；成功且 transactions
+// 非空才用 DB，否则回退 /data/finance.json。活动标题映射仍用静态 activities.json。
+async function fetchFinanceData() {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const res = await fetch('/api/finance-db', { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (res.ok) {
+      const json = await res.json()
+      if (Array.isArray(json?.transactions) && json.transactions.length > 0) return json
+    }
+  } catch (e) {
+    /* DB 不可达/超时，静默回退 */
+  }
+  try {
+    const res = await fetch('/data/finance.json')
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    return await res.json()
+  } catch (e) {
+    console.error(`[ClassFinance] 静态 JSON 加载失败:`, e)
+    return null
+  }
+}
+
+const financeData = ref(null)
 const { data: activitiesData } = useData('/data/activities.json')
 const transactions = computed(() => financeData.value?.transactions || [])
 const activityFinances = computed(() => financeData.value?.activityFinances || [])
+
+onMounted(async () => {
+  if (typeof window === 'undefined') return
+  financeData.value = await fetchFinanceData()
+})
 const activitiesMap = computed(() => {
   const map = {}
   ;(activitiesData.value?.activities || []).forEach(a => { map[a.id] = a })
