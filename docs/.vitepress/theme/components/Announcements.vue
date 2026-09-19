@@ -84,7 +84,7 @@ const searchQuery = ref('')
 async function fetchWithDbFallback(dbUrl, staticUrl, isUsable) {
   try {
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const timer = setTimeout(() => ctrl.abort(), 3000)
     const res = await fetchWithRetry(dbUrl, { signal: ctrl.signal })
     clearTimeout(timer)
     if (res.ok) {

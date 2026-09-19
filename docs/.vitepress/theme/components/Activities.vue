@@ -75,7 +75,7 @@ const { lang, t } = useLang(i18n)
 async function fetchActivitiesData() {
   try {
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const timer = setTimeout(() => ctrl.abort(), 3000)
     const res = await fetchWithRetry('/api/activities-db', { signal: ctrl.signal })
     clearTimeout(timer)
     if (res.ok) {

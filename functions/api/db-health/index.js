@@ -1,15 +1,16 @@
-// 数据库诊断：列出所有表
-import { getSql, corsResponse } from '../../_utils.js'
+// 数据库保活/健康检查 - GET /api/db-health
+// 供外部 cron 每 4 分钟访问，执行一次 SELECT 1，防止 Neon 免费版闲置休眠。
+// 轻量、零建表；no-store 不缓存。
+import { getSql, corsResponse, optionsResponse } from '../../_utils.js'
 
-export async function onRequestGet({ env }) {
+export async function onRequest(context) {
+  const { request, env } = context
+  if (request.method === 'OPTIONS') return optionsResponse()
   try {
     const sql = getSql(env)
-    const tables = await sql`
-      SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public' ORDER BY table_name
-    `
-    return corsResponse({ tables: tables.map(t => t.table_name) })
+    await sql`SELECT 1`
+    return corsResponse({ ok: true, ts: Date.now() })
   } catch (e) {
-    return corsResponse({ error: String(e?.message || e) }, 500)
+    return corsResponse({ ok: false, error: String(e?.message || e) }, 500)
   }
 }

@@ -107,7 +107,7 @@ onMounted(async () => {
     let data = null
     try {
       const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), 6000)
+      const timer = setTimeout(() => ctrl.abort(), 3000)
       const res = await fetchWithRetry('/api/polls-admin', { signal: ctrl.signal })
       clearTimeout(timer)
       if (res.ok) {

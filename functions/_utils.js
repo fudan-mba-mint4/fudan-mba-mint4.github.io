@@ -15,10 +15,12 @@ export function getSql(env) {
   return sqlInstance
 }
 
-// 初始化数据库表（幂等）—— 原有 4 张表
+// 初始化数据库表（幂等）—— 全部 8 张表
 // 注意：@neondatabase/serverless v1.1.0 走 extended/prepared-statement 协议，
 // 单条查询只允许一条语句，严禁用 sql.unsafe 拼分号分隔的多语句 DDL。
 // 保持生产验证过的逐条 await 模板字符串写法。
+// 关键：线上表已全部建好，此函数只在“懒初始化兜底”（查询报 undefined_table）或
+// admin/migrate 时才被调用，绝不在每个冷节点首请求的热路径上跑，根治冷启动+DDL 的 545。
 export async function initDatabase(env) {
   const sql = getSql(env)
 
@@ -73,11 +75,6 @@ export async function initDatabase(env) {
     )
   `
   await sql`CREATE INDEX IF NOT EXISTS idx_activity_signups_activity ON activity_signups (activity_id)`
-}
-
-// 内容类新表（幂等）—— 逐条 await，禁止多语句 / sql.unsafe
-export async function ensureContentTables(env) {
-  const sql = getSql(env)
 
   await sql`
     CREATE TABLE IF NOT EXISTS announcements (
@@ -118,6 +115,43 @@ export async function ensureContentTables(env) {
       updated_at timestamptz DEFAULT now()
     )
   `
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS city_visits (
+      id SERIAL PRIMARY KEY,
+      ip_hash TEXT NOT NULL,
+      country TEXT,
+      city TEXT,
+      lat FLOAT DEFAULT 0,
+      lng FLOAT DEFAULT 0,
+      visited_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_ip_time ON city_visits (ip_hash, visited_at DESC)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_city ON city_visits (city)`
+}
+
+// 兼容旧 import：内容表已并入 initDatabase
+export async function ensureContentTables(env) {
+  return initDatabase(env)
+}
+
+// 模块级一次性初始化 promise：仅在“懒初始化兜底”时首次触发。
+// 正常请求路径绝不调用（表已存在，直接查库即可）。
+let initPromise = null
+export function ensureTables(env) {
+  if (!initPromise) {
+    initPromise = initDatabase(env).catch((e) => {
+      initPromise = null // 失败后允许下次重试
+      throw e
+    })
+  }
+  return initPromise
+}
+
+// 判断错误是否为“表/列不存在”，用于触发懒建表兜底
+export function isMissingTableError(e) {
+  return /does not exist|undefined_table|relation .* does not exist/i.test(String((e && e.message) || e || ''))
 }
 
 // 密码哈希（SHA-256，和前端一致）
