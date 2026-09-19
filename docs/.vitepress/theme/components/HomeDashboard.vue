@@ -248,6 +248,14 @@ const courseShortNames = {
   'managerial-economics': '管经',
 }
 
+// 课程全名三语映射（按中文原名索引；近期课程等动态数据随语言切换）
+const courseFullNames = {
+  zh: { '数据、模型与决策': '数据、模型与决策', '管理经济学': '管理经济学', '会计学': '会计学' },
+  en: { '数据、模型与决策': 'Data, Models and Decisions', '管理经济学': 'Managerial Economics', '会计学': 'Accounting' },
+  th: { '数据、模型与决策': 'ข้อมูล โมเดล และการตัดสินใจ', '管理经济学': 'เศรษฐศาสตร์การจัดการ', '会计学': 'การบัญชี' },
+}
+const localizedCourseName = (name) => courseFullNames[currentLang.value]?.[name] || name
+
 // 待完成作业（计算剩余天数）
 const pendingHomework = computed(() => {
   const now = new Date()
@@ -778,7 +786,7 @@ onUnmounted(() => {
                 <span class="schedule-month">{{ formatMonth(course.date) }}</span>
               </div>
               <div class="schedule-info">
-                <span class="schedule-course">{{ course.course }}</span>
+                <span class="schedule-course">{{ localizedCourseName(course.course) }}</span>
                 <span class="schedule-meta">{{ course.time_start }}–{{ course.time_end }} · {{ course.teacher }}</span>
               </div>
               <span class="schedule-countdown" :class="{ 'schedule-countdown--soon': i === 0 && isCountdownUrgent }">

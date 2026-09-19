@@ -15,3 +15,6 @@ PROJECT_MEMORY.md
 # 一次性本地迁移/校验脚本
 _*.mjs
 list-r2.mjs
+
+# 本地运维/部署指南（含环境拓扑，不进公共仓库）
+CLOUDFLARE_PAGES_SETUP.md

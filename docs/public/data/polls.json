@@ -1,30 +1,3 @@
 {
-  "polls": [
-    {
-      "id": "poll-001",
-      "title": {
-        "zh": "下次班级聚餐地点投票",
-        "en": "Next Class Dinner Location Vote",
-        "th": "โหวตสถานที่ทานข้าวชั้นเรียนครั้งหน้า"
-      },
-      "description": {
-        "zh": "十月班级聚餐，大家想去哪里？",
-        "en": "Where should we go for October class dinner?",
-        "th": "เดือนตุลาครั้งหน้า เราควรไปทานข้าวที่ไหนดี?"
-      },
-      "type": "single",
-      "anonymous": false,
-      "visibility": "after_vote",
-      "deadline": "2026-09-30T18:00:00",
-      "created_at": "2026-09-14T10:00:00",
-      "creator": "leizhenyu",
-      "options": [
-        { "id": "opt-1", "text": { "zh": "火锅", "en": "Hotpot", "th": "หม้อไฟ" }, "image": null, "votes": 5 },
-        { "id": "opt-2", "text": { "zh": "日料", "en": "Japanese", "th": "อาหารญี่ปุ่น" }, "image": null, "votes": 3 },
-        { "id": "opt-3", "text": { "zh": "烧烤", "en": "BBQ", "th": "ปิ้งย่าง" }, "image": null, "votes": 8 },
-        { "id": "opt-4", "text": { "zh": "粤菜", "en": "Cantonese", "th": "อาหารกวางตุ้ง" }, "image": null, "votes": 2 }
-      ],
-      "voters": []
-    }
-  ]
+  "polls": []
 }
