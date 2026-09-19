@@ -1,4 +1,4 @@
-// 活动报名 API（EdgeOne Pages Functions 版本）
+// 活动报名 API（Cloudflare Pages Functions）
 // GET  /api/activities/:id/signups - 获取活动报名列表
 // POST /api/activities/:id/signup  - 报名
 // POST /api/activities/:id/cancel  - 取消报名

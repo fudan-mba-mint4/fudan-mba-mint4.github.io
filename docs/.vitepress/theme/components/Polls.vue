@@ -87,7 +87,7 @@ const { lang, t } = useLang({
 
 const { isAuthenticated, currentUser } = useAuth()
 
-const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
+import { API_PREFIX } from '../composables/apiConfig.js'
 
 const polls = ref([])
 const loading = ref(true)

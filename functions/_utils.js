@@ -1,4 +1,4 @@
-// EdgeOne Pages Functions 共享工具
+// Cloudflare Pages Functions 共享工具
 // 数据库连接、密码哈希、CORS、请求解析等
 
 import { neon } from '@neondatabase/serverless'
@@ -129,6 +129,29 @@ export async function initDatabase(env) {
   `
   await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_ip_time ON city_visits (ip_hash, visited_at DESC)`
   await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_city ON city_visits (city)`
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS admin_history (
+      id TEXT PRIMARY KEY,
+      type TEXT,
+      action TEXT,
+      ref_id TEXT,
+      description TEXT,
+      operator TEXT,
+      status TEXT DEFAULT 'success',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_admin_history_created ON admin_history (created_at DESC)`
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS course_materials (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      data JSONB,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `
+
 }
 
 // 兼容旧 import：内容表已并入 initDatabase

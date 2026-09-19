@@ -48,7 +48,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
-const API_PREFIX = import.meta.env.DEV ? 'https://mint4.cn' : ''
+import { API_PREFIX } from '../composables/apiConfig.js'
 
 const stats = ref({
   total: 0,

@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useData } from '../composables/useData.js'
 
-const { data: materialsData, loading } = useData('/data/course-materials.json')
+const { data: materialsData, loading } = useData('/data/course-materials.json', { dbUrl: '/api/course-materials-db' })
 const activeCourse = ref(0)
 
 watch(materialsData, (data) => {

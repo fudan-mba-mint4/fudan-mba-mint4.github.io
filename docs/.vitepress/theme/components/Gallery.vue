@@ -38,7 +38,7 @@ const i18n = {
 
 const { lang, t } = useLang(i18n)
 
-const { data: activitiesData, loading } = useData('/data/activities.json')
+const { data: activitiesData, loading } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 const albums = computed(() => {
   if (!activitiesData.value?.activities) return []
   return (activitiesData.value.activities || [])

@@ -1,4 +1,4 @@
-// 投票列表 API（EdgeOne Pages Functions 版本）
+// 投票列表 API（Cloudflare Pages Functions）
 // GET /api/polls - 获取所有投票的票数统计
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import { getSql, corsResponse, optionsResponse } from '../../_utils.js'

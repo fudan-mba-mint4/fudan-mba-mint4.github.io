@@ -20,9 +20,9 @@
         <button @click="logout" class="logout-btn">退出</button>
       </header>
 
-      <!-- GitHub Token 已内嵌 -->
+      <!-- 数据库与 R2 已就绪 -->
       <div class="token-bar">
-        <span class="token-badge">✓ GitHub 已连接</span>
+        <span class="token-badge">✓ 数据库与 R2 已连接</span>
       </div>
 
       <!-- 类型标签 -->
@@ -393,15 +393,13 @@
           <div class="history-info">
             <span class="history-time">{{ record.time }}</span>
             <span class="history-badge" :class="'badge-' + record.status">
-              {{ record.status === 'success' ? '✓ 成功' : record.status === 'failed' ? '✗ 失败' : '⏳ 进行中' }}
+              {{ record.status === 'success' ? '✓ 成功' : record.status === 'failed' ? '✗ 失败' : record.status === 'reverted' ? '↩ 已撤回' : '⏳ 进行中' }}
             </span>
             <span class="history-type">{{ record.typeName }}</span>
           </div>
           <div class="history-desc">{{ record.description }}</div>
-          <div v-if="record.commitSha" class="history-sha">Commit: <code>{{ record.commitSha.substring(0,7) }}</code></div>
           <div v-if="record.error" class="history-error">{{ record.error }}</div>
-          <div v-if="record.reverted" class="reverted-tag">↩ 已撤回</div>
-          <button v-if="record.status === 'success' && !record.reverted && record.commitSha"
+          <button v-if="record.status === 'success'"
                   class="revert-btn" @click="revertCommit(record)">↩ 撤回</button>
         </div>
       </div>
@@ -411,12 +409,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { fetchHistory, appendHistory, markReverted } from '../utils/adminHistory'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
-const REPO = 'fudan-mba-mint4/fudan-mba-mint4.github.io'
 const PASSWORD_HASH = '3d0c0717ae88423229d3dbe5c67c0d9ba38d1ba6b6a84d175914081233db713f'
-const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
+import { API_PREFIX } from '../composables/apiConfig.js'
 
 // ===== 认证 =====
 const authenticated = ref(false)
@@ -433,43 +429,6 @@ async function verifyPassword() {
 }
 function logout() { authenticated.value = false; localStorage.removeItem('admin_auth') }
 
-// ===== GitHub Token =====
-const githubToken = ref('')
-const tokenStatus = ref('idle')
-const tokenValid = computed(() => tokenStatus.value === 'valid')
-async function testToken() {
-  tokenStatus.value = 'testing'
-  try {
-    const res = await fetchWithRetry(`/api/github-proxy/repos/${REPO}`)
-    tokenStatus.value = res.ok ? 'valid' : 'invalid'
-    if (res.ok) loadHistoryFromGithub()
-  } catch { tokenStatus.value = 'invalid' }
-}
-
-// ===== GitHub API 工具（走后端代理） =====
-async function ghApi(path, opts = {}) {
-  const res = await fetchWithRetry(`/api/github-proxy${path}`, { ...opts, headers: { Accept: 'application/vnd.github.v3+json', ...opts.headers } })
-  return res
-}
-async function getFile(path) {
-  const res = await ghApi(`/repos/${REPO}/contents/${path}?ref=main`)
-  if (!res.ok) throw new Error(`获取文件失败 ${res.status}`)
-  const d = await res.json()
-  return { data: JSON.parse(decodeURIComponent(escape(atob(d.content)))), sha: d.sha }
-}
-async function putFile(path, data, sha, msg) {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
-  const res = await ghApi(`/repos/${REPO}/contents/${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, content, sha, branch: 'main' }) })
-  if (!res.ok) throw new Error((await res.json()).message || `提交失败 ${res.status}`)
-  return (await res.json()).commit.sha
-}
-async function uploadBinary(path, file, msg) {
-  const buf = await file.arrayBuffer()
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
-  const res = await ghApi(`/repos/${REPO}/contents/${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, content: base64, branch: 'main' }) })
-  if (!res.ok) throw new Error((await res.json()).message || `上传失败 ${res.status}`)
-  return (await res.json()).commit.sha
-}
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB'
@@ -615,7 +574,7 @@ const treeholeStats = ref({ total: 0, active_count: 0, deleted_count: 0, today_c
 const expandedId = ref(null)
 let searchDebounceTimer = null
 
-// ===== EdgeOne 后端 admin API（直连，不再走 GitHub 代理写文件）=====
+// ===== Cloudflare 后端 admin API（直连，不再走 GitHub 代理写文件）=====
 // Authorization 复用树洞后台在用的同一个 admin token（treeholeTokenInput），原样 Bearer 带上。
 function getAdminToken() {
   return (treeholeTokenInput.value || '').trim()
@@ -652,8 +611,8 @@ function readFileAsBase64(file) {
   })
 }
 // 上传图片/PDF：File -> base64 -> POST /api/admin/upload -> { url }
-async function uploadFileToAdmin(file) {
-  const key = `uploads/${Date.now()}-${randomHex(4)}.${extFromFileName(file.name)}`
+async function uploadFileToAdmin(file, customKey) {
+  const key = customKey || `uploads/${Date.now()}-${randomHex(4)}.${extFromFileName(file.name)}`
   const dataBase64 = await readFileAsBase64(file)
   const res = await fetchWithRetry(`${API_PREFIX}/api/admin/upload`, {
     method: 'POST',
@@ -895,105 +854,75 @@ function formatTreeholeTime(iso) {
   return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-// ===== 提交记录（数据源：GitHub admin-history.json）=====
+// ===== 提交记录（数据源：Neon admin_history 表）=====
 const submitHistory = ref([])
 const historyLoading = ref(false)
-function createRecord(type, desc) {
-  const r = { id: Date.now(), type, typeName: dataTypes.find(t=>t.id===type)?.name, description: desc, time: new Date().toLocaleString('zh-CN'), status:'pending', commitSha:null, error:null, reverted:false }
-  submitHistory.value.unshift(r); return r
+function createRecord(type, desc, refId = null) {
+  const r = {
+    id: 'h-' + Date.now() + '-' + randomHex(3),
+    type, typeName: dataTypes.find(t => t.id === type)?.name || type,
+    description: desc, time: new Date().toLocaleString('zh-CN'),
+    status: 'pending', error: null, ref_id: refId,
+  }
+  submitHistory.value.unshift(r)
+  return r
 }
-async function loadHistoryFromGithub() {
-  if (!githubToken.value) return
+// 加载历史记录（DB）
+async function loadHistory() {
   historyLoading.value = true
   try {
-    const { records } = await fetchHistory(githubToken.value, REPO)
-    submitHistory.value = records
-  } catch(e) {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/history`, { headers: adminHeaders() })
+    if (res.ok) {
+      const j = await res.json()
+      submitHistory.value = Array.isArray(j.records) ? j.records : []
+    }
+  } catch (e) {
     console.warn('加载提交记录失败:', e.message)
   } finally {
     historyLoading.value = false
   }
 }
+// 提交成功后把记录写入 DB
+async function saveRecord(rec) {
+  if (rec.status !== 'success') return
+  try {
+    await fetchWithRetry(`${API_PREFIX}/api/admin/history`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({
+        id: rec.id, type: rec.type, action: 'create',
+        ref_id: rec.ref_id || null, description: rec.description,
+        operator: '管理员', status: 'success',
+      }),
+    })
+  } catch (e) {
+    console.warn('保存记录失败:', e.message)
+  }
+}
 
-// ===== 撤回提交 =====
+// ===== 撤回提交（DB：标记 reverted + 按类型删除关联内容）=====
 const reverting = ref(false)
 async function revertCommit(record) {
-  if (!record.commitSha || record.reverted || reverting.value) return
-  const ok = confirm(`确定要撤回这次提交吗？\n\n${record.description}\n\n注意：如果此次提交包含文件上传（PDF/图片等），已上传的文件不会被自动删除，需在GitHub上手动删除。`)
+  if (record.status === 'reverted' || reverting.value) return
+  const supported = ['announcements', 'activities', 'polls']
+  const tip = supported.includes(record.type)
+    ? '\n\n将同时删除对应的内容。'
+    : '\n\n该类型仅标记撤回，具体内容请人工核对。'
+  const ok = confirm(`确定要撤回这次提交吗？\n\n${record.description}${tip}`)
   if (!ok) return
   reverting.value = true
   try {
-    // 1. 获取提交详情
-    const commitRes = await ghApi(`/repos/${REPO}/commits/${record.commitSha}`)
-    if (!commitRes.ok) throw new Error(`获取提交详情失败 ${commitRes.status}`)
-    const commitData = await commitRes.json()
-    const parentSha = commitData.parents[0]?.sha
-    if (!parentSha) throw new Error('该提交没有parent，无法撤回')
-    const files = commitData.files || []
-    if (files.length === 0) throw new Error('该提交没有修改任何文件')
-
-    let processed = 0
-    for (const file of files) {
-      if (file.status === 'modified') {
-        // 恢复为parent版本
-        const parentRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=${parentSha}`)
-        if (!parentRes.ok) continue
-        const parentData = await parentRes.json()
-        const curRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=main`)
-        if (!curRes.ok) continue
-        const curData = await curRes.json()
-        const putRes = await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: `[Revert] 撤回: ${record.description}`, content: parentData.content, sha: curData.sha, branch: 'main' })
-        })
-        if (putRes.ok) processed++
-      } else if (file.status === 'added') {
-        // 删除新增的文件
-        const curRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=main`)
-        if (!curRes.ok) continue
-        const curData = await curRes.json()
-        const delRes = await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
-          method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: `[Revert] 撤回新增文件: ${file.filename}`, sha: curData.sha, branch: 'main' })
-        })
-        if (delRes.ok) processed++
-      } else if (file.status === 'removed') {
-        // 恢复被删除的文件（从parent版本获取内容）
-        const parentRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=${parentSha}`)
-        if (!parentRes.ok) continue
-        const parentData = await parentRes.json()
-        const putRes = await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: `[Revert] 恢复文件: ${file.filename}`, content: parentData.content, branch: 'main' })
-        })
-        if (putRes.ok) processed++
-      } else if (file.status === 'renamed') {
-        // 重命名：删除新文件，恢复旧文件
-        const curRes = await ghApi(`/repos/${REPO}/contents/${file.filename}?ref=main`)
-        if (curRes.ok) {
-          const curData = await curRes.json()
-          await ghApi(`/repos/${REPO}/contents/${file.filename}`, {
-            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `[Revert] 撤回重命名: 删除${file.filename}`, sha: curData.sha, branch: 'main' })
-          })
-        }
-        if (file.previous_filename) {
-          const oldRes = await ghApi(`/repos/${REPO}/contents/${file.previous_filename}?ref=${parentSha}`)
-          if (oldRes.ok) {
-            const oldData = await oldRes.json()
-            await ghApi(`/repos/${REPO}/contents/${file.previous_filename}`, {
-              method: 'PUT', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: `[Revert] 恢复文件: ${file.previous_filename}`, content: oldData.content, branch: 'main' })
-            })
-          }
-        }
-        processed++
-      }
-    }
-    if (processed === 0) throw new Error('没有文件被成功撤回')
-    record.reverted = true
-    try { await markReverted(githubToken.value, REPO, record.id, '管理员') } catch(e) { console.warn('更新撤回状态失败:', e.message) }
-    alert(`撤回成功！已处理 ${processed} 个文件变更。\n如有上传的PDF/图片文件，请在GitHub上手动删除。`)
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/history/revert`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ id: record.id, type: record.type, ref_id: record.ref_id }),
+    })
+    await throwIfNotOk(res, '撤回')
+    const j = await res.json().catch(() => ({}))
+    record.status = 'reverted'
+    let msg = '撤回成功'
+    if (j.note) msg += '\n' + j.note
+    alert(msg)
   } catch (e) {
     alert(`撤回失败: ${e.message}`)
   } finally {
@@ -1001,7 +930,7 @@ async function revertCommit(record) {
   }
 }
 
-// ===== 提交公告（直连 EdgeOne：POST /api/admin/announcements，body 为完整公告对象含 id）=====
+// ===== 提交公告（直连 Cloudflare：POST /api/admin/announcements，body 为完整公告对象含 id）=====
 async function submitAnnouncement() {
   submitting.value = true
   const rec = createRecord('announcements', `发布公告: ${annForm.value.titleZh}`)
@@ -1025,13 +954,15 @@ async function submitAnnouncement() {
       body: JSON.stringify(ann),
     })
     await throwIfNotOk(res, '发布公告')
+    rec.ref_id = ann.id
     rec.status = 'success'
     annForm.value = { titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
+  await saveRecord(rec)
 }
 
-// ===== 提交活动（直连 EdgeOne：POST /api/admin/activities，body 为完整活动对象含 id）=====
+// ===== 提交活动（直连 Cloudflare：POST /api/admin/activities，body 为完整活动对象含 id）=====
 async function submitActivity() {
   submitting.value = true
   const rec = createRecord('activities', `添加活动: ${actForm.value.titleZh}`)
@@ -1057,69 +988,90 @@ async function submitActivity() {
       body: JSON.stringify(act),
     })
     await throwIfNotOk(res, '添加活动')
+    rec.ref_id = act.id
     rec.status = 'success'
     actForm.value = { titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
+  await saveRecord(rec)
 }
 
-// ===== 提交课程资料 =====
+// ===== 提交课程资料（PDF 存 R2，元数据存 Neon）=====
+async function getCurrentCourseMaterials() {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const r = await fetchWithRetry(`${API_PREFIX}/api/course-materials-db`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (r.ok) {
+      const j = await r.json()
+      if (Array.isArray(j?.courses)) return j
+    }
+  } catch (e) { /* 回退静态 */ }
+  const res = await fetchWithRetry('/data/course-materials.json')
+  if (!res.ok) throw new Error('读取课程资料失败')
+  return res.json()
+}
 async function submitCourseMaterial() {
   submitting.value = true
   const f = cmForm.value
   const rec = createRecord('courseMaterials', `添加${f.courseId}第${f.session}讲资料`)
   try {
     const dateStr = f.date.replace(/-/g, '')
-    const basePath = `docs/public/files/courses/${f.courseId}/${dateStr}`
-    const webBase = `/files/courses/${f.courseId}/${dateStr}`
+    const r2Base = `files/courses/${f.courseId}/${dateStr}`
 
-    // 1. 上传课件PDF
-    const slideName = f.slideFile.name
-    await uploadBinary(`${basePath}/${slideName}`, f.slideFile, `[Admin] 上传课件: ${slideName}`)
+    // 1. 课件 PDF → R2
+    const slideUrl = await uploadFileToAdmin(f.slideFile, `${r2Base}/${f.slideFile.name}`)
 
-    // 2. 上传作业PDF（如果有）
-    let hwUrl = '', hwName = '', hwSize = ''
+    // 2. 作业 PDF → R2
+    let homework = null
     if (f.homeworkFile) {
-      hwName = f.homeworkFile.name
-      await uploadBinary(`${basePath}/${hwName}`, f.homeworkFile, `[Admin] 上传作业: ${hwName}`)
-      hwUrl = `${webBase}/${hwName}`; hwSize = formatSize(f.homeworkFile.size)
-    }
-
-    // 3. 上传参考资料
-    const refs = []
-    for (const ref of f.references) {
-      if (ref.file) {
-        await uploadBinary(`${basePath}/${ref.file.name}`, ref.file, `[Admin] 上传参考资料: ${ref.file.name}`)
-        refs.push({ name: ref.name || ref.file.name, filename: ref.file.name, url: `${webBase}/${ref.file.name}`, size: formatSize(ref.file.size) })
-      } else if (ref.desc) {
-        refs.push({ name: ref.name, filename: '', url: '', desc: ref.desc })
+      const hwUrl = await uploadFileToAdmin(f.homeworkFile, `${r2Base}/${f.homeworkFile.name}`)
+      homework = {
+        name: f.title + ' 作业', deadline: f.hwDeadline,
+        submission: f.hwSubmission || '待通知', description: f.hwDescription || '',
+        filename: f.homeworkFile.name, url: hwUrl, size: formatSize(f.homeworkFile.size),
       }
     }
 
-    // 4. 更新JSON
-    const { data, sha } = await getFile('docs/public/data/course-materials.json')
-    const course = data.courses.find(c => c.id === f.courseId)
-    if (!course) throw new Error('课程不存在')
-    const session = {
-      session: f.session, date: f.date, title: f.title,
-      files: [{ name: f.title + ' 课件', filename: slideName, url: `${webBase}/${slideName}`, size: formatSize(f.slideFile.size), type: 'slide' }],
-      references: refs,
+    // 3. 参考资料 → R2 / 纯描述
+    const references = []
+    for (const ref of f.references) {
+      if (ref.file) {
+        const u = await uploadFileToAdmin(ref.file, `${r2Base}/${ref.file.name}`)
+        references.push({ name: ref.name || ref.file.name, filename: ref.file.name, url: u, size: formatSize(ref.file.size) })
+      } else if (ref.desc) {
+        references.push({ name: ref.name, filename: '', url: '', desc: ref.desc })
+      }
     }
-    if (f.homeworkFile) {
-      session.homework = { name: f.title + ' 作业', deadline: f.hwDeadline, submission: f.hwSubmission || '待通知', description: f.hwDescription || '', filename: hwName, url: hwUrl, size: hwSize }
-    }
-    course.sessions.push(session)
-    course.sessions.sort((a,b) => a.session - b.session)
 
-    rec.commitSha = await putFile('docs/public/data/course-materials.json', data, sha, `[Admin] 添加${course.name}第${f.session}讲资料`)
+    // 4. 读整包、追加本讲、写回 DB
+    const pack = await getCurrentCourseMaterials()
+    if (!Array.isArray(pack.courses)) pack.courses = []
+    const course = pack.courses.find(c => c.id === f.courseId)
+    if (!course) throw new Error('课程不存在')
+    if (!Array.isArray(course.sessions)) course.sessions = []
+    const session = {
+      session: Number(f.session), date: f.date, title: f.title,
+      files: [{ name: f.title + ' 课件', filename: f.slideFile.name, url: slideUrl, size: formatSize(f.slideFile.size), type: 'slide' }],
+      references,
+    }
+    if (homework) session.homework = homework
+    course.sessions.push(session)
+    course.sessions.sort((a, b) => Number(a.session) - Number(b.session))
+
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/course-materials`, {
+      method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pack),
+    })
+    await throwIfNotOk(res, '保存课程资料')
     rec.status = 'success'
     cmForm.value = { courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
-  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
+  await saveRecord(rec)
 }
 
-// ===== 提交班费（直连 EdgeOne：整包 PUT /api/admin/finance，body {transactions, activityFinances}）=====
+// ===== 提交班费（直连 Cloudflare：整包 PUT /api/admin/finance，body {transactions, activityFinances}）=====
 // 先读当前班费包（DB 优先，失败回退静态 JSON），追加新流水后整包写回。
 async function getCurrentFinancePack() {
   try {
@@ -1152,64 +1104,89 @@ async function submitFinance() {
     finForm.value = { type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
+  await saveRecord(rec)
 }
 
-// ===== 提交相册 =====
+// ===== 提交相册（封面/照片存 R2，媒体信息挂到对应活动的 tags 上）=====
+async function getCurrentActivities() {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const r = await fetchWithRetry(`${API_PREFIX}/api/activities-db`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (r.ok) {
+      const j = await r.json()
+      if (Array.isArray(j?.activities)) return j
+    }
+  } catch (e) { /* 回退静态 */ }
+  const res = await fetchWithRetry('/data/activities.json')
+  if (!res.ok) throw new Error('读取活动失败')
+  return res.json()
+}
 async function submitAlbum() {
   submitting.value = true
-  const rec = createRecord('gallery', `添加相册: ${albForm.value.title}`)
+  const f = albForm.value
+  const rec = createRecord('gallery', `添加相册: ${f.title}`)
   try {
-    const dateStr = albForm.value.date.replace(/-/g, '')
-    const coverExt = albForm.value.coverFile.name.split('.').pop()
+    const dateStr = f.date.replace(/-/g, '')
+    const coverExt = (f.coverFile.name.split('.').pop() || 'jpg').toLowerCase()
     const coverName = `cover-${dateStr}.${coverExt}`
-    const coverPath = `docs/public/images/albums/${coverName}`
 
-    // 1. 上传封面
-    await uploadBinary(coverPath, albForm.value.coverFile, `[Admin] 上传相册封面: ${coverName}`)
+    // 1. 封面 → R2
+    const coverUrl = await uploadFileToAdmin(f.coverFile, `images/albums/${coverName}`)
 
-    // 2. 如果是本地相册，上传所有照片
-    let localPhotoPaths = []
-    if (albForm.value.albumType === 'local') {
-      const albumDir = `docs/public/images/albums/local-${dateStr}`
-      for (let i = 0; i < albForm.value.localPhotos.length; i++) {
-        const p = albForm.value.localPhotos[i]
-        const fileName = `${String(i+1).padStart(2,'0')}.jpg`
-        const filePath = `${albumDir}/${fileName}`
-        await uploadBinary(filePath, p.file, `[Admin] 上传相册照片: ${fileName}`)
-        localPhotoPaths.push(`/images/albums/local-${dateStr}/${fileName}`)
+    // 2. 本地照片 → R2
+    let localPhotos = []
+    if (f.albumType === 'local') {
+      for (let i = 0; i < f.localPhotos.length; i++) {
+        const fileName = `${String(i + 1).padStart(2, '0')}.jpg`
+        localPhotos.push(await uploadFileToAdmin(f.localPhotos[i].file, `images/albums/local-${dateStr}/${fileName}`))
       }
     }
 
-    // 3. 更新JSON
-    const { data, sha } = await getFile('docs/public/data/albums.json')
-    const newId = Math.max(...data.albums.map(a=>a.id), 0) + 1
-    const albumEntry = {
-      id: newId,
-      title: albForm.value.title,
-      date: albForm.value.date,
-      type: albForm.value.albumType,
-      cover: `/images/albums/${coverName}`,
-      description: albForm.value.description || '',
+    // 媒体标签（Gallery 读取这些字段）
+    const mediaTags = {
+      hasMedia: true,
+      cover: coverUrl,
+      mediaType: f.albumType,
+      mediaUrl: f.albumType === 'live' ? f.url : '',
+      localPhotos: f.albumType === 'local' ? localPhotos : [],
+      photoCount: f.albumType === 'local' ? localPhotos.length : 0,
     }
-    if (albForm.value.albumType === 'live') {
-      albumEntry.url = albForm.value.url
-    } else {
-      albumEntry.photos = localPhotoPaths
-      albumEntry.photoCount = localPhotoPaths.length
-    }
-    data.albums.push(albumEntry)
-    data.albums.sort((a,b) => new Date(b.date) - new Date(a.date))
 
-    rec.commitSha = await putFile('docs/public/data/albums.json', data, sha, `[Admin] 添加相册: ${albForm.value.title}`)
+    // 3. 读活动整包，找同日期活动；没有则新建
+    const pack = await getCurrentActivities()
+    if (!Array.isArray(pack.activities)) pack.activities = []
+    let act = pack.activities.find(a => a.date === f.date)
+    if (act) {
+      act.tags = { ...(act.tags || {}), ...mediaTags }
+    } else {
+      act = {
+        id: 'act-' + Date.now(), date: f.date, time: '待定',
+        title: { zh: f.title, en: f.title, th: f.title },
+        location: { zh: '待定', en: 'TBD', th: 'รอแจ้ง' },
+        organizer: { zh: '记忆主理', en: 'Memory Steward', th: 'ผู้ดูแลความทรงจำ' },
+        description: { zh: f.description || '', en: '', th: '' },
+        tags: { involvesFinance: false, ...mediaTags },
+        capacity: 84, registered: 0, status: 'upcoming',
+      }
+    }
+
+    // 4. 单条 upsert 活动
+    const actRes = await fetchWithRetry(`${API_PREFIX}/api/admin/activities`, {
+      method: 'PUT', headers: adminHeaders(), body: JSON.stringify(act),
+    })
+    await throwIfNotOk(actRes, '保存相册')
     rec.status = 'success'
-    albForm.value.localPhotos.forEach(p => URL.revokeObjectURL(p.previewUrl))
+    rec.ref_id = act.id
+    albForm.value.localPhotos.forEach(p => p.previewUrl && URL.revokeObjectURL(p.previewUrl))
     albForm.value = { title:'', date:today, url:'', albumType:'live', coverFile:null, localPhotos:[], description:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
-  if (rec.status === 'success') { try { await appendHistory(githubToken.value, REPO, rec) } catch(e) { console.warn('保存记录失败:', e.message) } }
+  await saveRecord(rec)
 }
 
-// ===== 提交投票（直连 EdgeOne：POST /api/admin/polls-admin；选项图走 /api/admin/upload 拿 url）=====
+// ===== 提交投票（直连 Cloudflare：POST /api/admin/polls-admin；选项图走 /api/admin/upload 拿 url）=====
 async function submitPoll() {
   submitting.value = true
   const rec = createRecord('polls', `发布投票: ${pollForm.value.titleZh}`)
@@ -1261,6 +1238,7 @@ async function submitPoll() {
       body: JSON.stringify(poll),
     })
     await throwIfNotOk(res, '发布投票')
+    rec.ref_id = pollId
     rec.status = 'success'
     pollForm.value = {
       titleZh: '', descriptionZh: '', type: 'single', anonymous: false,
@@ -1269,11 +1247,12 @@ async function submitPoll() {
     }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
+  await saveRecord(rec)
 }
 
 // ===== 初始化 =====
 onMounted(() => {
-  testToken()
+  loadHistory()
 })
 watch(currentType, (val) => {
   if (val === 'finance' && activitiesList.value.length === 0) loadActivitiesForSelect()

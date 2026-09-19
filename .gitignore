@@ -6,3 +6,12 @@ docs/.vitepress/cache
 .env
 .env.local
 PROJECT_MEMORY.md
+
+# wrangler 本地密钥与缓存
+.dev.vars
+.wrangler
+.vercel
+
+# 一次性本地迁移/校验脚本
+_*.mjs
+list-r2.mjs

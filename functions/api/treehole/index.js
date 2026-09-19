@@ -1,4 +1,4 @@
-// 匿名树洞 API（EdgeOne Pages Functions 版本）
+// 匿名树洞 API（Cloudflare Pages Functions）
 // GET  /api/treehole - 获取留言列表（分页）+ 统计
 // POST /api/treehole - 提交留言
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。

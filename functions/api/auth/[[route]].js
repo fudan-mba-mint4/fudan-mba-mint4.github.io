@@ -1,4 +1,4 @@
-// 认证 API（EdgeOne Pages Functions 版本）
+// 认证 API（Cloudflare Pages Functions）
 // POST /api/auth/register       - 注册
 // POST /api/auth/login          - 登录
 // POST /api/auth/change-password - 修改密码

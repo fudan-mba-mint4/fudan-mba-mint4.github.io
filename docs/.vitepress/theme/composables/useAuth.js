@@ -1,7 +1,7 @@
-// 认证状态管理（调用 Vercel Serverless Functions + Neon Postgres）
+// 认证状态管理（调用 Cloudflare Pages Functions + Neon Postgres）
 import { ref, computed } from 'vue'
 
-const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
+import { API_PREFIX } from './apiConfig.js'
 const TOKEN_KEY = 'mint4_auth_token'
 
 const currentUser = ref(null)

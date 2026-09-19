@@ -129,7 +129,7 @@ import { useData } from '../composables/useData.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const router = useRouter()
-const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
+import { API_PREFIX } from '../composables/apiConfig.js'
 const { currentUser, isAuthenticated, logout, updateProfile, changePassword, authToken } = useAuth()
 const { data: activitiesData } = useData('/data/activities.json')
 

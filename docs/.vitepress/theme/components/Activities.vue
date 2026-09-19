@@ -107,7 +107,7 @@ onMounted(async () => {
 const { now } = useNow()
 
 /* ========== 活动报名（数据库存储，通过API操作） ========== */
-const API_PREFIX = import.meta.env.DEV ? 'https://fudan-mba-mint4.vercel.app' : ''
+import { API_PREFIX } from '../composables/apiConfig.js'
 const signupCounts = ref({}) // activityId -> count
 const userSignedUpIds = ref([]) // 当前用户已报名的活动ID列表
 

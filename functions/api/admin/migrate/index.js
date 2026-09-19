@@ -25,7 +25,7 @@ export async function onRequest(context) {
   const sql = getSql(env)
   const origin = new URL(request.url).origin
   const result = {
-    inserted: { announcements: 0, activities: 0, polls: 0, finance: 0 },
+    inserted: { announcements: 0, activities: 0, polls: 0, finance: 0, courseMaterials: 0 },
     errors: {},
   }
 
@@ -85,6 +85,22 @@ export async function onRequest(context) {
       console.error(`migrate 拉取 ${name} 失败:`, err)
       result.errors[name] = String(err && err.message || err)
     }
+  }
+
+  // 课程资料（聚合整包，类似 finance）
+  try {
+    const cmRes = await fetch(`${origin}/data/course-materials.json`)
+    if (cmRes.ok) {
+      const cmJson = await cmRes.json()
+      await sql`
+        INSERT INTO course_materials (id, data)
+        VALUES ('default', ${JSON.stringify(cmJson)}::jsonb)
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+      `
+      result.inserted.courseMaterials = 1
+    }
+  } catch (err) {
+    result.errors['course-materials.json'] = String(err && err.message || err)
   }
 
   return corsResponse({ message: '迁移完成', ...result })

@@ -1,38 +1,22 @@
-// 城市足迹 API
+// 城市足迹 API（Cloudflare Pages Functions）
 // GET  /api/city-footprint - 统计 + 城市光点
 // POST /api/city-footprint - 记录一次访问（静默，30 分钟去重）
 //
-// 关键设计：
-// 1. 部署架构：浏览器 -> Cloudflare CDN(橙云) -> EdgeOne Pages Functions -> Neon Postgres
-//    - 当 Cloudflare 代理时，EdgeOne 看到的 TCP 来源是 Cloudflare 边缘 IP，
-//      因此 request.eo.geo 解析到的是 Cloudflare 机房位置，而非真实访客位置。
-//    - 真实访客 IP 在 cf-connecting-ip / x-forwarded-ip 中。
-//    - Cloudflare 免费版提供 cf-ipcountry（仅国家），不提供城市。
-// 2. geo 解析优先级：
-//    a) 未走 CF 代理（无 cf-connecting-ip）：直接用 request.eo.geo（EdgeOne 原生，含城市/经纬度）。
-//    b) 走了 CF 代理：国家用 cf-ipcountry；城市/经纬度用真实 IP 做一次 best-effort
-//       的免费 IP 归属地查询（ip-api.com），失败则降级为 country-only（city=Unknown, lat/lng=0）。
-//    c) 若 request.eo.geo.cityName 本身为空/Unknown（EdgeOne 免费 geo 经常如此），
-//       同样触发外部查询兜底。
-// 3. Neon 免费版 ~5 分钟空闲休眠，冷启动可能数十秒。
-//    - 对每条 SQL 加超时 + 一次重试，避免冷启动偶发失败被静默吞掉。
-// 4. 所有响应带 Cache-Control: no-store，防止 CDN 把 API 当静态资源缓存。
-// 5. 表已建好（含 city_visits，已并入 initDatabase），热路径不建表；
-//    表缺失时由 /api/admin/migrate 重建。
+// 部署架构：浏览器 -> Cloudflare 边缘 -> Pages Function -> Neon Postgres
+// 函数就跑在 CF 边缘，context.request.cf 由 CF 直接解析出真实访客的
+// country / city / latitude / longitude（cf-connecting-ip 为真实访客 IP），
+// 无需任何外部 IP 归属地查询服务。
 import { getSql, hashIp, getClientIp, corsResponse, optionsResponse } from '../../_utils.js'
 
-// 统一 API 响应：在 CORS 基础上加 no-store，避免 CDN 缓存 API
+// 统一 API 响应：no-store，避免 CDN 缓存 API
 function apiResponse(data, status = 200) {
   const res = corsResponse(data, status)
   res.headers.set('Cache-Control', 'no-store, must-revalidate')
   res.headers.set('CDN-Cache-Control', 'no-store')
-  res.headers.set('Surrogate-Control', 'no-store')
   return res
 }
 
-// 带超时的 SQL 执行（应对 Neon 冷启动慢/失败）
-// queryFn 是一个 thunk，调用时返回 Promise（因 neon sql 是 tagged template，
-// 必须以 () => sql`...` 形式传入，才能支持超时后重新执行）
+// 带超时的 SQL 执行（应对 Neon 冷启动）；queryFn 为返回 Promise 的 thunk
 async function runSql(queryFn, tag, attempt = 0) {
   const timeoutMs = attempt === 0 ? 8000 : 12000
   let timer
@@ -49,13 +33,12 @@ async function runSqlWithRetry(queryFn, tag) {
   try {
     return await runSql(queryFn, tag, 0)
   } catch (e) {
-    // 冷启动首次偶发失败，等 400ms 重试一次
     await new Promise(r => setTimeout(r, 400))
     return await runSql(queryFn, tag, 1)
   }
 }
 
-// best-effort 外部 IP 归属地查询（免费，无 key，非商用 45 次/分钟足够班级站使用）
+// best-effort 外部 IP 归属地查询，仅在 CF geo 缺失时兜底
 async function lookupIpGeo(ip) {
   if (!ip || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|::1|0\.0\.0\.0)/.test(ip)) {
     return null
@@ -74,7 +57,6 @@ async function lookupIpGeo(ip) {
     return {
       city: j.city || '',
       country: j.countryCode || '',
-      region: j.regionName || '',
       lat: parseFloat(j.lat) || 0,
       lng: parseFloat(j.lon) || 0,
     }
@@ -83,40 +65,23 @@ async function lookupIpGeo(ip) {
   }
 }
 
-// 解析访客地理位置（见文件头注释）
+// 解析访客地理位置：优先 CF 原生 request.cf，缺失时用真实 IP 外部查询兜底
 async function resolveGeo(request, realIp) {
-  const headers = request.headers
-  const cfProxy = !!(headers.get('cf-connecting-ip') || headers.get('cf-ipcountry'))
-  const eoGeo = (request.eo && request.eo.geo) || {}
+  const cf = request.cf || {}
+  let country = (cf.country || '').toUpperCase()
+  if (country === 'XX' || country === 'T1') country = ''
+  let city = cf.city || ''
+  let lat = parseFloat(cf.latitude || cf.lat || '0') || 0
+  let lng = parseFloat(cf.longitude || cf.lon || '0') || 0
 
-  // 国家：CF 代理时 cf-ipcountry 才是访客国家；否则用 EdgeOne 原生
-  let country = ''
-  if (cfProxy) {
-    country = headers.get('cf-ipcountry') || ''
-    if (country === 'XX' || country === 'T1') country = ''
-  }
-  if (!country) country = eoGeo.countryCodeAlpha2 || ''
-
-  // 城市/经纬度：
-  // - 非 CF 代理：直接信任 EdgeOne 原生
-  // - CF 代理 或 EdgeOne 原生 cityName 缺失：用真实 IP 外部查询兜底
-  let city = ''
-  let lat = parseFloat(eoGeo.latitude || '0') || 0
-  let lng = parseFloat(eoGeo.longitude || '0') || 0
-
-  const eoCity = eoGeo.cityName && eoGeo.cityName !== 'Unknown' ? eoGeo.cityName : ''
-
-  if (!cfProxy && eoCity) {
-    city = eoCity
-  } else {
+  const cfCityOk = city && city !== 'Unknown' && (lat || lng)
+  if (!cfCityOk) {
     const ext = await lookupIpGeo(realIp)
     if (ext) {
-      city = ext.city || ''
-      lat = ext.lat || 0
-      lng = ext.lng || 0
+      city = ext.city || city
+      lat = ext.lat || lat
+      lng = ext.lng || lng
       if (!country && ext.country) country = ext.country
-    } else if (!cfProxy && eoCity) {
-      city = eoCity
     }
   }
 
@@ -144,7 +109,6 @@ export async function onRequest(context) {
         WHERE ip_hash = ${ipHash} AND visited_at > NOW() - INTERVAL '30 minutes'
         ORDER BY visited_at DESC LIMIT 1
       `, 'dedup')
-      // 30 分钟内已有有效城市记录 → 直接跳过，不重复写入
       if (recent.length > 0 && recent[0].city && recent[0].city !== 'Unknown') {
         return apiResponse({ message: 'already tracked', skipped: true })
       }
@@ -152,7 +116,6 @@ export async function onRequest(context) {
       const loc = await resolveGeo(request, ip)
 
       if (recent.length > 0) {
-        // 上次是 Unknown（geo 失败），现在补全
         await runSqlWithRetry(() => sql`UPDATE city_visits SET country=${loc.country}, city=${loc.city}, lat=${loc.lat}, lng=${loc.lng}, visited_at=NOW() WHERE id=${recent[0].id}`, 'update')
       } else {
         await runSqlWithRetry(() => sql`INSERT INTO city_visits (ip_hash, country, city, lat, lng) VALUES (${ipHash}, ${loc.country}, ${loc.city}, ${loc.lat}, ${loc.lng})`, 'insert')
@@ -163,7 +126,7 @@ export async function onRequest(context) {
     // GET 统计
     const totalResult = await runSqlWithRetry(() => sql`SELECT COUNT(DISTINCT ip_hash)::int as total FROM city_visits WHERE visited_at >= DATE_TRUNC('month', NOW())`, 'total')
     const citiesResult = await runSqlWithRetry(() => sql`SELECT COUNT(DISTINCT city)::int as count FROM city_visits WHERE city != 'Unknown' AND city != ''`, 'citycount')
-    // 按 city+country 聚合（同一城市不同次写入的经纬度可能略有偏差，取均值避免分裂成多个光点）
+    // 按 city+country 聚合，经纬度取均值，避免同一城市分裂成多个光点
     const topCities = await runSqlWithRetry(() => sql`SELECT city, country, ROUND(AVG(lat)::numeric, 4)::float as lat, ROUND(AVG(lng)::numeric, 4)::float as lng, COUNT(DISTINCT ip_hash)::int as visits FROM city_visits WHERE city != 'Unknown' AND city != '' GROUP BY city, country ORDER BY visits DESC LIMIT 20`, 'top')
     const allCities = await runSqlWithRetry(() => sql`SELECT city, country, ROUND(AVG(lat)::numeric, 4)::float as lat, ROUND(AVG(lng)::numeric, 4)::float as lng, COUNT(DISTINCT ip_hash)::int as visits FROM city_visits WHERE city != 'Unknown' AND city != '' AND lat != 0 GROUP BY city, country`, 'all')
     return apiResponse({
