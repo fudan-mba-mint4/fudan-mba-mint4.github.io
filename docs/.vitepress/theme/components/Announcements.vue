@@ -251,6 +251,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
           <p class="hero-summary">{{ item.summary[lang] }}</p>
           <div class="hero-foot">
             <span class="announcement-date">{{ t.postedOn }} {{ formatDate(item.date) }}</span>
+            <span v-if="item.created_by" class="announcement-author">· {{ item.created_by }} 发布</span>
           </div>
         </article>
       </div>
@@ -288,6 +289,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
               :class="deadlineState(item).tier"
             >{{ deadlineState(item).label }}</span>
             <span class="announcement-date">{{ formatDate(item.date) }}</span>
+            <span v-if="item.created_by" class="announcement-author">· {{ item.created_by }} 发布</span>
           </div>
           <h3 class="announcement-title">{{ item.title[lang] }}</h3>
           <p class="announcement-summary">{{ item.summary[lang] }}</p>
@@ -504,6 +506,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
   font-size: var(--text-xs);
   font-weight: 500;
 }
+.announcement-author { font-size: 12px; color: var(--c-text-tertiary); font-weight: 400; }
 .announcement-date {
   font-size: var(--text-xs);
   color: var(--c-text-tertiary);

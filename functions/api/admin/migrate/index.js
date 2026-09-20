@@ -2,19 +2,17 @@
 // 1) 确保全部表已建（这里是唯一允许在请求中调用 initDatabase 的端点）
 // 2) 从本站静态 /data/*.json 拉取并幂等 upsert 到数据库，可重入
 import {
-  getSql, initDatabase, corsResponse, optionsResponse,
+  getSql, initDatabase, corsResponse, optionsResponse, requireRole,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权，需要管理员Token' }, 401)
   if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
+  // migrate 会初始化表/导入数据，仅主理人/副主理可执行
+  // （announcements 模块只对 leader/deputy 开放，借此限定）
+  const auth = await requireRole(request, env, 'announcements')
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
 
   try {
     await initDatabase(env)

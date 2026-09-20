@@ -1,19 +1,15 @@
-// R2 直传接口 - POST /api/admin/upload（仅管理员）
+// R2 直传接口 - POST /api/admin/upload（登录班委）
 // Cloudflare Pages：通过 R2 binding（env.R2）直接写入，无需 S3 签名。
 // body: { key, contentType, dataBase64 }
 import {
-  corsResponse, optionsResponse, parseBody,
+  corsResponse, optionsResponse, parseBody, requireCommittee,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权，需要管理员身份' }, 401)
+  const auth = await requireCommittee(request, env)
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
   if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
 
   try {

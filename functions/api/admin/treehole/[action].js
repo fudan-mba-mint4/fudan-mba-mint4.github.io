@@ -1,18 +1,14 @@
 // 树洞管理员 - 批量删除/恢复（POST /api/admin/treehole/:action）
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, corsResponse, optionsResponse, parseBody,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env, params } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权，需要管理员Token' }, 401)
+  const auth = await requireRole(request, env, 'treehole')
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
 
   const sql = getSql(env)
   const action = params.action

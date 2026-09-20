@@ -3,24 +3,24 @@
 // 1) 将 admin_history 该记录标记为 reverted；
 // 2) 按类型删除关联内容（公告/活动/投票按 ref_id 直接删除）；
 //    班费、课程资料为聚合数据、相册为外链，撤回仅标记，具体由对应岗位人工核对。
+// 鉴权：登录班委，且只能操作自己管辖模块（主理人/副主理可撤回任意模块）。
 import {
-  getSql, corsResponse, optionsResponse, parseBody,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权' }, 401)
   if (request.method !== 'POST') return corsResponse({ error: '不支持的方法' }, 405)
 
+  const b = await parseBody(request)
+  if (!b.id) return corsResponse({ error: '缺少记录 id' }, 400)
+
+  // type 命名与 MODULE_ROLES 的 key 一致，直接作为模块鉴权
+  const auth = await requireRole(request, env, b.type)
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
+
   try {
-    const b = await parseBody(request)
-    if (!b.id) return corsResponse({ error: '缺少记录 id' }, 400)
     const sql = getSql(env)
 
     // 1. 标记已撤回
@@ -32,14 +32,14 @@ export async function onRequest(context) {
     const refId = b.ref_id || null
     if (refId) {
       if (b.type === 'announcements') {
-        const r = await sql`DELETE FROM announcements WHERE id = ${refId}`
-        removed = r.count > 0
+        const r = await sql`DELETE FROM announcements WHERE id = ${refId} RETURNING id`
+        removed = r.length > 0
       } else if (b.type === 'activities') {
-        const r = await sql`DELETE FROM activities WHERE id = ${refId}`
-        removed = r.count > 0
+        const r = await sql`DELETE FROM activities WHERE id = ${refId} RETURNING id`
+        removed = r.length > 0
       } else if (b.type === 'polls') {
-        const r = await sql`DELETE FROM polls_admin WHERE id = ${refId}`
-        removed = r.count > 0
+        const r = await sql`DELETE FROM polls_admin WHERE id = ${refId} RETURNING id`
+        removed = r.length > 0
       } else if (b.type === 'finance') {
         note = '班费为聚合数据，请由财务激励官核对后调整。'
       } else if (b.type === 'courseMaterials') {

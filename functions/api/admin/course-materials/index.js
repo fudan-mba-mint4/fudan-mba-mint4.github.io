@@ -1,24 +1,25 @@
 // 课程资料管理员写 API - POST/PUT /api/admin/course-materials
 // 整个 body（{courses:[...]}）upsert 到 course_materials id='default'
+// 鉴权：登录班委 + 模块角色（智库研究员 / 主理人 / 副主理人）。
 import {
-  getSql, corsResponse, optionsResponse, parseBody,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权，需要管理员身份' }, 401)
+  const auth = await requireRole(request, env, 'courseMaterials')
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
 
   try {
     const sql = getSql(env)
     const body = await parseBody(request)
 
     if (request.method === 'POST' || request.method === 'PUT') {
+      // 记录整包最后维护人
+      body.updated_by = auth.user.name
+      body.updated_by_id = auth.user.id
+
       const result = await sql`
         INSERT INTO course_materials (id, data)
         VALUES ('default', ${JSON.stringify(body)}::jsonb)

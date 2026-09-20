@@ -7,7 +7,7 @@
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
   getSql, hashPassword, generateToken,
-  getAuthUser, corsResponse, optionsResponse, parseBody,
+  getAuthUser, corsResponse, optionsResponse, parseBody, COMMITTEE_ROLES,
 } from '../../_utils.js'
 
 export async function onRequest(context) {
@@ -46,15 +46,17 @@ async function handleRegister(request, env) {
 
   const token = generateToken()
   const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  // 按真名自动识别班委角色（非班委为 null）
+  const role = COMMITTEE_ROLES[name.trim()] || null
 
   const result = await sql`
-    INSERT INTO users (username, password_hash, name, nickname, token, token_expires_at)
-    VALUES (${username.trim()}, ${await hashPassword(password)}, ${name.trim()}, ${nickname?.trim() || ''}, ${token}, ${tokenExpires})
-    RETURNING id, username, name, nickname, group_no, created_at
+    INSERT INTO users (username, password_hash, name, nickname, role, token, token_expires_at)
+    VALUES (${username.trim()}, ${await hashPassword(password)}, ${name.trim()}, ${nickname?.trim() || ''}, ${role}, ${token}, ${tokenExpires})
+    RETURNING id, username, name, nickname, role, group_no, created_at
   `
 
   return corsResponse({
-    message: '注册成功',
+    message: role ? '注册成功，已识别为班委' : '注册成功',
     data: { user: result[0], token, expiresAt: tokenExpires.toISOString() },
   }, 201)
 }
@@ -67,7 +69,7 @@ async function handleLogin(request, env) {
   if (!username || !password) return corsResponse({ error: '请输入用户名和密码' }, 400)
 
   const result = await sql`
-    SELECT id, username, password_hash, name, nickname, group_no, created_at
+    SELECT id, username, password_hash, name, nickname, role, group_no, created_at
     FROM users WHERE username = ${username.trim()} LIMIT 1
   `
 
@@ -126,7 +128,7 @@ async function handleUpdateProfile(request, env) {
     await sql`UPDATE users SET group_no = ${gno} WHERE id = ${user.id}`
   }
 
-  const result = await sql`SELECT id, username, name, nickname, group_no, created_at FROM users WHERE id = ${user.id}`
+  const result = await sql`SELECT id, username, name, nickname, role, group_no, created_at FROM users WHERE id = ${user.id}`
   return corsResponse({ message: '更新成功', data: result[0] })
 }
 

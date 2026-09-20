@@ -1,19 +1,16 @@
 // 提交历史 API（Cloudflare Pages Functions + Neon）
 // GET  /api/admin/history - 列出所有提交记录（新到旧）
 // POST /api/admin/history - 追加一条提交记录
+// 鉴权：登录班委（任意角色）。operator 由服务端按登录真名写入，防止前端伪造。
 import {
-  getSql, corsResponse, optionsResponse, parseBody,
+  getSql, corsResponse, optionsResponse, parseBody, requireCommittee,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权，需要管理员身份' }, 401)
+  const auth = await requireCommittee(request, env)
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
 
   try {
     const sql = getSql(env)
@@ -24,7 +21,7 @@ export async function onRequest(context) {
       await sql`
         INSERT INTO admin_history (id, type, action, ref_id, description, operator, status)
         VALUES (${b.id}, ${b.type}, ${b.action || 'create'}, ${b.ref_id || null},
-                ${b.description || ''}, ${b.operator || '管理员'}, ${b.status || 'success'})
+                ${b.description || ''}, ${auth.user.name}, ${b.status || 'success'})
         ON CONFLICT (id) DO NOTHING
       `
       return corsResponse({ message: '已记录' })

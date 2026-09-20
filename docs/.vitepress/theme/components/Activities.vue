@@ -443,6 +443,7 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
                 </div>
 
                 <p class="tl-desc">{{ act.description[lang] }}</p>
+                <p v-if="act.created_by" class="tl-publisher">由 {{ act.created_by }} 发布</p>
 
                 <!-- 报名进度（未来活动） -->
                 <div class="tl-progress" v-if="isUpcoming(act)">
@@ -810,6 +811,7 @@ html.dark .timeline-item.past .tl-month {
   margin-bottom: 8px;
 }
 .tl-meta-item { font-size: 13px; color: var(--c-text-secondary); }
+.tl-publisher { font-size: 12px; color: var(--c-text-tertiary); margin: 8px 0 0; font-weight: 400; }
 .tl-desc {
   font-size: 14px;
   line-height: 1.6;

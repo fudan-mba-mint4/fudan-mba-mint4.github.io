@@ -58,11 +58,14 @@ export async function initDatabase(env) {
       name VARCHAR(100) NOT NULL,
       nickname VARCHAR(100) DEFAULT '',
       group_no INTEGER,
+      role VARCHAR(20),
       token VARCHAR(128),
       token_expires_at TIMESTAMP WITH TIME ZONE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     )
   `
+  // 对已存在的 users 库幂等补 role 列（班委角色，见 COMMITTEE_ROLES）
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20)`
 
   await sql`
     CREATE TABLE IF NOT EXISTS activity_signups (
@@ -216,12 +219,74 @@ export async function getAuthUser(request, sql) {
   const token = authHeader.replace('Bearer ', '').trim()
   if (!token) return null
   const result = await sql`
-    SELECT id, username, name, nickname, group_no, created_at
+    SELECT id, username, name, nickname, group_no, role, created_at
     FROM users
     WHERE token = ${token} AND (token_expires_at IS NULL OR token_expires_at > NOW())
     LIMIT 1
   `
   return result[0] || null
+}
+
+// ===== 班委角色与权限（RBAC）=====
+// leader 班级主理人 / deputy 副主理人：全部模块
+// experience 体验运营官 / finance 财务激励官 / thinktank 智库研究员 / memory 记忆主理人
+export const ROLE_LABELS = {
+  leader: '班级主理人',
+  deputy: '副主理人',
+  experience: '体验运营官',
+  finance: '财务激励官',
+  thinktank: '智库研究员',
+  memory: '记忆主理人',
+}
+
+// 班委真名 → 角色（注册时按真名自动识别）。班委名单是公开信息（班委介绍页）。
+export const COMMITTEE_ROLES = {
+  彭皓宁: 'leader',
+  相婉玲: 'deputy',
+  雷振宇: 'deputy',
+  // 体验运营官
+  程芳芳: 'experience', 王炜泽: 'experience', 彭泽云: 'experience',
+  施纯: 'experience', 潘芸怡: 'experience',
+  // 财务激励官
+  高晓梅: 'finance', 叶宏颖: 'finance', 李浩鹏: 'finance', 程枭: 'finance',
+  // 智库研究员
+  孟维翰: 'thinktank', 邹智宇: 'thinktank',
+  // 记忆主理人（徐佩莹/徐珮莹为同一人异体写法，都识别）
+  杨旻: 'memory', 陈飘逸: 'memory', 徐哲明: 'memory',
+  李甜: 'memory', 徐佩莹: 'memory', 徐珮莹: 'memory',
+}
+
+// 每个后台模块允许的角色（leader/deputy 在 requireRole 内自动放行全部模块）
+export const MODULE_ROLES = {
+  announcements: ['leader', 'deputy'],
+  activities: ['leader', 'deputy', 'experience'],
+  polls: ['leader', 'deputy', 'experience'],
+  courseMaterials: ['leader', 'deputy', 'thinktank'],
+  finance: ['leader', 'deputy', 'finance'],
+  gallery: ['leader', 'deputy', 'memory'],
+  treehole: ['leader', 'deputy', 'memory'],
+}
+
+// 按模块鉴权：未登录 → 401；登录但无该模块权限 → 403；否则返回 user。
+export async function requireRole(request, env, module) {
+  const sql = getSql(env)
+  const user = await getAuthUser(request, sql)
+  if (!user) return { ok: false, status: 401, error: '请先登录' }
+  if (user.role === 'leader' || user.role === 'deputy') return { ok: true, user }
+  const allowed = MODULE_ROLES[module] || []
+  if (!allowed.includes(user.role)) {
+    return { ok: false, status: 403, error: '没有该模块的操作权限' }
+  }
+  return { ok: true, user }
+}
+
+// 仅要求“登录且是班委”（用于文件上传等多模块共用端点）
+export async function requireCommittee(request, env) {
+  const sql = getSql(env)
+  const user = await getAuthUser(request, sql)
+  if (!user) return { ok: false, status: 401, error: '请先登录' }
+  if (!user.role) return { ok: false, status: 403, error: '没有操作权限' }
+  return { ok: true, user }
 }
 
 // CORS响应

@@ -1,24 +1,21 @@
-// 内容表重建接口 - POST /api/admin/reset-db（仅管理员）
+// 内容表重建接口 - POST /api/admin/reset-db（仅班级主理人 leader）
 // 删除 announcements / activities / finance_records / polls_admin 四张内容表并按正确 schema 重建。
-// 这几张表当前为空或旧错误 schema，drop 安全。逐条 await，不用多语句。
+// 破坏性操作，权限最严：即使副主理人也不可执行。逐条 await，不用多语句。
 import {
-  getSql, ensureContentTables, corsResponse, optionsResponse,
+  getSql, ensureContentTables, corsResponse, optionsResponse, getAuthUser,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权，需要管理员Token' }, 401)
   if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
 
-  try {
-    const sql = getSql(env)
+  const sql = getSql(env)
+  const user = await getAuthUser(request, sql)
+  if (!user) return corsResponse({ error: '请先登录' }, 401)
+  if (user.role !== 'leader') return corsResponse({ error: '该破坏性操作仅班级主理人可执行' }, 403)
 
+  try {
     // 逐条 DROP（表名固定常量，直接写死，不做参数插值）
     await sql`DROP TABLE IF EXISTS announcements CASCADE`
     await sql`DROP TABLE IF EXISTS activities CASCADE`

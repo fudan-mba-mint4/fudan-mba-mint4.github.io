@@ -1,18 +1,30 @@
-// 投票内容管理员写 API - POST/PUT/DELETE /api/admin/polls-admin
+// 投票内容 API
+// GET    /api/admin/polls-admin - 公开只读，返回 { polls: [...] }（前台投票列表用此端点）
+// POST/PUT/DELETE - 班委写入，需登录且具备模块角色（体验运营官 / 主理人 / 副主理人）。
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, corsResponse, optionsResponse, parseBody,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole,
 } from '../../../_utils.js'
-
-function verifyAdminToken(request, env) {
-  const token = (request.headers.get('authorization') || '').replace('Bearer ', '').trim()
-  return token && (token === env.ADMIN_TOKEN || token === 'mint4_admin@2026')
-}
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  if (!verifyAdminToken(request, env)) return corsResponse({ error: '未授权，需要管理员Token' }, 401)
+
+  // ===== GET：公开只读 =====
+  if (request.method === 'GET') {
+    try {
+      const sql = getSql(env)
+      const rows = await sql`SELECT data FROM polls_admin ORDER BY updated_at DESC`
+      return corsResponse({ polls: rows.map(r => r.data) })
+    } catch (err) {
+      console.error('polls-admin GET 错误:', err)
+      return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
+    }
+  }
+
+  // ===== 写操作：鉴权 =====
+  const auth = await requireRole(request, env, 'polls')
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
 
   try {
     const sql = getSql(env)
@@ -21,6 +33,13 @@ export async function onRequest(context) {
     if (request.method === 'POST' || request.method === 'PUT') {
       const id = body.id
       if (!id) return corsResponse({ error: '缺少 id 字段' }, 400)
+      // 发布人：新建记当前用户；编辑保留原创建者、记最后更新者
+      const prevRows = await sql`SELECT data FROM polls_admin WHERE id = ${id}`
+      const prev = prevRows[0]?.data
+      body.created_by = prev?.created_by || auth.user.name
+      body.created_by_id = prev?.created_by_id || auth.user.id
+      if (prev?.created_by) body.updated_by = auth.user.name
+
       const result = await sql`
         INSERT INTO polls_admin (id, data)
         VALUES (${id}, ${JSON.stringify(body)}::jsonb)

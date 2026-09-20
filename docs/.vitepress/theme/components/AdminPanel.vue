@@ -1,15 +1,30 @@
 <template>
   <div class="admin-panel">
-    <!-- ===== 密码验证 ===== -->
-    <div v-if="!authenticated" class="auth-screen">
+    <!-- ===== 未登录：班委账号登录 ===== -->
+    <div v-if="!isAuthenticated" class="auth-screen">
       <div class="auth-card">
         <div class="auth-icon">🔒</div>
         <h2>班级网站管理后台</h2>
-        <p class="auth-desc">仅限管理员访问</p>
-        <input type="password" v-model="passwordInput" placeholder="请输入访问密码"
-          @keyup.enter="verifyPassword" class="auth-input" />
-        <button @click="verifyPassword" class="auth-btn">登 录</button>
+        <p class="auth-desc">班委请用注册账号登录</p>
+        <input v-model="loginUsername" placeholder="用户名" class="auth-input"
+          @keyup.enter="doLogin" />
+        <input type="password" v-model="loginPassword" placeholder="密码" class="auth-input"
+          @keyup.enter="doLogin" />
+        <button @click="doLogin" class="auth-btn" :disabled="loginLoading">
+          {{ loginLoading ? '登录中…' : '登 录' }}
+        </button>
         <p v-if="authError" class="auth-error">{{ authError }}</p>
+        <p class="auth-hint">还没有账号？请先<a href="/register/">注册</a>，班委注册后系统会自动识别身份</p>
+      </div>
+    </div>
+
+    <!-- ===== 已登录但非班委：无权限 ===== -->
+    <div v-else-if="!currentUser.role" class="auth-screen">
+      <div class="auth-card">
+        <div class="auth-icon">🚫</div>
+        <h2>没有访问权限</h2>
+        <p class="auth-desc">管理后台仅班委可使用。<br />当前以「{{ currentUser.name }}」登录。</p>
+        <button @click="logout" class="auth-btn">退出登录</button>
       </div>
     </div>
 
@@ -17,7 +32,11 @@
     <div v-else class="admin-main">
       <header class="admin-header">
         <h2>📋 班级网站管理后台</h2>
-        <button @click="logout" class="logout-btn">退出</button>
+        <div class="admin-identity">
+          <span class="identity-name">{{ currentUser.name }}</span>
+          <span class="identity-role">{{ roleLabel }}</span>
+          <button @click="logout" class="logout-btn">退出</button>
+        </div>
       </header>
 
       <!-- 数据库与 R2 已就绪 -->
@@ -25,9 +44,9 @@
         <span class="token-badge">✓ 数据库与 R2 已连接</span>
       </div>
 
-      <!-- 类型标签 -->
+      <!-- 类型标签（按角色过滤，只显示自己管辖的模块） -->
       <div class="type-tabs">
-        <button v-for="t in dataTypes" :key="t.id" @click="currentType = t.id"
+        <button v-for="t in visibleTypes" :key="t.id" @click="currentType = t.id"
           :class="{ active: currentType === t.id }" class="type-tab">
           {{ t.icon }} {{ t.name }}
         </button>
@@ -411,23 +430,24 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
-const PASSWORD_HASH = '3d0c0717ae88423229d3dbe5c67c0d9ba38d1ba6b6a84d175914081233db713f'
 import { API_PREFIX } from '../composables/apiConfig.js'
+import { useAuth } from '../composables/useAuth.js'
 
-// ===== 认证 =====
-const authenticated = ref(false)
-const passwordInput = ref('')
+// ===== 认证（班委实名登录；登录态由 useAuth 用 localStorage 持久化，刷新/重开免登录）=====
+const { currentUser, isAuthenticated, login, logout, getToken } = useAuth()
+const loginUsername = ref('')
+const loginPassword = ref('')
+const loginLoading = ref(false)
 const authError = ref('')
-async function sha256(text) {
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('')
+async function doLogin() {
+  if (!loginUsername.value.trim() || !loginPassword.value) {
+    authError.value = '请输入用户名和密码'; return
+  }
+  loginLoading.value = true; authError.value = ''
+  const r = await login({ username: loginUsername.value.trim(), password: loginPassword.value })
+  loginLoading.value = false
+  if (!r.success) authError.value = r.error
 }
-async function verifyPassword() {
-  if (await sha256(passwordInput.value) === PASSWORD_HASH) {
-    authenticated.value = true; authError.value = ''
-  } else authError.value = '密码错误'
-}
-function logout() { authenticated.value = false; localStorage.removeItem('admin_auth') }
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B'
@@ -467,6 +487,36 @@ const dataTypes = [
   { id: 'treehole', name: '树洞管理', icon: '🌳' },
 ]
 const currentType = ref('announcements')
+
+// 各模块允许的角色（与 functions/_utils.js 的 MODULE_ROLES 保持一致，改动需同步）
+const MODULE_ROLE_MAP = {
+  announcements: ['leader', 'deputy'],
+  activities: ['leader', 'deputy', 'experience'],
+  polls: ['leader', 'deputy', 'experience'],
+  courseMaterials: ['leader', 'deputy', 'thinktank'],
+  finance: ['leader', 'deputy', 'finance'],
+  gallery: ['leader', 'deputy', 'memory'],
+  treehole: ['leader', 'deputy', 'memory'],
+}
+const ROLE_LABEL_MAP = {
+  leader: '班级主理人', deputy: '副主理人', experience: '体验运营官',
+  finance: '财务激励官', thinktank: '智库研究员', memory: '记忆主理人',
+}
+// 按当前登录用户角色过滤可见模块（主理人/副主理人看全部）
+const visibleTypes = computed(() => {
+  const role = currentUser.value?.role
+  if (!role) return []
+  if (role === 'leader' || role === 'deputy') return dataTypes
+  return dataTypes.filter(t => (MODULE_ROLE_MAP[t.id] || []).includes(role))
+})
+const roleLabel = computed(() => ROLE_LABEL_MAP[currentUser.value?.role] || '')
+// 登录/角色变化后，若当前模块不在可见范围，自动切到第一个可见模块
+watch(visibleTypes, (list) => {
+  if (list.length && !list.some(t => t.id === currentType.value)) {
+    currentType.value = list[0].id
+  }
+}, { immediate: true })
+
 const submitting = ref(false)
 
 // ===== 表单数据 =====
@@ -561,9 +611,6 @@ function removeLocalPhoto(index) {
 }
 
 // ===== 树洞管理 =====
-const treeholeAdminVerified = ref(true) // 已过admin页面密码，直接授权
-const treeholeTokenInput = ref('mint4_admin@2026')
-const treeholeTokenError = ref('')
 const treeholeMessages = ref([])
 const treeholeLoading = ref(false)
 const treeholeSearch = ref('')
@@ -575,9 +622,9 @@ const expandedId = ref(null)
 let searchDebounceTimer = null
 
 // ===== Cloudflare 后端 admin API（直连，不再走 GitHub 代理写文件）=====
-// Authorization 复用树洞后台在用的同一个 admin token（treeholeTokenInput），原样 Bearer 带上。
+// Authorization 使用当前登录班委的个人 token（getToken），原样 Bearer 带上。
 function getAdminToken() {
-  return (treeholeTokenInput.value || '').trim()
+  return getToken() || ''
 }
 function adminHeaders(extra = {}) {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}`, ...extra }
@@ -625,29 +672,6 @@ async function uploadFileToAdmin(file, customKey) {
   return data.url
 }
 
-async function verifyTreeholeToken(silent = false) {
-  if (!treeholeTokenInput.value.trim()) {
-    treeholeTokenError.value = '请输入Admin Token'
-    return
-  }
-  treeholeTokenError.value = ''
-  try {
-    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole?page=1&limit=1`, {
-      headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
-    })
-    if (res.ok) {
-      treeholeAdminVerified.value = true
-      sessionStorage.setItem('treehole_admin_token', treeholeTokenInput.value.trim())
-      loadTreeholeMessages()
-    } else {
-      treeholeTokenError.value = 'Token无效'
-      sessionStorage.removeItem('treehole_admin_token')
-    }
-  } catch (e) {
-    if (!silent) treeholeTokenError.value = '验证失败: ' + e.message
-  }
-}
-
 // 防抖搜索
 function onTreeholeSearchInput() {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
@@ -676,7 +700,7 @@ async function loadTreeholeMessages() {
       params.set('search', treeholeSearch.value.trim())
     }
     const res = await fetchWithRetry(`${API_PREFIX}/api/admin/treehole?${params}`, {
-      headers: { 'Authorization': `Bearer ${treeholeTokenInput.value.trim()}` }
+      headers: { 'Authorization': `Bearer ${getToken()}` }
     })
     const data = await res.json()
     if (res.ok) {
@@ -730,7 +754,7 @@ async function deleteSingleTreehole(id) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${treeholeTokenInput.value.trim()}`
+        'Authorization': `Bearer ${getToken()}`
       },
       body: JSON.stringify({ ids: [id] })
     })
@@ -752,7 +776,7 @@ async function restoreSingleTreehole(id) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${treeholeTokenInput.value.trim()}`
+        'Authorization': `Bearer ${getToken()}`
       },
       body: JSON.stringify({ ids: [id] })
     })
@@ -776,7 +800,7 @@ async function batchDeleteTreehole() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${treeholeTokenInput.value.trim()}`
+        'Authorization': `Bearer ${getToken()}`
       },
       body: JSON.stringify({ ids: treeholeSelected.value })
     })
@@ -801,7 +825,7 @@ async function batchRestoreTreehole() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${treeholeTokenInput.value.trim()}`
+        'Authorization': `Bearer ${getToken()}`
       },
       body: JSON.stringify({ ids: treeholeSelected.value })
     })
@@ -1252,10 +1276,13 @@ async function submitPoll() {
 
 // ===== 初始化 =====
 onMounted(() => {
-  loadHistory()
+  if (isAuthenticated.value) loadHistory()
 })
+// 登录成功后加载提交记录
+watch(isAuthenticated, (v) => { if (v) loadHistory() })
 watch(currentType, (val) => {
   if (val === 'finance' && activitiesList.value.length === 0) loadActivitiesForSelect()
+  if (val === 'treehole' && treeholeMessages.value.length === 0) loadTreeholeMessages()
 })
 </script>
 
@@ -1271,10 +1298,15 @@ watch(currentType, (val) => {
 .auth-btn { width: 100%; padding: 12px; background: var(--c-accent); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
 .auth-btn:hover { opacity: 0.9; }
 .auth-error { color: #ff3b30; font-size: 13px; margin-top: 12px; }
+.auth-hint { color: var(--c-text-tertiary); font-size: 12px; margin-top: 18px; line-height: 1.7; }
+.auth-hint a { color: var(--c-accent); text-decoration: none; font-weight: 600; }
 .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .admin-header h2 { font-size: 22px; font-weight: 700; margin: 0; }
 .logout-btn { padding: 8px 16px; background: transparent; border: 1px solid var(--c-border); border-radius: 10px; color: var(--c-text-secondary); cursor: pointer; font-size: 13px; }
 .logout-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.admin-identity { display: flex; align-items: center; gap: 12px; }
+.identity-name { font-size: 14px; font-weight: 600; color: var(--c-text-primary); }
+.identity-role { font-size: 12px; color: #fff; background: var(--c-accent); padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 .token-bar { display: flex; gap: 10px; align-items: center; background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; }
 .token-input { flex: 1; padding: 10px 14px; border: 1px solid var(--c-border); border-radius: 10px; font-size: 13px; background: var(--c-bg-secondary); color: var(--c-text-primary); }
 .token-btn { padding: 10px 18px; background: var(--c-accent); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }

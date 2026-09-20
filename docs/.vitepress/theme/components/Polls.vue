@@ -304,6 +304,7 @@ function formatDeadline(iso) {
         <transition name="poll-expand">
           <div v-if="expandedId === poll.id" class="poll-detail">
             <p class="poll-desc">{{ poll.description[lang] }}</p>
+            <p v-if="poll.created_by" class="poll-publisher">由 {{ poll.created_by }} 发起</p>
 
             <!-- 选项列表 -->
             <div class="poll-options">
@@ -411,6 +412,7 @@ function formatDeadline(iso) {
 .poll-deadline { font-size: 11px; color: var(--c-text-tertiary); }
 
 .poll-detail { padding: 0 20px 20px; border-top: 1px solid var(--c-border-light); }
+.poll-publisher { font-size: 12px; color: var(--c-text-tertiary); margin: 6px 0 0; font-weight: 400; }
 .poll-desc { font-size: 14px; color: var(--c-text-secondary); margin: 16px 0; line-height: 1.6; }
 
 .poll-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
