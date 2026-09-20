@@ -604,13 +604,13 @@ onMounted(async () => {
   margin-top: 16px;
 }
 
-/* 右侧地图：固定等距圆柱投影比例 2:1，顶部对齐，
-   城市列表再长也不拉伸地图（宽度由列宽决定，高度=宽度/2） */
+/* 右侧地图：固定宽高比 5:3（在等距投影 2:1 基础上高度×1.2），顶部对齐，
+   城市列表再长也不拉伸地图（宽度由列宽决定，高度=宽度×0.6） */
 .cf-map-area {
   position: relative;
   align-self: start;
   width: 100%;
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 5 / 3;
 }
 
 .cf-map {
