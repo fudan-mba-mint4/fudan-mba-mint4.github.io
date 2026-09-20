@@ -1,8 +1,9 @@
 // 服务端翻译：由 Cloudflare 边缘节点完成。班委浏览器只调同源 /api/translate，
-// 无需 VPN、无需能访问任何境外翻译服务。多供应商兜底，任一成功即可。
+// 无需 VPN、无需能访问任何境外翻译服务。
+// 优先用配置了 GOOGLE_TRANSLATE_API_KEY 的 Google 官方翻译（稳定、按 key 计额）；
+// 未配置 key 时用免 key 端点兜底（数据中心共享 IP 可能被限流）。
 import { corsResponse, optionsResponse } from '../../_utils.js'
 
-// 按句子边界聚合切分，单段不超过 max 字符
 function splitText(text, max = 450) {
   const pieces = []
   let buf = ''
@@ -13,18 +14,30 @@ function splitText(text, max = 450) {
       if (s.length > max) {
         for (let i = 0; i < s.length; i += max) pieces.push(s.slice(i, i + max))
         buf = ''
-      } else {
-        buf = s
-      }
-    } else {
-      buf += s
-    }
+      } else { buf = s }
+    } else { buf += s }
   }
   if (buf) pieces.push(buf)
   return pieces.length ? pieces : [text]
 }
 
-// 供应商1：Google translate 的 dict-chrome-ex 客户端端点（限流比 gtx 宽松，免 key）
+// 官方 Google Cloud Translation v2（需 key，稳定）
+async function googleOfficial(text, tl, key) {
+  const body = new URLSearchParams()
+  body.set('source', 'zh-CN'); body.set('target', tl); body.set('format', 'text')
+  body.append('q', text)
+  const res = await fetch(
+    'https://translation.googleapis.com/language/translate/v2?key=' + encodeURIComponent(key),
+    { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body }
+  )
+  if (!res.ok) throw new Error('googleOfficial HTTP ' + res.status)
+  const d = await res.json()
+  const t = d?.data?.translations?.[0]?.translatedText
+  if (!t) throw new Error('googleOfficial 无译文')
+  return t
+}
+
+// 免 key：Google dict-chrome-ex
 async function googleDict(text, tl) {
   const out = []
   for (const seg of splitText(text)) {
@@ -41,7 +54,7 @@ async function googleDict(text, tl) {
   return out.join('')
 }
 
-// 供应商2：MyMemory（免注册、免 key）
+// 免 key：MyMemory
 async function myMemory(text, tl) {
   const out = []
   for (const seg of splitText(text)) {
@@ -53,23 +66,26 @@ async function myMemory(text, tl) {
     const t = d?.responseData?.translatedText || ''
     if (d.responseStatus !== 200
       || /MYMEMORY|INVALID|PLEASE SELECT|QUERY LENGTH|WARNING/i.test(t)) {
-      throw new Error('myMemory ' + d.responseStatus + ' ' + (d.responseDetails || t))
+      throw new Error('myMemory ' + d.responseStatus)
     }
     out.push(t)
   }
   return out.join('')
 }
 
-// 供应商链：依次尝试，全部失败才抛错
-async function chainTranslate(text, tl) {
+async function chainTranslate(text, tl, key) {
   let lastErr
-  for (const provider of [googleDict, myMemory]) {
+  const providers = []
+  if (key) providers.push((tx, l) => googleOfficial(tx, l, key))
+  providers.push(googleDict, myMemory)
+  for (const provider of providers) {
     try { return await provider(text, tl) } catch (e) { lastErr = e }
   }
   throw lastErr
 }
 
-export async function onRequest({ request }) {
+export async function onRequest(context) {
+  const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
   if (request.method !== 'POST') return corsResponse({ error: '仅支持 POST' }, 405)
 
@@ -78,9 +94,10 @@ export async function onRequest({ request }) {
   const text = (body.text || '').toString()
   if (!text.trim()) return corsResponse({ en: text, th: text })
 
+  const key = env.GOOGLE_TRANSLATE_API_KEY || ''
   const [en, th] = await Promise.all([
-    chainTranslate(text, 'en').catch(() => text),
-    chainTranslate(text, 'th').catch(() => text),
+    chainTranslate(text, 'en', key).catch(() => text),
+    chainTranslate(text, 'th', key).catch(() => text),
   ])
   return corsResponse({ en, th })
 }
