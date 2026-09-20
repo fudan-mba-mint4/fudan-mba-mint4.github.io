@@ -1,8 +1,8 @@
-// 服务端翻译：由 Cloudflare 边缘节点调用 MyMemory（免注册、免 key、支持中/英/泰）。
-// 班委浏览器只调同源 /api/translate，无需 VPN、无需能访问任何境外翻译服务。
+// 服务端翻译：由 Cloudflare 边缘节点完成。班委浏览器只调同源 /api/translate，
+// 无需 VPN、无需能访问任何境外翻译服务。多供应商兜底，任一成功即可。
 import { corsResponse, optionsResponse } from '../../_utils.js'
 
-// 按句子边界聚合切分，单段不超过 max 字符（MyMemory 对超长 query 会拒绝）
+// 按句子边界聚合切分，单段不超过 max 字符
 function splitText(text, max = 450) {
   const pieces = []
   let buf = ''
@@ -24,26 +24,49 @@ function splitText(text, max = 450) {
   return pieces.length ? pieces : [text]
 }
 
-async function myMemoryTranslate(text, tl) {
-  const segments = splitText(text)
+// 供应商1：Google translate 的 dict-chrome-ex 客户端端点（限流比 gtx 宽松，免 key）
+async function googleDict(text, tl) {
   const out = []
-  for (const seg of segments) {
+  for (const seg of splitText(text)) {
+    const url = 'https://translate.googleapis.com/translate_a/single?client=dict-chrome-ex'
+      + '&sl=zh-CN&tl=' + tl + '&dt=t&q=' + encodeURIComponent(seg)
+    const res = await fetch(url, { cf: { cacheTtl: 30 * 24 * 3600, cacheEverything: true } })
+    if (!res.ok) throw new Error('googleDict HTTP ' + res.status)
+    const d = await res.json()
+    if (!Array.isArray(d) || !Array.isArray(d[0])) throw new Error('googleDict 格式异常')
+    const t = d[0].map(s => s[0]).join('')
+    if (!t.trim()) throw new Error('googleDict 空译文')
+    out.push(t)
+  }
+  return out.join('')
+}
+
+// 供应商2：MyMemory（免注册、免 key）
+async function myMemory(text, tl) {
+  const out = []
+  for (const seg of splitText(text)) {
     const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(seg)
       + '&langpair=zh-CN|' + tl
-    const res = await fetch(url, {
-      cf: { cacheTtl: 30 * 24 * 3600, cacheEverything: true },
-    })
-    if (!res.ok) throw new Error('HTTP ' + res.status)
+    const res = await fetch(url, { cf: { cacheTtl: 30 * 24 * 3600, cacheEverything: true } })
+    if (!res.ok) throw new Error('myMemory HTTP ' + res.status)
     const d = await res.json()
     const t = d?.responseData?.translatedText || ''
-    // 识别额度/参数错误（此时 translatedText 可能是警告串而非译文）
     if (d.responseStatus !== 200
       || /MYMEMORY|INVALID|PLEASE SELECT|QUERY LENGTH|WARNING/i.test(t)) {
-      throw new Error('MyMemory ' + d.responseStatus + ' ' + (d.responseDetails || t))
+      throw new Error('myMemory ' + d.responseStatus + ' ' + (d.responseDetails || t))
     }
     out.push(t)
   }
   return out.join('')
+}
+
+// 供应商链：依次尝试，全部失败才抛错
+async function chainTranslate(text, tl) {
+  let lastErr
+  for (const provider of [googleDict, myMemory]) {
+    try { return await provider(text, tl) } catch (e) { lastErr = e }
+  }
+  throw lastErr
 }
 
 export async function onRequest({ request }) {
@@ -55,10 +78,9 @@ export async function onRequest({ request }) {
   const text = (body.text || '').toString()
   if (!text.trim()) return corsResponse({ en: text, th: text })
 
-  // 两种语言并行；任一失败则该语言回退原文，不影响另一种
   const [en, th] = await Promise.all([
-    myMemoryTranslate(text, 'en').catch(() => text),
-    myMemoryTranslate(text, 'th').catch(() => text),
+    chainTranslate(text, 'en').catch(() => text),
+    chainTranslate(text, 'th').catch(() => text),
   ])
   return corsResponse({ en, th })
 }
