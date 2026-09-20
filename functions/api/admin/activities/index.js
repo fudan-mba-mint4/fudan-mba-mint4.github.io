@@ -2,7 +2,7 @@
 // 鉴权：登录班委 + 模块角色（体验运营官 / 主理人 / 副主理人）。
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory, notify,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -38,13 +38,20 @@ export async function onRequest(context) {
       const titleText = typeof body.title === 'string'
         ? body.title
         : (body.title?.zh || body.name || id)
+      const isCreate = !prev?.created_by
       await logHistory(sql, {
         type: 'activities',
-        action: prev?.created_by ? 'update' : 'create',
+        action: isCreate ? 'create' : 'update',
         refId: id,
         description: titleText,
         operator: auth.user.name,
       })
+      if (isCreate) {
+        const loc = typeof body.location === 'object' ? body.location?.zh : body.location
+        await notify(sql, { type: 'activity', title: titleText,
+          body: [body.date, loc].filter(Boolean).join(' · '),
+          modulePath: '/activities/', operator: auth.user.name })
+      }
       return corsResponse({ message: '保存成功', id: result[0]?.id }, 200)
     }
 

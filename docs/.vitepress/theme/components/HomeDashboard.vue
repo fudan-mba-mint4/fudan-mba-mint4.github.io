@@ -331,7 +331,6 @@ const alertColors = {
 
 // —— 弹窗「已展示」指纹（仅控制弹窗不重复弹，不代表内容已读；内容已读见 moduleRead）——
 const SEEN_STORE = 'mint4_notif_seen'
-const NOTIF_DEMO = true   // 本地演示开关；正式接入统一通知端点后置为 false
 const seenSet = ref(new Set())
 function loadSeen() {
   if (typeof localStorage === 'undefined') return
@@ -344,15 +343,20 @@ function markSeen(keys) {
     localStorage.setItem(SEEN_STORE, JSON.stringify([...seenSet.value]))
 }
 
-// Demo：班委新发布/更新的 6 类内容（本地演示；正式由统一通知聚合端点返回）
-const demoNewItems = () => [
-  { key: 'announcement:ann-demo:202609201600', type: 'announcement', title: '关于中秋国庆放假安排的通知', desc: '班委新发布 · 刚刚' },
-  { key: 'activity:act-demo:202609201600',     type: 'activity',     title: '班委选举', desc: '班委新发布 · 今天 17:00 · B403' },
-  { key: 'poll:poll-demo:202609201600',        type: 'poll',         title: '班级活动时间投票', desc: '班委新发起 · 请参与' },
-  { key: 'course:default:202609201600',        type: 'course',       title: '课程资料已更新', desc: '班委上传了新课件' },
-  { key: 'knowledge:default:202609201600',     type: 'knowledge',    title: '知识库有新资料', desc: '智库研究员新整理' },
-  { key: 'finance:default:202609201600',       type: 'finance',      title: '班费明细已更新', desc: '财务激励官公示' },
-]
+// 拉取班委发布的真实通知（统一通知端点），转成弹窗项
+const fetchNewNotifications = async () => {
+  try {
+    const r = await fetch('/api/notifications')
+    if (!r.ok) return []
+    const j = await r.json()
+    return (j.notifications || []).map(n => ({
+      key: `notif:${n.id}`,
+      id: n.id, type: n.type,
+      title: n.title, desc: n.body || '',
+      createdAt: n.created_at,
+    }))
+  } catch (e) { return [] }
+}
 
 // 检测临近截止项（真实数据；按 deadline:类型:id:当天日期 去重，同一天只提醒一次）
 const detectDeadlines = () => {
@@ -396,22 +400,28 @@ const detectDeadlines = () => {
   return results
 }
 
-const triggerAlerts = () => {
+const triggerAlerts = async () => {
   loadSeen()
-  // ?resetNotifs=1：清空已读，方便反复演示
+  // ?resetNotifs=1：清空已展示，方便反复演示
   if (typeof window !== 'undefined'
       && new URLSearchParams(window.location.search).get('resetNotifs')) {
     seenSet.value = new Set()
     if (typeof localStorage !== 'undefined') localStorage.removeItem(SEEN_STORE)
   }
-  // 汇总「新内容（demo）+ 临近截止（真实）」，过滤已读
-  const candidates = [
-    ...(NOTIF_DEMO ? demoNewItems() : []),
-    ...detectDeadlines(),
-  ]
+  // 班委发布通知（仅最近 7 天、最多 8 条弹窗，其余静默标记）+ 临近截止（真实）
+  const published = await fetchNewNotifications()
+  const week = 7 * 24 * 60 * 60 * 1000
+  const now = Date.now()
+  const recent = published.filter(n => n.createdAt
+    && now - new Date(n.createdAt).getTime() <= week)
+  const toShow = recent.slice(0, 8)
+  const toSilence = recent.slice(8)
+  if (toSilence.length) markSeen(toSilence.map(n => n.key))
+
+  const candidates = [...toShow, ...detectDeadlines()]
   const fresh = candidates.filter(c => !seenSet.value.has(c.key))
   if (!fresh.length) return
-  // 错峰出现：每条间隔 1 秒；出现即记已读，6 秒后各自移除
+  // 错峰出现：每条间隔 1 秒；出现即记已展示，6 秒后各自移除
   fresh.forEach((item, i) => {
     notifTimers.push(setTimeout(() => {
       alerts.value.push(item)

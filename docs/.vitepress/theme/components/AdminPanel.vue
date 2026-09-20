@@ -233,6 +233,18 @@
             {{ submitting ? '上传中...（PDF较大请稍候）' : '上传文件并提交' }}
           </button>
         </form>
+
+        <div class="existing-list">
+          <h4>当前课件与资料（{{ cmFiles.length }}）</h4>
+          <p v-if="!cmFiles.length" class="empty-hint">暂无资料</p>
+          <div v-for="item in cmFiles" :key="item.fileUrl" class="existing-item">
+            <div class="existing-info">
+              <span class="existing-title">{{ item.name }}</span>
+              <span class="existing-meta">{{ item.courseName }} · {{ item.kind }} · {{ item.size }}</span>
+            </div>
+            <button type="button" class="existing-del" @click="deleteCourseFile(item)">删除</button>
+          </div>
+        </div>
       </div>
 
       <!-- ===== 知识库表单 ===== -->
@@ -322,6 +334,21 @@
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
         </form>
+
+        <div class="existing-list">
+          <h4>当前流水（{{ finTransactions.length }}）</h4>
+          <p v-if="!finTransactions.length" class="empty-hint">暂无流水</p>
+          <div v-for="tx in finTransactions" :key="tx.id" class="existing-item">
+            <div class="existing-info">
+              <span class="existing-title">
+                <span :class="tx.type==='income' ? 'tx-income' : 'tx-expense'">{{ tx.type==='income' ? '收入' : '支出' }}</span>
+                ¥{{ tx.amount }} · {{ tx.description }}
+              </span>
+              <span class="existing-meta">{{ tx.date }}</span>
+            </div>
+            <button type="button" class="existing-del" @click="deleteFinanceTx(tx)">删除</button>
+          </div>
+        </div>
       </div>
 
       <!-- ===== 相册表单 ===== -->
@@ -565,10 +592,12 @@ const today = new Date().toISOString().split('T')[0]
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
 const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false })
 const cmForm = ref({ courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] })
+const cmFiles = ref([])
 const kbForm = ref({ courseId:'general', type:'note', date:today, title:'', author:'', file:null })
 const kbDocuments = ref([])
 const kbCourses = ref([])
 const finForm = ref({ type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' })
+const finTransactions = ref([])
 const activitiesList = ref([])
 async function loadActivitiesForSelect() {
   try {
@@ -1121,6 +1150,7 @@ async function submitCourseMaterial() {
     await throwIfNotOk(res, '保存课程资料')
     rec.status = 'success'
     cmForm.value = { courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] }
+    await loadCourseFiles()
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
   await saveRecord(rec)
@@ -1209,9 +1239,54 @@ async function submitFinance() {
     await throwIfNotOk(res, '添加班费记录')
     rec.status = 'success'
     finForm.value = { type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' }
+    await loadFinanceTransactions()
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
   await saveRecord(rec)
+}
+
+// ===== 课程资料 / 班费：当前内容列表与单条删除 =====
+function flattenCourseFiles(pack) {
+  const out = []
+  for (const c of pack.courses || []) {
+    for (const sess of c.sessions || []) {
+      for (const f of sess.files || [])
+        out.push({ courseName: c.name, kind: '课件', name: f.name, size: f.size, fileUrl: f.url })
+      if (sess.homework?.url)
+        out.push({ courseName: c.name, kind: '作业', name: sess.homework.name, size: sess.homework.size, fileUrl: sess.homework.url })
+      for (const r of sess.references || []) if (r.url)
+        out.push({ courseName: c.name, kind: '参考', name: r.name, size: r.size, fileUrl: r.url })
+    }
+  }
+  return out
+}
+async function loadCourseFiles() {
+  try { const pack = await getCurrentCourseMaterials(); cmFiles.value = flattenCourseFiles(pack) }
+  catch (e) { console.warn('加载课件列表失败:', e.message) }
+}
+async function deleteCourseFile(item) {
+  if (!confirm(`确定删除「${item.name}」吗？\n将同时删除 R2 中的文件，并记录操作人。`)) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/course-materials`, {
+      method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ fileUrl: item.fileUrl }),
+    })
+    await throwIfNotOk(res, '删除课件')
+    cmFiles.value = cmFiles.value.filter(x => x.fileUrl !== item.fileUrl)
+  } catch (e) { alert('删除失败: ' + e.message) }
+}
+async function loadFinanceTransactions() {
+  try { const pack = await getCurrentFinancePack(); finTransactions.value = pack.transactions || [] }
+  catch (e) { console.warn('加载流水列表失败:', e.message) }
+}
+async function deleteFinanceTx(tx) {
+  if (!confirm(`确定删除这条${tx.type==='income'?'收入':'支出'}流水吗？\n将记录操作人。`)) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance`, {
+      method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ txId: tx.id }),
+    })
+    await throwIfNotOk(res, '删除流水')
+    finTransactions.value = finTransactions.value.filter(t => String(t.id) !== String(tx.id))
+  } catch (e) { alert('删除失败: ' + e.message) }
 }
 
 // ===== 提交相册（封面/照片存 R2，媒体信息挂到对应活动的 tags 上）=====
@@ -1384,7 +1459,8 @@ onMounted(() => {
 // 登录成功后加载提交记录
 watch(isAuthenticated, (v) => { if (v) loadHistory() })
 watch(currentType, (val) => {
-  if (val === 'finance' && activitiesList.value.length === 0) loadActivitiesForSelect()
+  if (val === 'courseMaterials') loadCourseFiles()
+  if (val === 'finance') { loadFinanceTransactions(); if (activitiesList.value.length === 0) loadActivitiesForSelect() }
   if (val === 'treehole' && treeholeMessages.value.length === 0) loadTreeholeMessages()
   if (val === 'knowledge' && kbCourses.value.length === 0) loadKbCourses()
 })
@@ -1597,4 +1673,6 @@ watch(currentType, (val) => {
 .existing-meta { font-size: 11px; color: var(--c-text-tertiary); }
 .existing-del { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all .2s; }
 .existing-del:hover { background: #ff3b30; color: #fff; }
+.tx-income { color: #ff3b30; font-weight: 700; }
+.tx-expense { color: #248a3d; font-weight: 700; }
 </style>

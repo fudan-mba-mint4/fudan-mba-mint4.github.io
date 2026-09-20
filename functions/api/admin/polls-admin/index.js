@@ -3,7 +3,7 @@
 // POST/PUT/DELETE - 班委写入，需登录且具备模块角色（体验运营官 / 主理人 / 副主理人）。
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory, notify,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -49,13 +49,18 @@ export async function onRequest(context) {
         RETURNING id
       `
       const titleText = typeof body.title === 'string' ? body.title : (body.title?.zh || id)
+      const isCreate = !prev?.created_by
       await logHistory(sql, {
         type: 'polls',
-        action: prev?.created_by ? 'update' : 'create',
+        action: isCreate ? 'create' : 'update',
         refId: id,
         description: titleText,
         operator: auth.user.name,
       })
+      if (isCreate) {
+        await notify(sql, { type: 'poll', title: titleText, body: '请参与投票',
+          modulePath: '/polls/', operator: auth.user.name })
+      }
       return corsResponse({ message: '保存成功', id: result[0]?.id }, 200)
     }
 

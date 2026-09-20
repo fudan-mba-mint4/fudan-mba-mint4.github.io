@@ -163,6 +163,19 @@ export async function initDatabase(env) {
     )
   `
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      type TEXT,
+      title TEXT,
+      body TEXT,
+      module_path TEXT,
+      operator TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (created_at DESC)`
+
 }
 
 // 兼容旧 import：内容表已并入 initDatabase
@@ -325,6 +338,38 @@ export async function logHistory(sql, { type, action, refId = null, description 
     ON CONFLICT (id) DO NOTHING
   `
   return id
+}
+
+// 写入一条面向用户的发布通知（首页弹窗/提醒用）。失败只告警、不阻断主流程。
+export async function notify(sql, { type, title, body = '', modulePath = '', operator = '' }) {
+  try {
+    const id = `n-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await sql`
+      INSERT INTO notifications (id, type, title, body, module_path, operator)
+      VALUES (${id}, ${type}, ${title}, ${body}, ${modulePath}, ${operator})
+      ON CONFLICT (id) DO NOTHING
+    `
+    return id
+  } catch (e) {
+    console.warn('notify 写入失败:', e?.message || e)
+    return null
+  }
+}
+
+// 从 R2 公开 URL / 站内 /files 路径解析 R2 对象 key（非本站 R2 返回 null）
+export function r2KeyFromUrl(url, env) {
+  if (!url || typeof url !== 'string') return null
+  if (env.R2_PUBLIC_DOMAIN) {
+    const pre = `https://${env.R2_PUBLIC_DOMAIN}/`
+    if (url.startsWith(pre)) return url.slice(pre.length)
+    try {
+      const uo = new URL(url)
+      if (uo.hostname === env.R2_PUBLIC_DOMAIN)
+        return uo.pathname.slice(1) + (uo.search || '')
+    } catch {}
+  }
+  if (url.startsWith('/files/')) return url.slice(1)
+  return null
 }
 
 // CORS响应
