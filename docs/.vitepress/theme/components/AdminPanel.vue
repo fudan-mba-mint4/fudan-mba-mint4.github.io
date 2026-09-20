@@ -531,7 +531,7 @@ const ROLE_LABEL_MAP = {
   supervisor: '独立董事会',
 }
 // 按当前登录用户角色过滤可见模块：
-// 主理人/副主理人看全部（可写）；独立董事会看全部（只读）；其余按本职能过滤。
+// 主理人/副主理人/独立董事会看全部（均可写）；其余角色按本职能过滤。
 const visibleTypes = computed(() => {
   const role = currentUser.value?.role
   if (!role) return []
