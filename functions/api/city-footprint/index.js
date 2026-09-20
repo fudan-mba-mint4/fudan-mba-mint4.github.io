@@ -42,6 +42,8 @@ const HOSTING_ASN = new Set([
   26496, 20013, 398101, 40044, 32557, 22612, 35186, 46606, 46562,
   // Fastly / Cloudflare / GitHub
   54113, 13335, 209242, 36459,
+  // AkileCloud 等小型机房（其余小机房由 ip-api hosting 兜底，无需穷举）
+  61112,
 ])
 
 // ASN 未覆盖时，用 asOrganization 英文名称兜底（仅匹配明确云厂商，避免误杀真实企业）
@@ -135,7 +137,8 @@ async function lookupIpGeo(ip) {
   }
 }
 
-// 解析访客地理位置：优先 CF 原生 request.cf，缺失用真实 IP 外部查询；写入前归并区镇
+// 解析访客地理位置：geo 优先 CF 原生 request.cf；但 CF cf 对象本身【不含】代理/机房标记，
+// 故总是查询 ip-api 获取 proxy/hosting 风险（ASN 黑名单之外的可扩展第二道防线）。
 async function resolveGeo(request, realIp) {
   const cf = request.cf || {}
   let country = (cf.country || '').toUpperCase()
@@ -143,20 +146,19 @@ async function resolveGeo(request, realIp) {
   let city = cf.city || ''
   let lat = parseFloat(cf.latitude || cf.lat || '0') || 0
   let lng = parseFloat(cf.longitude || cf.lon || '0') || 0
-  let isProxy = false
-  let isHosting = false
 
+  // 总是查 ip-api 风险情报（POST 静默低频、30 分钟去重；失败返回 null 时不误杀真实访客）
+  const ext = await lookupIpGeo(realIp)
+  const isProxy = !!(ext && ext.isProxy)
+  const isHosting = !!(ext && ext.isHosting)
+
+  // 坐标/城市仍优先 CF，仅在 CF geo 缺失时用 ip-api 兜底
   const cfCityOk = city && city !== 'Unknown' && (lat || lng)
-  if (!cfCityOk) {
-    const ext = await lookupIpGeo(realIp)
-    if (ext) {
-      city = ext.city || city
-      lat = ext.lat || lat
-      lng = ext.lng || lng
-      isProxy = ext.isProxy
-      isHosting = ext.isHosting
-      if (!country && ext.country) country = ext.country
-    }
+  if (!cfCityOk && ext) {
+    city = ext.city || city
+    lat = ext.lat || lat
+    lng = ext.lng || lng
+    if (!country && ext.country) country = ext.country
   }
 
   city = normalizeCity(city)
