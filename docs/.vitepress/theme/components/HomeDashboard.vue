@@ -38,6 +38,8 @@ const i18n = {
       activities: '活动',
       gallery: '相册',
       finance: '班费',
+      polls: '投票',
+      knowledge: '知识库',
     },
     // 倒计时
     countdownTitle: '距离下次上课',
@@ -100,6 +102,8 @@ const i18n = {
       activities: 'Activities',
       gallery: 'Gallery',
       finance: 'Finance',
+      polls: 'Polls',
+      knowledge: 'Knowledge',
     },
     countdownTitle: 'Next Class In',
     semesterProgress: 'Semester Progress',
@@ -154,6 +158,8 @@ const i18n = {
       activities: 'กิจกรรม',
       gallery: 'อัลบั้ม',
       finance: 'การเงิน',
+      polls: 'โหวต',
+      knowledge: 'คลังความรู้',
     },
     countdownTitle: 'อีกกี่วันถึงคาบเรียนถัดไป',
     semesterProgress: 'ความคืบหน้าเทอม',
@@ -224,6 +230,13 @@ const galleryActivities = computed(() => {
     .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
     .slice(0, 4)
 })
+// 全部活动（供通知 / 截止检测使用）
+const activitiesData = computed(() => activitiesRaw.value?.activities || [])
+
+/* ========== 投票 / 课件 / 知识库数据 ========== */
+const { data: pollsRaw } = useData('/data/polls.json')
+const { data: courseRaw } = useData('/data/course-materials.json')
+const { data: knowledgeRaw } = useData('/data/knowledge-base.json')
 
 async function fetchHomework() {
   try {
@@ -301,53 +314,79 @@ const retrySchedule = () => {
   fetchSchedule()
 }
 
-/* ========== 截止提醒弹窗 ========== */
-const showAlerts = ref(false)
+/* ========== 通知提醒弹窗（新内容 + 临近截止）========== */
 const alerts = ref([])
+let notifTimers = []
 
 // 弹窗类型配色
 const alertColors = {
   homework: { bg: 'linear-gradient(135deg, #ff9500, #ff6b00)', glow: 'rgba(255, 149, 0, 0.35)', label: '作业' },
-  important: { bg: 'linear-gradient(135deg, #ff3b30, #d70015)', glow: 'rgba(255, 59, 48, 0.35)', label: '重要' },
+  announcement: { bg: 'linear-gradient(135deg, #ff3b30, #d70015)', glow: 'rgba(255, 59, 48, 0.35)', label: '公告' },
   activity: { bg: 'linear-gradient(135deg, #34c759, #248a3d)', glow: 'rgba(52, 199, 89, 0.35)', label: '活动' },
+  poll: { bg: 'linear-gradient(135deg, #bf5af2, #8944ab)', glow: 'rgba(191, 90, 242, 0.35)', label: '投票' },
   course: { bg: 'linear-gradient(135deg, #007aff, #0051d5)', glow: 'rgba(0, 122, 255, 0.35)', label: '课程' },
-  finance: { bg: 'linear-gradient(135deg, #af52de, #7c2eb8)', glow: 'rgba(175, 82, 222, 0.35)', label: '班费' },
+  knowledge: { bg: 'linear-gradient(135deg, #5ac8a0, #2a9d78)', glow: 'rgba(90, 200, 160, 0.35)', label: '知识库' },
+  finance: { bg: 'linear-gradient(135deg, #5e5ce6, #3d3da8)', glow: 'rgba(94, 92, 230, 0.35)', label: '班费' },
 }
 
-// 检测截止项（真实数据）
+// —— 弹窗「已展示」指纹（仅控制弹窗不重复弹，不代表内容已读；内容已读见 moduleRead）——
+const SEEN_STORE = 'mint4_notif_seen'
+const NOTIF_DEMO = true   // 本地演示开关；正式接入统一通知端点后置为 false
+const seenSet = ref(new Set())
+function loadSeen() {
+  if (typeof localStorage === 'undefined') return
+  try { seenSet.value = new Set(JSON.parse(localStorage.getItem(SEEN_STORE) || '[]')) }
+  catch { seenSet.value = new Set() }
+}
+function markSeen(keys) {
+  keys.forEach(k => seenSet.value.add(k))
+  if (typeof localStorage !== 'undefined')
+    localStorage.setItem(SEEN_STORE, JSON.stringify([...seenSet.value]))
+}
+
+// Demo：班委新发布/更新的 6 类内容（本地演示；正式由统一通知聚合端点返回）
+const demoNewItems = () => [
+  { key: 'announcement:ann-demo:202609201600', type: 'announcement', title: '关于中秋国庆放假安排的通知', desc: '班委新发布 · 刚刚' },
+  { key: 'activity:act-demo:202609201600',     type: 'activity',     title: '班委选举', desc: '班委新发布 · 今天 17:00 · B403' },
+  { key: 'poll:poll-demo:202609201600',        type: 'poll',         title: '班级活动时间投票', desc: '班委新发起 · 请参与' },
+  { key: 'course:default:202609201600',        type: 'course',       title: '课程资料已更新', desc: '班委上传了新课件' },
+  { key: 'knowledge:default:202609201600',     type: 'knowledge',    title: '知识库有新资料', desc: '智库研究员新整理' },
+  { key: 'finance:default:202609201600',       type: 'finance',      title: '班费明细已更新', desc: '财务激励官公示' },
+]
+
+// 检测临近截止项（真实数据；按 deadline:类型:id:当天日期 去重，同一天只提醒一次）
 const detectDeadlines = () => {
   const now = new Date()
   const oneDay = 24 * 60 * 60 * 1000
+  const dayStr = now.toISOString().slice(0, 10)
   const results = []
 
-  // 1. 作业检测
-  const hwList = homeworkData.value || []
-  hwList.forEach(hw => {
+  // 1. 作业（截止前 24h）
+  ;(homeworkData.value || []).forEach(hw => {
     if (hw.status !== 'pending' || !hw.deadline) return
     const deadline = new Date(hw.deadline + 'T18:00:00')
     const diff = deadline - now
     if (diff > 0 && diff <= oneDay) {
       const hours = Math.ceil(diff / (60 * 60 * 1000))
       results.push({
-        id: hw.id,
-        type: 'homework',
+        key: `deadline:homework:${hw.id}:${dayStr}`,
+        id: hw.id, type: 'homework',
         title: `${hw.course_id.toUpperCase()} ${hw.title}`,
-        desc: `截止时间：${hw.deadline.slice(5)} 18:00（还剩${hours}小时）`,
+        desc: `截止：${hw.deadline.slice(5)} 18:00（还剩${hours}小时）`,
       })
     }
   })
 
-  // 2. 活动检测（活动前1天提醒）
-  const actList = activitiesData.value || []
-  actList.forEach(act => {
+  // 2. 活动（开始前 24h）
+  ;(activitiesData.value || []).forEach(act => {
     if (!act.date || act.status === 'ended') return
     const actDate = new Date(act.date + 'T00:00:00')
     const diff = actDate - now
     if (diff > 0 && diff <= oneDay) {
       const hours = Math.ceil(diff / (60 * 60 * 1000))
       results.push({
-        id: act.id,
-        type: 'activity',
+        key: `deadline:activity:${act.id}:${dayStr}`,
+        id: act.id, type: 'activity',
         title: act.title[currentLang.value] || act.title.zh,
         desc: `明天开始（还剩${hours}小时）${act.location ? ' · ' + act.location : ''}`,
       })
@@ -358,19 +397,36 @@ const detectDeadlines = () => {
 }
 
 const triggerAlerts = () => {
-  const detected = detectDeadlines()
-  // Demo：如果没有真实截止项，用模拟数据展示效果
-  alerts.value = detected.length > 0 ? detected : [
-    { id: 'demo1', type: 'homework', title: 'DMD 第一次作业', desc: '截止时间：09-17 18:00（还剩约4天）' },
-    { id: 'demo2', type: 'activity', title: '班委选举', desc: '今天 17:00 · B403教室' },
+  loadSeen()
+  // ?resetNotifs=1：清空已读，方便反复演示
+  if (typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).get('resetNotifs')) {
+    seenSet.value = new Set()
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(SEEN_STORE)
+  }
+  // 汇总「新内容（demo）+ 临近截止（真实）」，过滤已读
+  const candidates = [
+    ...(NOTIF_DEMO ? demoNewItems() : []),
+    ...detectDeadlines(),
   ]
-  showAlerts.value = true
-  setTimeout(() => {
-    showAlerts.value = false
-  }, 6000)
+  const fresh = candidates.filter(c => !seenSet.value.has(c.key))
+  if (!fresh.length) return
+  // 错峰出现：每条间隔 1 秒；出现即记已读，6 秒后各自移除
+  fresh.forEach((item, i) => {
+    notifTimers.push(setTimeout(() => {
+      alerts.value.push(item)
+      markSeen([item.key])
+      notifTimers.push(setTimeout(() => {
+        alerts.value = alerts.value.filter(a => a.key !== item.key)
+      }, 6000))
+    }, i * 1000))
+  })
 }
 
+onUnmounted(() => { notifTimers.forEach(t => clearTimeout(t)); notifTimers = [] })
+
 onMounted(() => {
+  loadModuleRead()
   fetchSchedule()
   fetchHomework()
   setTimeout(triggerAlerts, 1200)
@@ -458,13 +514,49 @@ const classStats = computed(() => {
 })
 
 /* ========== 快速入口配置 ========== */
+/* ========== 模块未读计数（点进模块才清零，与弹窗展示相互独立）========== */
+const MODULE_READ_STORE = 'mint4_module_read'
+const moduleRead = ref({})
+function loadModuleRead() {
+  if (typeof localStorage === 'undefined') return
+  try { moduleRead.value = JSON.parse(localStorage.getItem(MODULE_READ_STORE) || '{}') }
+  catch { moduleRead.value = {} }
+}
+function markModuleRead(key) {
+  moduleRead.value[key] = new Date().toISOString()
+  if (typeof localStorage !== 'undefined')
+    localStorage.setItem(MODULE_READ_STORE, JSON.stringify(moduleRead.value))
+}
+const moduleItemDates = computed(() => {
+  const d = { announcements: [], activities: [], slides: [], polls: [], knowledge: [], finance: [] }
+  ;(announcementsRaw.value?.announcements || []).forEach(a => d.announcements.push(a.date))
+  ;(activitiesRaw.value?.activities || []).forEach(a => d.activities.push(a.date))
+  ;(pollsRaw.value?.polls || []).forEach(p => d.polls.push(p.date || p.createdAt || ''))
+  ;(courseRaw.value?.courses || []).forEach(co =>
+    (co.sessions || []).forEach(sx => (sx.files || []).forEach(() => d.slides.push(sx.date))))
+  ;(knowledgeRaw.value?.documents || []).forEach(x => d.knowledge.push(x.date))
+  ;(financeRaw.value?.transactions || []).forEach(tx => d.finance.push(tx.date))
+  return d
+})
+const unreadCounts = computed(() => {
+  const out = {}
+  for (const mod in moduleItemDates.value) {
+    const readISO = moduleRead.value[mod]
+    const list = moduleItemDates.value[mod].filter(Boolean)
+    if (!readISO) { out[mod] = list.length; continue }
+    const readDay = readISO.slice(0, 10)
+    out[mod] = list.filter(x => x > readDay).length
+  }
+  return out
+})
+
 const quickLinks = computed(() => [
-  { key: 'schedule', label: t.value.links.schedule, href: `${langPrefix.value}/schedule`, icon: 'calendar' },
   { key: 'announcements', label: t.value.links.announcements, href: `${langPrefix.value}/announcements/`, icon: 'megaphone' },
-  { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
   { key: 'activities', label: t.value.links.activities, href: `${langPrefix.value}/activities/`, icon: 'party-popper' },
-  { key: 'gallery', label: t.value.links.gallery, href: `${langPrefix.value}/gallery/`, icon: 'image' },
   { key: 'slides', label: t.value.links.slides, href: `${langPrefix.value}/slides/`, icon: 'book' },
+  { key: 'polls', label: t.value.links.polls, href: `${langPrefix.value}/polls/`, icon: 'poll' },
+  { key: 'knowledge', label: t.value.links.knowledge, href: `${langPrefix.value}/knowledge/`, icon: 'graduation' },
+  { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
 ])
 
 /* ========== 传承人列表（全部13人） ========== */
@@ -828,7 +920,9 @@ onUnmounted(() => {
             :href="link.href"
             class="quicklink-item"
             :aria-label="link.label"
+            @click="markModuleRead(link.key)"
           >
+            <span v-if="unreadCounts[link.key] > 0" class="unread-badge" :aria-label="unreadCounts[link.key] + ' 条未读'">{{ unreadCounts[link.key] }}</span>
             <svg class="quicklink-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
               <template v-if="link.icon === 'calendar'">
                 <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
@@ -853,6 +947,12 @@ onUnmounted(() => {
               </template>
               <template v-else-if="link.icon === 'wallet'">
                 <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+              </template>
+              <template v-else-if="link.icon === 'poll'">
+                <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+              </template>
+              <template v-else-if="link.icon === 'graduation'">
+                <path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/>
               </template>
             </svg>
             <span class="quicklink-label">{{ link.label }}</span>
@@ -1066,23 +1166,25 @@ onUnmounted(() => {
     </Transition>
 
     <!-- 截止提醒弹窗（多个同时显示） -->
-    <Transition name="alert-pop">
-      <div v-if="showAlerts" class="alerts-container">
+    <TransitionGroup name="alert-pop" tag="div" class="alerts-container">
         <div
-          v-for="(alert, idx) in alerts"
-          :key="alert.id"
+          v-for="alert in alerts"
+          :key="alert.key"
           class="deadline-alert"
           :style="{
             '--alert-bg': alertColors[alert.type]?.bg,
             '--alert-glow': alertColors[alert.type]?.glow,
-            '--alert-index': idx,
           }"
           role="alert"
         >
           <div class="deadline-alert-icon">
             <svg v-if="alert.type === 'homework'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <svg v-else-if="alert.type === 'announcement'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
             <svg v-else-if="alert.type === 'activity'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <svg v-else-if="alert.type === 'important'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <svg v-else-if="alert.type === 'poll'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+            <svg v-else-if="alert.type === 'course'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <svg v-else-if="alert.type === 'knowledge'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/></svg>
+            <svg v-else-if="alert.type === 'finance'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div class="deadline-alert-content">
@@ -1091,8 +1193,7 @@ onUnmounted(() => {
           </div>
           <div class="deadline-alert-progress"></div>
         </div>
-      </div>
-    </Transition>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -2009,6 +2110,23 @@ onUnmounted(() => {
 
 .quicklink-item:hover .quicklink-label {
   color: var(--c-accent);
+}
+.unread-badge {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--c-bg-card);
+  pointer-events: none;
 }
 
 /* ========== 4. 班级统计 ========== */
@@ -3115,6 +3233,9 @@ onUnmounted(() => {
 @keyframes alertPulse {
   0%, 100% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1); }
   50% { box-shadow: 0 8px 40px var(--alert-glow), 0 2px 12px var(--alert-glow); }
+}
+.alert-pop-move {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .alert-pop-enter-active {
   transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
