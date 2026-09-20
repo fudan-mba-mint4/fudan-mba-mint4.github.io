@@ -372,6 +372,15 @@ export function r2KeyFromUrl(url, env) {
   return null
 }
 
+// 从 R2/任意 URL（或 key）中提取纯文件名（去掉目录与查询串、decode）
+export function fileNameFromUrl(u) {
+  if (!u || typeof u !== 'string') return ''
+  let s = u.split('?')[0].split('#')[0]
+  s = s.lastIndexOf('/') >= 0 ? s.substring(s.lastIndexOf('/') + 1) : s
+  try { s = decodeURIComponent(s) } catch (e) {}
+  return s
+}
+
 // CORS响应
 export function corsResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {

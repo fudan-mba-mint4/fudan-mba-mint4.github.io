@@ -2,7 +2,7 @@
 // POST/PUT /api/admin/knowledge：整包 upsert（并发布一条更新通知）
 // DELETE  /api/admin/knowledge  body { docId }：删除单条资料（DB 记录 + R2 文件）
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory, notify, r2KeyFromUrl,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory, notify, r2KeyFromUrl, fileNameFromUrl,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -35,9 +35,10 @@ export async function onRequest(context) {
       if (key && env.R2 && typeof env.R2.delete === 'function') {
         await env.R2.delete(key); r2Deleted = true
       }
-      const titleText = (typeof target.title === 'object' ? target.title?.zh : target.title) || '资料'
+      const knDelName = fileNameFromUrl(target.url)
+        || (typeof target.title === 'object' ? target.title?.zh : target.title) || '资料'
       await logHistory(sql, { type: 'knowledge', action: 'delete', refId: String(target.id),
-        description: `删除资料：${titleText}`, operator: auth.user.name })
+        description: `删除知识库：${knDelName}`, operator: auth.user.name })
       return corsResponse({ message: '已删除', removed: true, r2Deleted, r2Key: key })
     }
 
@@ -55,11 +56,17 @@ export async function onRequest(context) {
         ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
         RETURNING id
       `
-      const added = (body.documents || []).filter(d => !prevIds.has(String(d.id))).length
-      await logHistory(sql, { type: 'knowledge', action: 'update',
-        description: `更新知识库（${body.documents?.length || 0} 份资料）`, operator: auth.user.name })
+      const docLabel = d => fileNameFromUrl(d.url)
+        || (typeof d.title === 'object' ? d.title?.zh : d.title) || '资料'
+      const addedNames = (body.documents || [])
+        .filter(d => !prevIds.has(String(d.id))).map(docLabel)
+      const knDesc = addedNames.length === 1 ? `上传知识库：${addedNames[0]}`
+        : addedNames.length > 1 ? `上传知识库 ${addedNames.length} 份：${addedNames.join('、')}`
+        : '更新知识库'
+      await logHistory(sql, { type: 'knowledge', action: addedNames.length ? 'upload' : 'update',
+        description: knDesc, operator: auth.user.name })
       await notify(sql, { type: 'knowledge', title: '知识库已更新',
-        body: added > 0 ? `新增 ${added} 份资料` : '资料已调整',
+        body: addedNames.length > 0 ? `新增 ${addedNames.length} 份资料` : '资料已调整',
         modulePath: '/knowledge/', operator: auth.user.name })
       return corsResponse({ message: '知识库保存成功', id: result[0]?.id }, 200)
     }

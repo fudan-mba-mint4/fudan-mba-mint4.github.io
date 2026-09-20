@@ -52,6 +52,8 @@
         </button>
       </div>
 
+      <div class="admin-workspace">
+      <div class="workspace-left">
       <!-- ===== 公告表单 ===== -->
       <div v-if="currentType === 'announcements'" class="form-section">
         <h3>📢 发布公告</h3>
@@ -482,25 +484,31 @@
           </div>
         </div>
       </div>
+      </div><!-- /workspace-left -->
 
+      <div class="workspace-right">
       <!-- ===== 提交记录 ===== -->
       <div class="history-section">
         <h3>📜 提交记录 <span class="history-count">({{ submitHistory.length }}条)</span> <span v-if="historyLoading" class="history-loading">加载中...</span></h3>
         <div v-if="submitHistory.length === 0" class="history-empty">暂无提交记录</div>
         <div v-for="record in submitHistory" :key="record.id" class="history-item">
-          <div class="history-info">
-            <span class="history-time">{{ record.time }}</span>
-            <span class="history-badge" :class="'badge-' + record.status">
-              {{ record.status === 'success' ? '✓ 成功' : record.status === 'failed' ? '✗ 失败' : record.status === 'reverted' ? '↩ 已撤回' : '⏳ 进行中' }}
-            </span>
-            <span class="history-type">{{ record.typeName }}</span>
+          <div class="history-card">
+            <div class="history-row1">
+              <span class="history-badge" :class="'badge-' + record.status">
+                {{ record.status === 'success' ? '✓' : record.status === 'failed' ? '✗' : record.status === 'reverted' ? '↩' : '⏳' }}
+              </span>
+              <span class="history-type">{{ record.typeName }}</span>
+              <span class="history-operator">{{ record.operator }}</span>
+            </div>
+            <div class="history-desc">{{ record.description }}</div>
+            <div class="history-time">{{ shortTime(record.time) }}</div>
+            <div v-if="record.error" class="history-error">{{ record.error }}</div>
           </div>
-          <div class="history-desc">{{ record.description }}</div>
-          <div v-if="record.error" class="history-error">{{ record.error }}</div>
-          <button v-if="record.status === 'success'"
-                  class="revert-btn" @click="revertCommit(record)">↩ 撤回</button>
+          <button v-if="record.status === 'success'" class="revert-btn" @click="revertCommit(record)" title="撤回此提交">↩</button>
         </div>
       </div>
+      </div><!-- /workspace-right -->
+      </div><!-- /admin-workspace -->
     </div>
   </div>
 </template>
@@ -955,6 +963,7 @@ function formatTreeholeTime(iso) {
 // ===== 提交记录（数据源：Neon admin_history 表）=====
 const submitHistory = ref([])
 const historyLoading = ref(false)
+function shortTime(t){ if(!t) return ''; const [d,h]=t.split('T'); return `${d.slice(5)} ${h.slice(0,5)}` }
 function createRecord(type, desc, refId = null) {
   const r = {
     id: 'h-' + Date.now() + '-' + randomHex(3),
@@ -1547,27 +1556,39 @@ watch(currentType, (val) => {
 
 .submit-btn { padding: 14px; background: var(--c-accent); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.history-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 24px; }
-.history-section h3 { font-size: 18px; font-weight: 700; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
-.history-count { font-size: 13px; font-weight: 400; color: var(--c-text-tertiary); }
+/* ===== 左右分栏：左表单 / 右提交记录 ===== */
+.admin-workspace { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(300px,0.92fr); gap: 20px; align-items: start; margin-top: 4px; }
+.workspace-left { min-width: 0; }
+.workspace-right { min-width: 0; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; }
+
+.history-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 16px; }
+.history-section h3 { font-size: 15px; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; position: sticky; top: -16px; background: var(--c-bg-card); padding: 2px 0 10px; z-index: 1; }
+.history-count { font-size: 12px; font-weight: 400; color: var(--c-text-tertiary); }
 .history-loading { font-size: 12px; color: var(--c-text-tertiary); font-weight: 400; }
-.history-empty { text-align: center; padding: 32px; color: var(--c-text-tertiary); font-size: 14px; }
-.history-item { padding: 16px; border: 1px solid var(--c-border); border-radius: 12px; margin-bottom: 12px; background: var(--c-bg-secondary); }
-.history-info { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
-.history-time { font-size: 12px; color: var(--c-text-tertiary); }
-.history-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; }
-.badge-success { background: rgba(52,199,89,0.15); color: #34c759; }
-.badge-failed { background: rgba(255,59,48,0.15); color: #ff3b30; }
-.badge-pending { background: rgba(255,149,0,0.15); color: #ff9500; }
-.history-type { font-size: 12px; color: var(--c-text-secondary); }
-.history-desc { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
-.history-sha { font-size: 12px; color: var(--c-text-tertiary); margin-bottom: 4px; }
-.history-sha code { background: var(--c-bg-card); padding: 2px 6px; border-radius: 4px; }
-.history-error { font-size: 12px; color: #ff3b30; margin-bottom: 4px; }
-.reverted-tag { font-size: 12px; color: var(--c-text-tertiary); }
-.revert-btn { margin-top: 8px; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all 0.2s ease; }
+.history-empty { text-align: center; padding: 24px; color: var(--c-text-tertiary); font-size: 13px; }
+
+.history-item { display: flex; gap: 8px; align-items: flex-start; padding: 10px; border: 1px solid var(--c-border); border-radius: 10px; margin-bottom: 8px; background: var(--c-bg-secondary); }
+.history-card { flex: 1; min-width: 0; }
+.history-row1 { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; flex-wrap: wrap; }
+.history-badge { font-size: 11px; font-weight: 700; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; flex: none; }
+.badge-success { background: rgba(52,199,89,0.16); color: #34c759; }
+.badge-failed { background: rgba(255,59,48,0.16); color: #ff3b30; }
+.badge-pending { background: rgba(255,149,0,0.16); color: #ff9500; }
+.badge-reverted { background: rgba(142,142,147,0.18); color: #8e8e93; }
+.history-type { font-size: 12px; font-weight: 600; color: var(--c-text-secondary); }
+.history-operator { font-size: 12px; color: var(--c-text-tertiary); margin-left: auto; }
+.history-desc { font-size: 13px; font-weight: 500; margin-bottom: 3px; line-height: 1.4; word-break: break-word; }
+.history-time { font-size: 11px; color: var(--c-text-tertiary); }
+.history-error { font-size: 11px; color: #ff3b30; margin-top: 3px; }
+.revert-btn { font-size: 12px; width: 26px; height: 26px; flex: none; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all 0.2s ease; line-height: 1; }
 .revert-btn:hover { background: #ff3b30; color: #fff; }
 .revert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 960px) {
+  .admin-workspace { grid-template-columns: 1fr; }
+  .workspace-right { position: static; max-height: none; overflow: visible; }
+  .history-section h3 { position: static; }
+}
 @media (max-width: 640px) {
   .form-row { grid-template-columns: 1fr; }
   .token-bar { flex-direction: column; align-items: stretch; }

@@ -54,7 +54,7 @@ export async function onRequest(context) {
         type: 'polls',
         action: isCreate ? 'create' : 'update',
         refId: id,
-        description: titleText,
+        description: `${isCreate ? '发起投票' : '编辑投票'}：${titleText}`,
         operator: auth.user.name,
       })
       if (isCreate) {
@@ -72,7 +72,7 @@ export async function onRequest(context) {
         const titleText = typeof d.title === 'string' ? d.title : (d.title?.zh || body.id)
         await logHistory(sql, {
           type: 'polls', action: 'delete', refId: body.id,
-          description: titleText, operator: auth.user.name,
+          description: `删除投票：${titleText}`, operator: auth.user.name,
         })
       }
       return corsResponse({ message: result.length ? '删除成功' : '未找到记录', deleted: result.length })

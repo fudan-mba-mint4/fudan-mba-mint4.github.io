@@ -43,7 +43,7 @@ export async function onRequest(context) {
         type: 'activities',
         action: isCreate ? 'create' : 'update',
         refId: id,
-        description: titleText,
+        description: `${isCreate ? '发布活动' : '编辑活动'}：${titleText}`,
         operator: auth.user.name,
       })
       if (isCreate) {
@@ -65,7 +65,7 @@ export async function onRequest(context) {
           : (d.title?.zh || d.name || body.id)
         await logHistory(sql, {
           type: 'activities', action: 'delete', refId: body.id,
-          description: titleText, operator: auth.user.name,
+          description: `删除活动：${titleText}`, operator: auth.user.name,
         })
       }
       return corsResponse({ message: result.length ? '删除成功' : '未找到记录', deleted: result.length })

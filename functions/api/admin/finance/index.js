@@ -49,7 +49,7 @@ export async function onRequest(context) {
       `
       const added = (body.transactions || []).filter(t => !prevTx.has(String(t.id))).length
       await logHistory(sql, { type: 'finance', action: 'update',
-        description: `更新班费数据（${body.transactions?.length || 0} 条流水）`, operator: auth.user.name })
+        description: `更新班费明细`, operator: auth.user.name })
       await notify(sql, { type: 'finance', title: '班费明细已更新',
         body: added > 0 ? `新增 ${added} 条流水` : '流水已调整',
         modulePath: '/finance/', operator: auth.user.name })

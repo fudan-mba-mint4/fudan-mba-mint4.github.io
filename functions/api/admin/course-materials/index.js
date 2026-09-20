@@ -2,7 +2,7 @@
 // POST/PUT /api/admin/course-materials：整包 upsert（并发布更新通知）
 // DELETE  /api/admin/course-materials body { fileUrl }：删除单个文件（DB 记录 + R2 文件）
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory, notify, r2KeyFromUrl,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory, notify, r2KeyFromUrl, fileNameFromUrl,
 } from '../../../_utils.js'
 
 // 收集整包内所有文件 URL（课件 files / 作业 homework / 参考 references）
@@ -60,8 +60,9 @@ export async function onRequest(context) {
       const key = r2KeyFromUrl(fileUrl, env)
       if (key && env.R2 && typeof env.R2.delete === 'function') await env.R2.delete(key)
 
+      const delName = fileNameFromUrl(fileUrl) || foundName
       await logHistory(sql, { type: 'courseMaterials', action: 'delete',
-        description: `删除课件：${foundName}`, operator: auth.user.name })
+        description: `删除课件：${delName}`, operator: auth.user.name })
       return corsResponse({ message: '已删除', removed: true })
     }
 
@@ -79,13 +80,15 @@ export async function onRequest(context) {
         ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
         RETURNING id
       `
-      let added = 0
-      for (const u of collectFileUrls(body)) if (!prevUrls.has(u)) added++
-
-      await logHistory(sql, { type: 'courseMaterials', action: 'update',
-        description: `更新课程资料（${body.courses?.length || 0} 门课）`, operator: auth.user.name })
+      const addedNames = [...collectFileUrls(body)]
+        .filter(u => !prevUrls.has(u)).map(u => fileNameFromUrl(u)).filter(Boolean)
+      const cmDesc = addedNames.length === 1 ? `上传课件：${addedNames[0]}`
+        : addedNames.length > 1 ? `上传课程资料 ${addedNames.length} 份：${addedNames.join('、')}`
+        : '更新课程资料'
+      await logHistory(sql, { type: 'courseMaterials', action: addedNames.length ? 'upload' : 'update',
+        description: cmDesc, operator: auth.user.name })
       await notify(sql, { type: 'course', title: '课程资料已更新',
-        body: added > 0 ? `新增 ${added} 份课件/资料` : '资料已调整',
+        body: addedNames.length > 0 ? `新增 ${addedNames.length} 份课件/资料` : '资料已调整',
         modulePath: '/slides/', operator: auth.user.name })
       return corsResponse({ message: '课程资料保存成功', id: result[0]?.id }, 200)
     }
