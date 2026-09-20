@@ -2,7 +2,7 @@
 // Cloudflare Pages：通过 R2 binding（env.R2）直接写入，无需 S3 签名。
 // body: { key, contentType, dataBase64 }
 import {
-  corsResponse, optionsResponse, parseBody, requireCommittee,
+  getSql, corsResponse, optionsResponse, parseBody, requireCommittee, logHistory,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -13,7 +13,7 @@ export async function onRequest(context) {
   if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
 
   try {
-    const { key, contentType, dataBase64 } = await parseBody(request)
+    const { key, contentType, dataBase64, module: mod, note } = await parseBody(request)
     if (!key || !dataBase64) return corsResponse({ error: '缺少 key 或 dataBase64' }, 400)
     if (!env.R2) return corsResponse({ error: 'R2 binding 未配置（请在 Pages 设置绑定 R2）' }, 500)
 
@@ -23,6 +23,13 @@ export async function onRequest(context) {
 
     await env.R2.put(key, bodyBytes, {
       httpContentType: contentType || 'application/octet-stream',
+    })
+
+    const knownTypes = ['announcements', 'activities', 'polls', 'courseMaterials', 'finance', 'gallery', 'treehole']
+    const histType = knownTypes.includes(mod) ? mod : 'gallery'
+    await logHistory(getSql(env), {
+      type: histType, action: 'upload', refId: null,
+      description: note || key, operator: auth.user.name,
     })
 
     return corsResponse({

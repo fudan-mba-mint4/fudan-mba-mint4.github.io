@@ -5,7 +5,7 @@
 //    班费、课程资料为聚合数据、相册为外链，撤回仅标记，具体由对应岗位人工核对。
 // 鉴权：登录班委，且只能操作自己管辖模块（主理人/副主理可撤回任意模块）。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -53,6 +53,10 @@ export async function onRequest(context) {
       else if (b.type === 'gallery') note = '相册为图片直播外链，无需删除。'
     }
 
+    await logHistory(sql, {
+      type: b.type, action: 'revert', refId: refId,
+      description: `撤回记录 ${b.id}`, operator: auth.user.name,
+    })
     return corsResponse({ message: '撤回成功', removed, note })
   } catch (e) {
     return corsResponse({ error: '服务器内部错误', detail: String(e?.message || e) }, 500)

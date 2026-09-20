@@ -29,7 +29,7 @@
     </div>
 
     <!-- ===== 管理主界面 ===== -->
-    <div v-else class="admin-main">
+    <div v-else class="admin-main" :class="{ 'readonly-mode': isReadOnly }">
       <header class="admin-header">
         <h2>📋 班级网站管理后台</h2>
         <div class="admin-identity">
@@ -43,6 +43,9 @@
       <div class="token-bar">
         <span class="token-badge">✓ 数据库与 R2 已连接</span>
       </div>
+
+      <!-- 只读模式提示（独立董事会） -->
+      <div v-if="isReadOnly" class="readonly-banner">👁️ 独立董事会 · 只读模式：可查看全部模块内容，不能发布、修改或删除</div>
 
       <!-- 类型标签（按角色过滤，只显示自己管辖的模块） -->
       <div class="type-tabs">
@@ -312,7 +315,7 @@
       </div>
 
       <!-- ===== 树洞管理 ===== -->
-      <div v-if="currentType === 'treehole'" class="form-section">
+      <div v-if="currentType === 'treehole'" class="form-section treehole-admin">
         <h3>🌳 匿名树洞管理</h3>
 
         <!-- 管理界面 -->
@@ -345,15 +348,15 @@
             <button @click="exportTreeholeCSV" class="treehole-export-btn">导出CSV</button>
             <div class="treehole-batch-actions" v-if="treeholeSelected.length > 0">
               <span class="treehole-selected-count">已选 {{ treeholeSelected.length }}</span>
-              <button @click="batchDeleteTreehole" class="treehole-delete-btn">批量删除</button>
-              <button @click="batchRestoreTreehole" class="treehole-restore-btn">批量恢复</button>
+              <button @click="batchDeleteTreehole" class="treehole-delete-btn" :disabled="isReadOnly">批量删除</button>
+              <button @click="batchRestoreTreehole" class="treehole-restore-btn" :disabled="isReadOnly">批量恢复</button>
             </div>
           </div>
 
           <!-- 全选栏 -->
           <div v-if="treeholeMessages.length > 0" class="treehole-select-bar">
             <label class="treehole-select-all">
-              <input type="checkbox" :checked="getIsAllSelected()" :indeterminate.prop="getIsIndeterminate()" @change="toggleSelectAll" />
+              <input type="checkbox" :checked="getIsAllSelected()" :indeterminate.prop="getIsIndeterminate()" @change="toggleSelectAll" :disabled="isReadOnly" />
               全选本页 ({{ treeholeMessages.length }})
             </label>
             <button v-if="treeholeSelected.length > 0" @click="clearSelection" class="treehole-clear-btn">清除选择</button>
@@ -367,7 +370,7 @@
           <div v-else class="treehole-list">
             <div v-for="msg in treeholeMessages" :key="msg.id" class="treehole-item" :class="{ deleted: msg.is_deleted, expanded: expandedId === msg.id }">
               <div class="treehole-item-check">
-                <input type="checkbox" :value="msg.id" v-model="treeholeSelected" />
+                <input type="checkbox" :value="msg.id" v-model="treeholeSelected" :disabled="isReadOnly" />
               </div>
               <div class="treehole-item-content" @click="toggleExpand(msg.id)">
                 <div class="treehole-item-header">
@@ -389,8 +392,8 @@
                 </div>
               </div>
               <div class="treehole-item-actions">
-                <button v-if="!msg.is_deleted" @click.stop="deleteSingleTreehole(msg.id)" class="treehole-single-delete">删除</button>
-                <button v-else @click.stop="restoreSingleTreehole(msg.id)" class="treehole-single-restore">恢复</button>
+                <button v-if="!msg.is_deleted" @click.stop="deleteSingleTreehole(msg.id)" class="treehole-single-delete" :disabled="isReadOnly">删除</button>
+                <button v-else @click.stop="restoreSingleTreehole(msg.id)" class="treehole-single-restore" :disabled="isReadOnly">恢复</button>
               </div>
             </div>
           </div>
@@ -489,8 +492,9 @@ const dataTypes = [
 const currentType = ref('announcements')
 
 // 各模块允许的角色（与 functions/_utils.js 的 MODULE_ROLES 保持一致，改动需同步）
+// supervisor（独立董事会）不在写权限内：可见全部模块但只读。
 const MODULE_ROLE_MAP = {
-  announcements: ['leader', 'deputy'],
+  announcements: ['leader', 'deputy', 'experience', 'finance', 'thinktank', 'memory'],
   activities: ['leader', 'deputy', 'experience'],
   polls: ['leader', 'deputy', 'experience'],
   courseMaterials: ['leader', 'deputy', 'thinktank'],
@@ -501,15 +505,19 @@ const MODULE_ROLE_MAP = {
 const ROLE_LABEL_MAP = {
   leader: '班级主理人', deputy: '副主理人', experience: '体验运营官',
   finance: '财务激励官', thinktank: '智库研究员', memory: '记忆主理人',
+  supervisor: '独立董事会',
 }
-// 按当前登录用户角色过滤可见模块（主理人/副主理人看全部）
+// 按当前登录用户角色过滤可见模块：
+// 主理人/副主理人看全部（可写）；独立董事会看全部（只读）；其余按本职能过滤。
 const visibleTypes = computed(() => {
   const role = currentUser.value?.role
   if (!role) return []
-  if (role === 'leader' || role === 'deputy') return dataTypes
+  if (role === 'leader' || role === 'deputy' || role === 'supervisor') return dataTypes
   return dataTypes.filter(t => (MODULE_ROLE_MAP[t.id] || []).includes(role))
 })
 const roleLabel = computed(() => ROLE_LABEL_MAP[currentUser.value?.role] || '')
+// 独立董事会为只读模式：所有表单与写/删/上传按钮禁用
+const isReadOnly = computed(() => currentUser.value?.role === 'supervisor')
 // 登录/角色变化后，若当前模块不在可见范围，自动切到第一个可见模块
 watch(visibleTypes, (list) => {
   if (list.length && !list.some(t => t.id === currentType.value)) {
@@ -906,23 +914,9 @@ async function loadHistory() {
     historyLoading.value = false
   }
 }
-// 提交成功后把记录写入 DB
-async function saveRecord(rec) {
-  if (rec.status !== 'success') return
-  try {
-    await fetchWithRetry(`${API_PREFIX}/api/admin/history`, {
-      method: 'POST',
-      headers: adminHeaders(),
-      body: JSON.stringify({
-        id: rec.id, type: rec.type, action: 'create',
-        ref_id: rec.ref_id || null, description: rec.description,
-        operator: '管理员', status: 'success',
-      }),
-    })
-  } catch (e) {
-    console.warn('保存记录失败:', e.message)
-  }
-}
+// 操作记录已由后端写端点统一写入 admin_history（含真名 operator、准确 action），
+// 前端不再重复 POST；此函数保留为空以兼容现有调用点。
+async function saveRecord(_rec) { /* no-op：后端 logHistory 已记录 */ }
 
 // ===== 撤回提交（DB：标记 reverted + 按类型删除关联内容）=====
 const reverting = ref(false)
@@ -1482,5 +1476,21 @@ watch(currentType, (val) => {
   .treehole-batch-actions { margin-left: 0; flex-wrap: wrap; }
   .treehole-item { flex-direction: column; gap: 8px; }
   .treehole-item-actions { width: 100%; }
+}
+
+/* ===== 独立董事会只读模式 ===== */
+.readonly-banner {
+  margin: 12px 0; padding: 10px 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--c-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-accent) 30%, transparent);
+  color: var(--c-text-secondary); font-size: 13px;
+}
+/* 纯“添加”表单：只读时整体禁用；树洞管理保留搜索/翻页/展开/导出 */
+.readonly-mode .form-section:not(.treehole-admin) {
+  pointer-events: none; opacity: 0.5;
+}
+/* 提交记录：只读时禁用撤回，列表仍可查看 */
+.readonly-mode .history-section .revert-btn {
+  pointer-events: none; opacity: 0.4;
 }
 </style>

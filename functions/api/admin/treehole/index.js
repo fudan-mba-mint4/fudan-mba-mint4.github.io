@@ -1,13 +1,13 @@
 // 树洞管理员 - 列表查询（GET /api/admin/treehole）
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, corsResponse, optionsResponse, requireRole,
+  getSql, corsResponse, optionsResponse, requireRead,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  const auth = await requireRole(request, env, 'treehole')
+  const auth = await requireRead(request, env)
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
 
   const sql = getSql(env)

@@ -2,7 +2,7 @@
 // 整个 body（{courses:[...]}）upsert 到 course_materials id='default'
 // 鉴权：登录班委 + 模块角色（智库研究员 / 主理人 / 副主理人）。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -26,6 +26,11 @@ export async function onRequest(context) {
         ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
         RETURNING id
       `
+      await logHistory(sql, {
+        type: 'courseMaterials', action: 'update',
+        description: `更新课程资料（${body.courses?.length || 0} 门课）`,
+        operator: auth.user.name,
+      })
       return corsResponse({ message: '课程资料保存成功', id: result[0]?.id }, 200)
     }
 

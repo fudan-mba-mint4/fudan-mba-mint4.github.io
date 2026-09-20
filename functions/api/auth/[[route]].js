@@ -80,8 +80,10 @@ async function handleLogin(request, env) {
   const token = generateToken()
   const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const user = result[0]
+  // 每次登录按最新班委名单刷新角色：映射配置前注册的班委也能自动获得权限
+  user.role = COMMITTEE_ROLES[user.name] || null
 
-  await sql`UPDATE users SET token = ${token}, token_expires_at = ${tokenExpires} WHERE id = ${user.id}`
+  await sql`UPDATE users SET token = ${token}, token_expires_at = ${tokenExpires}, role = ${user.role} WHERE id = ${user.id}`
 
   const { password_hash, ...safeUser } = user
   return corsResponse({
@@ -136,5 +138,11 @@ async function handleMe(request, env) {
   const sql = getSql(env)
   const user = await getAuthUser(request, sql)
   if (!user) return corsResponse({ error: '未登录或登录已过期' }, 401)
+  // 按最新名单刷新角色并回写（覆盖 token 仍有效、未重新登录的班委）
+  const freshRole = COMMITTEE_ROLES[user.name] || null
+  if (freshRole !== user.role) {
+    await sql`UPDATE users SET role = ${freshRole} WHERE id = ${user.id}`
+    user.role = freshRole
+  }
   return corsResponse({ data: user })
 }

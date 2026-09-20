@@ -228,8 +228,9 @@ export async function getAuthUser(request, sql) {
 }
 
 // ===== 班委角色与权限（RBAC）=====
-// leader 班级主理人 / deputy 副主理人：全部模块
+// leader 班级主理人 / deputy 副主理人：全部模块（写）
 // experience 体验运营官 / finance 财务激励官 / thinktank 智库研究员 / memory 记忆主理人
+// supervisor 独立董事会：全部模块【只读】，不能写/删
 export const ROLE_LABELS = {
   leader: '班级主理人',
   deputy: '副主理人',
@@ -237,6 +238,7 @@ export const ROLE_LABELS = {
   finance: '财务激励官',
   thinktank: '智库研究员',
   memory: '记忆主理人',
+  supervisor: '独立董事会',
 }
 
 // 班委真名 → 角色（注册时按真名自动识别）。班委名单是公开信息（班委介绍页）。
@@ -254,11 +256,15 @@ export const COMMITTEE_ROLES = {
   // 记忆主理人（徐佩莹/徐珮莹为同一人异体写法，都识别）
   杨旻: 'memory', 陈飘逸: 'memory', 徐哲明: 'memory',
   李甜: 'memory', 徐佩莹: 'memory', 徐珮莹: 'memory',
+  // 独立董事会（监督，只读）
+  周楠骐: 'supervisor', 李浩: 'supervisor',
+  王星然: 'supervisor', 王胜: 'supervisor',
 }
 
-// 每个后台模块允许的角色（leader/deputy 在 requireRole 内自动放行全部模块）
+// 每个后台模块允许【写】的角色（leader/deputy 在 requireRole 内自动放行全部模块）
+// supervisor 不在此列（只读）；announcements 对全体班委开放。
 export const MODULE_ROLES = {
-  announcements: ['leader', 'deputy'],
+  announcements: ['leader', 'deputy', 'experience', 'finance', 'thinktank', 'memory'],
   activities: ['leader', 'deputy', 'experience'],
   polls: ['leader', 'deputy', 'experience'],
   courseMaterials: ['leader', 'deputy', 'thinktank'],
@@ -267,12 +273,16 @@ export const MODULE_ROLES = {
   treehole: ['leader', 'deputy', 'memory'],
 }
 
-// 按模块鉴权：未登录 → 401；登录但无该模块权限 → 403；否则返回 user。
+// 按模块鉴权【写/改/删】：
+// 未登录 → 401；supervisor（只读）→ 403；登录但无该模块权限 → 403；否则返回 user。
 export async function requireRole(request, env, module) {
   const sql = getSql(env)
   const user = await getAuthUser(request, sql)
   if (!user) return { ok: false, status: 401, error: '请先登录' }
   if (user.role === 'leader' || user.role === 'deputy') return { ok: true, user }
+  if (user.role === 'supervisor') {
+    return { ok: false, status: 403, error: '独立董事会仅有只读权限' }
+  }
   const allowed = MODULE_ROLES[module] || []
   if (!allowed.includes(user.role)) {
     return { ok: false, status: 403, error: '没有该模块的操作权限' }
@@ -280,13 +290,38 @@ export async function requireRole(request, env, module) {
   return { ok: true, user }
 }
 
-// 仅要求“登录且是班委”（用于文件上传等多模块共用端点）
+// 按模块鉴权【读】（后台内部列表）：登录且是班委（含 supervisor）即可；
+// 普通同学（role 为空）→ 403。具体可见的模块由前端 tab 过滤控制。
+export async function requireRead(request, env) {
+  const sql = getSql(env)
+  const user = await getAuthUser(request, sql)
+  if (!user) return { ok: false, status: 401, error: '请先登录' }
+  if (!user.role) return { ok: false, status: 403, error: '没有访问权限' }
+  return { ok: true, user }
+}
+
+// 仅要求“登录且是班委”（用于文件上传等多模块共用端点；supervisor 只读、不放行）
 export async function requireCommittee(request, env) {
   const sql = getSql(env)
   const user = await getAuthUser(request, sql)
   if (!user) return { ok: false, status: 401, error: '请先登录' }
+  if (user.role === 'supervisor') {
+    return { ok: false, status: 403, error: '独立董事会仅有只读权限' }
+  }
   if (!user.role) return { ok: false, status: 403, error: '没有操作权限' }
   return { ok: true, user }
+}
+
+// 统一格式化记录一次后台操作到 admin_history（服务端强制，不依赖前端，无法绕过）。
+// 覆盖 create / update / delete / revert / upload / 树洞管理等，operator 为登录真名。
+export async function logHistory(sql, { type, action, refId = null, description = '', operator }) {
+  const id = `h-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  await sql`
+    INSERT INTO admin_history (id, type, action, ref_id, description, operator, status)
+    VALUES (${id}, ${type}, ${action}, ${refId}, ${description}, ${operator}, 'success')
+    ON CONFLICT (id) DO NOTHING
+  `
+  return id
 }
 
 // CORS响应

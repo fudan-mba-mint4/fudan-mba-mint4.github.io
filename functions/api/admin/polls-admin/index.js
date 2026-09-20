@@ -3,7 +3,7 @@
 // POST/PUT/DELETE - 班委写入，需登录且具备模块角色（体验运营官 / 主理人 / 副主理人）。
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -48,12 +48,28 @@ export async function onRequest(context) {
           updated_at = now()
         RETURNING id
       `
+      const titleText = typeof body.title === 'string' ? body.title : (body.title?.zh || id)
+      await logHistory(sql, {
+        type: 'polls',
+        action: prev?.created_by ? 'update' : 'create',
+        refId: id,
+        description: titleText,
+        operator: auth.user.name,
+      })
       return corsResponse({ message: '保存成功', id: result[0]?.id }, 200)
     }
 
     if (request.method === 'DELETE') {
       if (!body.id) return corsResponse({ error: '缺少 id 字段' }, 400)
-      const result = await sql`DELETE FROM polls_admin WHERE id = ${body.id} RETURNING id`
+      const result = await sql`DELETE FROM polls_admin WHERE id = ${body.id} RETURNING id, data`
+      if (result.length) {
+        const d = result[0].data || {}
+        const titleText = typeof d.title === 'string' ? d.title : (d.title?.zh || body.id)
+        await logHistory(sql, {
+          type: 'polls', action: 'delete', refId: body.id,
+          description: titleText, operator: auth.user.name,
+        })
+      }
       return corsResponse({ message: result.length ? '删除成功' : '未找到记录', deleted: result.length })
     }
 

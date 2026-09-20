@@ -3,7 +3,7 @@
 // 鉴权：登录班委 + 模块角色（财务激励官 / 主理人 / 副主理人）。
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole,
+  getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -29,6 +29,11 @@ export async function onRequest(context) {
           updated_at = now()
         RETURNING id
       `
+      await logHistory(sql, {
+        type: 'finance', action: 'update',
+        description: `更新班费数据（${body.transactions?.length || 0} 条流水）`,
+        operator: auth.user.name,
+      })
       return corsResponse({ message: '财务数据保存成功', id: result[0]?.id }, 200)
     }
 
