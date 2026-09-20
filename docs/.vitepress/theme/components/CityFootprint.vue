@@ -108,7 +108,7 @@ const CITY_ZH = {
   'Shenyang': '沈阳', 'Dalian': '大连', 'Anshan': '鞍山',
   'Changchun': '长春', 'Jilin': '吉林市', 'Harbin': '哈尔滨', 'Daqing': '大庆',
   // 华东
-  'Nanjing': '南京', 'Suzhou': '苏州', 'Wuxi': '无锡', 'Changzhou': '常州', 'Nantong': '南通',
+  'Nanjing': '南京', 'Suzhou': '苏州', 'Wuxi': '无锡', 'Kunshan': '昆山', 'Changzhou': '常州', 'Nantong': '南通',
   'Xuzhou': '徐州', 'Yangzhou': '扬州', 'Yancheng': '盐城', 'Zhenjiang': '镇江', 'Huai\'an': '淮安',
   'Hangzhou': '杭州', 'Ningbo': '宁波', 'Wenzhou': '温州', 'Jiaxing': '嘉兴', 'Huzhou': '湖州',
   'Shaoxing': '绍兴', 'Jinhua': '金华', 'Yiwu': '义乌', 'Taizhou': '台州', 'Quzhou': '衢州', 'Zhoushan': '舟山',
@@ -270,7 +270,17 @@ const COUNTRY_ZH = {
   'SA': '沙特阿拉伯',
   'IL': '以色列',
 }
-function zhCity(name) { return CITY_ZH[name] || name }
+// 直辖市的区/镇统一归并到市（区镇不是独立城市），优先级高于 CITY_ZH
+const AREA_TO_CITY = {
+  'Pudong':'上海','Minhang':'上海','Jiading':'上海','Songjiang':'上海','Baoshan':'上海',
+  'Jiangchuanlu':'上海','Pujiang':'上海','Kangqiao':'上海','Changqiao':'上海','Qingpu':'上海',
+  'Fengxian':'上海','Jinshan':'上海','Chongming':'上海','Xuhui':'上海',"Jing'an":'上海','Jingan':'上海',
+  'Huangpu':'上海','Putuo':'上海','Changning':'上海','Hongkou':'上海','Yangpu':'上海','Zhabei':'上海',
+  'Haidian':'北京','Chaoyang':'北京','Dongcheng':'北京','Xicheng':'北京','Fengtai':'北京',
+  'Shijingshan':'北京','Mentougou':'北京','Fangshan':'北京','Tongzhou':'北京','Shunyi':'北京',
+  'Daxing':'北京','Changping':'北京','Pinggu':'北京','Huairou':'北京','Miyun':'北京','Yanqing':'北京',
+}
+function zhCity(name) { return AREA_TO_CITY[name] || CITY_ZH[name] || name }
 function zhCountry(name) { return COUNTRY_ZH[name] || name }
 
 // 经纬度 → canvas坐标（以中国为中心的等距圆柱投影，中央经线110°E）
