@@ -19,7 +19,7 @@
 
         <div class="cf-top-list">
           <div
-            v-for="(city, i) in stats.topCities"
+            v-for="(city, i) in visibleCities"
             :key="city.city"
             class="cf-top-item"
           >
@@ -31,6 +31,15 @@
             暂无数据，等待第一位访客点亮
           </div>
         </div>
+
+        <button
+          v-if="sortedCities.length > 10"
+          class="cf-toggle"
+          type="button"
+          @click="expanded = !expanded"
+        >
+          {{ expanded ? '收起列表' : `展开全部 ${sortedCities.length} 个城市` }}
+        </button>
 
         <p class="cf-note">同一浏览器30分钟内计为一次访问；不公开或保存原始IP。</p>
       </div>
@@ -45,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 import { API_PREFIX } from '../composables/apiConfig.js'
@@ -56,6 +65,17 @@ const stats = ref({
   topCities: [],
   allCities: [],
 })
+// 城市列表默认只显示前 10，可展开看完整列表（不影响地图比例）
+const expanded = ref(false)
+// allCities 为全部城市但后端未排序，前端统一按访问量降序（同名次按城市名稳定排序）
+const sortedCities = computed(() => {
+  const src = stats.value.allCities?.length ? stats.value.allCities : (stats.value.topCities || [])
+  return [...src].sort((a, b) =>
+    (b.visits - a.visits) || String(a.city).localeCompare(String(b.city)))
+})
+const visibleCities = computed(() =>
+  expanded.value ? sortedCities.value : sortedCities.value.slice(0, 10),
+)
 const loading = ref(true)
 const mapCanvas = ref(null)
 const worldGeo = ref(null)
@@ -584,16 +604,43 @@ onMounted(async () => {
   margin-top: 16px;
 }
 
-/* 右侧地图 */
+/* 右侧地图：固定等距圆柱投影比例 2:1，顶部对齐，
+   城市列表再长也不拉伸地图（宽度由列宽决定，高度=宽度/2） */
 .cf-map-area {
   position: relative;
-  min-height: 500px;
+  align-self: start;
+  width: 100%;
+  aspect-ratio: 2 / 1;
 }
 
 .cf-map {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* 展开 / 收起 列表 */
+.cf-toggle {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 0;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cf-toggle:hover {
+  color: var(--mint, #2d7a6c);
+  background: rgba(45, 122, 108, 0.08);
+}
+
+.dark .cf-toggle:hover {
+  color: #5ec4ac;
+  background: rgba(94, 196, 172, 0.12);
 }
 
 .cf-loading {
@@ -618,6 +665,5 @@ onMounted(async () => {
   }
   .cf-title { font-size: 22px; }
   .cf-stat-num { font-size: 26px; }
-  .cf-map-area { min-height: 280px; }
 }
 </style>
