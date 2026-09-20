@@ -14,7 +14,7 @@
           {{ loginLoading ? '登录中…' : '登 录' }}
         </button>
         <p v-if="authError" class="auth-error">{{ authError }}</p>
-        <p class="auth-hint">还没有账号？请先<a href="/register/">注册</a>，班委注册后系统会自动识别身份</p>
+        <p class="auth-hint">还没有账号？请先<a href="/auth/?tab=register">注册</a>，班委注册后系统会自动识别身份</p>
       </div>
     </div>
 

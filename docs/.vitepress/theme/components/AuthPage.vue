@@ -120,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vitepress'
 import { useAuth } from '../composables/useAuth.js'
 
@@ -150,6 +150,14 @@ function switchTab(tab) {
   loginError.value = ''
   regError.value = ''
 }
+
+// 支持 /auth/?tab=register 直达注册
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    const tab = new URLSearchParams(window.location.search).get('tab')
+    if (tab === 'register') switchTab('register')
+  }
+})
 
 async function handleLogin() {
   loginError.value = ''
