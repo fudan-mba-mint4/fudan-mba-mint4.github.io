@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { sortByDateDesc } from '../utils/dateUtils.js'
-import { useData } from '../composables/useData.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -42,10 +42,28 @@ const i18n = {
 }
 const { lang, t } = useLang(i18n)
 
-/* ========== 数据（JSON 驱动） ========== */
-const { data: kbData } = useData('/data/knowledge-base.json')
+/* ========== 数据（数据库优先，失败/空回退静态 JSON） ========== */
+const kbData = ref(null)
 const courses = computed(() => kbData.value?.courses || [])
 const documents = computed(() => kbData.value?.documents || [])
+async function loadKbData() {
+  // 1. 先用静态 JSON 立即渲染（SWR 兜底，保证冷启动也不白屏）
+  try {
+    const sr = await fetch('/data/knowledge-base.json')
+    if (sr.ok) kbData.value = await sr.json()
+  } catch (e) { /* 忽略，继续等数据库 */ }
+  // 2. 再请求数据库，成功且非空则覆盖为最新（冷启动给足 8s）
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 8000)
+    const r = await fetchWithRetry('/api/knowledge-db', { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (r.ok) {
+      const j = await r.json()
+      if (Array.isArray(j?.courses) && j.courses.length) kbData.value = j
+    }
+  } catch (e) { /* 保留已渲染的静态内容 */ }
+}
 
 /* ========== 阅读进度（localStorage） ========== */
 const STORAGE_KEY = 'mint4:kb:v1'
@@ -125,6 +143,7 @@ const typeIcon = (type) => {
 
 onMounted(() => {
   loadReadIds()
+  loadKbData()
 })
 
 onUnmounted(() => {

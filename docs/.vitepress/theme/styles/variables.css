@@ -65,6 +65,7 @@
   --c-red-light: rgba(255, 59, 48, 0.1);
   --c-blue-light: rgba(0, 122, 255, 0.1);
   --c-orange-light: rgba(255, 149, 0, 0.1);
+  --c-purple-light: rgba(175, 82, 222, 0.12);
 
   /* 强调色卡片（与班费余额卡片一致的渐变配色，全站统一） */
   --c-card-accent-bg: linear-gradient(135deg, #7ad1bc 0%, #5ec4ac 100%);
@@ -258,6 +259,7 @@ html.dark {
   --c-red-light: rgba(255, 69, 58, 0.15);
   --c-blue-light: rgba(10, 132, 255, 0.15);
   --c-orange-light: rgba(255, 159, 10, 0.15);
+  --c-purple-light: rgba(191, 90, 242, 0.18);
 
   /* 强调色卡片（深色模式，与班费余额卡片一致） */
   --c-card-accent-bg: linear-gradient(135deg, #2d7a6c 0%, #1f5a4f 100%);

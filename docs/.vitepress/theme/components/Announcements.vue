@@ -11,6 +11,7 @@ const i18n = {
     important: '重要',
     normal: '通知',
     activity: '活动',
+    poll: '投票',
     academic: '教学',
     expand: '展开',
     collapse: '收起',
@@ -29,6 +30,7 @@ const i18n = {
     important: 'Important',
     normal: 'Notice',
     activity: 'Activity',
+    poll: 'Poll',
     academic: 'Academic',
     expand: 'Read more',
     collapse: 'Collapse',
@@ -47,6 +49,7 @@ const i18n = {
     important: 'สำคัญ',
     normal: 'แจ้งเตือน',
     activity: 'กิจกรรม',
+    poll: 'การโหวต',
     academic: 'การเรียน',
     expand: 'อ่านเพิ่ม',
     collapse: 'ย่อ',
@@ -73,6 +76,7 @@ const categories = computed(() => [
   { key: 'important', label: t.value.important },
   { key: 'normal', label: t.value.normal },
   { key: 'activity', label: t.value.activity },
+  { key: 'poll', label: t.value.poll },
   { key: 'academic', label: t.value.academic },
 ])
 const activeCategory = ref('all')
@@ -197,6 +201,7 @@ const categoryStyle = (cat) => {
     important: 'background: var(--c-coral-light); color: var(--c-coral);',
     normal: 'background: var(--c-blue); color: #fff; opacity: 0.9;',
     activity: 'background: var(--c-accent-light); color: var(--c-accent);',
+    poll: 'background: var(--c-purple-light); color: var(--c-purple);',
     academic: 'background: var(--c-amber-light); color: var(--c-amber);',
   }
   return map[cat] || map.normal
@@ -397,6 +402,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
 }
 .hero-card.hero-important { border-left-color: var(--c-coral); }
 .hero-card.hero-activity { border-left-color: var(--c-accent); }
+.hero-card.hero-poll { border-left-color: var(--c-purple); }
 .hero-card.hero-academic { border-left-color: var(--c-amber); }
 
 .hero-meta {

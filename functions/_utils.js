@@ -155,6 +155,14 @@ export async function initDatabase(env) {
     )
   `
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS knowledge_base (
+      id TEXT PRIMARY KEY DEFAULT 'default',
+      data JSONB,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `
+
 }
 
 // 兼容旧 import：内容表已并入 initDatabase
@@ -228,9 +236,8 @@ export async function getAuthUser(request, sql) {
 }
 
 // ===== 班委角色与权限（RBAC）=====
-// leader 班级主理人 / deputy 副主理人：全部模块（写）
+// leader 班级主理人 / deputy 副主理人 / supervisor 独立董事会：全部模块（写）
 // experience 体验运营官 / finance 财务激励官 / thinktank 智库研究员 / memory 记忆主理人
-// supervisor 独立董事会：全部模块【只读】，不能写/删
 export const ROLE_LABELS = {
   leader: '班级主理人',
   deputy: '副主理人',
@@ -256,33 +263,32 @@ export const COMMITTEE_ROLES = {
   // 记忆主理人（徐佩莹/徐珮莹为同一人异体写法，都识别）
   杨旻: 'memory', 陈飘逸: 'memory', 徐哲明: 'memory',
   李甜: 'memory', 徐佩莹: 'memory', 徐珮莹: 'memory',
-  // 独立董事会（监督，只读）
+  // 独立董事会（监督，与主理人/副主理人同权）
   周楠骐: 'supervisor', 李浩: 'supervisor',
   王星然: 'supervisor', 王胜: 'supervisor',
 }
 
-// 每个后台模块允许【写】的角色（leader/deputy 在 requireRole 内自动放行全部模块）
-// supervisor 不在此列（只读）；announcements 对全体班委开放。
+// 每个后台模块允许【写】的角色（leader/deputy/supervisor 在 requireRole 内自动放行全部模块）
+// announcements 对全体班委开放。
 export const MODULE_ROLES = {
   announcements: ['leader', 'deputy', 'experience', 'finance', 'thinktank', 'memory'],
   activities: ['leader', 'deputy', 'experience'],
   polls: ['leader', 'deputy', 'experience'],
   courseMaterials: ['leader', 'deputy', 'thinktank'],
+  knowledge: ['leader', 'deputy', 'thinktank'],
   finance: ['leader', 'deputy', 'finance'],
   gallery: ['leader', 'deputy', 'memory'],
   treehole: ['leader', 'deputy', 'memory'],
 }
 
 // 按模块鉴权【写/改/删】：
-// 未登录 → 401；supervisor（只读）→ 403；登录但无该模块权限 → 403；否则返回 user。
+// 未登录 → 401；登录但无该模块权限 → 403；否则返回 user。
+// leader/deputy/supervisor 自动放行全部模块（独立董事会与主理人/副主理人同权）。
 export async function requireRole(request, env, module) {
   const sql = getSql(env)
   const user = await getAuthUser(request, sql)
   if (!user) return { ok: false, status: 401, error: '请先登录' }
-  if (user.role === 'leader' || user.role === 'deputy') return { ok: true, user }
-  if (user.role === 'supervisor') {
-    return { ok: false, status: 403, error: '独立董事会仅有只读权限' }
-  }
+  if (user.role === 'leader' || user.role === 'deputy' || user.role === 'supervisor') return { ok: true, user }
   const allowed = MODULE_ROLES[module] || []
   if (!allowed.includes(user.role)) {
     return { ok: false, status: 403, error: '没有该模块的操作权限' }
@@ -300,14 +306,11 @@ export async function requireRead(request, env) {
   return { ok: true, user }
 }
 
-// 仅要求“登录且是班委”（用于文件上传等多模块共用端点；supervisor 只读、不放行）
+// 仅要求“登录且是班委”（用于文件上传等多模块共用端点；supervisor 同样放行）
 export async function requireCommittee(request, env) {
   const sql = getSql(env)
   const user = await getAuthUser(request, sql)
   if (!user) return { ok: false, status: 401, error: '请先登录' }
-  if (user.role === 'supervisor') {
-    return { ok: false, status: 403, error: '独立董事会仅有只读权限' }
-  }
   if (!user.role) return { ok: false, status: 403, error: '没有操作权限' }
   return { ok: true, user }
 }

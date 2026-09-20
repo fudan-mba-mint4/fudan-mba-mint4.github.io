@@ -29,7 +29,7 @@
     </div>
 
     <!-- ===== 管理主界面 ===== -->
-    <div v-else class="admin-main" :class="{ 'readonly-mode': isReadOnly }">
+    <div v-else class="admin-main">
       <header class="admin-header">
         <h2>📋 班级网站管理后台</h2>
         <div class="admin-identity">
@@ -43,9 +43,6 @@
       <div class="token-bar">
         <span class="token-badge">✓ 数据库与 R2 已连接</span>
       </div>
-
-      <!-- 只读模式提示（独立董事会） -->
-      <div v-if="isReadOnly" class="readonly-banner">👁️ 独立董事会 · 只读模式：可查看全部模块内容，不能发布、修改或删除</div>
 
       <!-- 类型标签（按角色过滤，只显示自己管辖的模块） -->
       <div class="type-tabs">
@@ -70,6 +67,8 @@
                 <option value="important">🔴 重要</option>
                 <option value="academic">📚 教学</option>
                 <option value="normal">📌 通知</option>
+                <option value="activity">🎉 活动</option>
+                <option value="poll">🗳️ 投票</option>
               </select>
             </div>
           </div>
@@ -236,6 +235,44 @@
         </form>
       </div>
 
+      <!-- ===== 知识库表单 ===== -->
+      <div v-if="currentType === 'knowledge'" class="form-section">
+        <h3>📖 上传知识库资料</h3>
+        <form @submit.prevent="submitKnowledge" class="data-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>分类 <span class="required">*</span></label>
+              <select v-model="kbForm.courseId">
+                <option v-for="c in kbCourses" :key="c.id" :value="c.id">{{ c.icon }} {{ c.name?.zh || c.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>类型 <span class="required">*</span></label>
+              <select v-model="kbForm.type">
+                <option value="note">📝 课程笔记</option>
+                <option value="summary">🔖 重点总结</option>
+                <option value="exam">📋 考题参考</option>
+                <option value="resource">📦 学习资源</option>
+                <option value="calendar">📅 校历</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="kbForm.date" required /></div>
+            <div class="form-group"><label>标题 <span class="required">*</span></label><input v-model="kbForm.title" required placeholder="资料标题" /></div>
+          </div>
+          <div class="form-group"><label>作者 / 来源</label><input v-model="kbForm.author" placeholder="班级 / 供稿同学" /></div>
+          <div class="form-group">
+            <label>资料文件（PDF / 图片）<span class="required">*</span></label>
+            <input type="file" accept=".pdf,image/*" @change="onKbFile" class="file-input" />
+            <span v-if="kbForm.file" class="file-info">📄 {{ kbForm.file.name }} ({{ formatSize(kbForm.file.size) }})</span>
+          </div>
+          <button type="submit" class="submit-btn" :disabled="submitting || !kbForm.file">
+            {{ submitting ? '上传中...（文件较大请稍候）' : '上传文件并提交' }}
+          </button>
+        </form>
+      </div>
+
       <!-- ===== 班费表单 ===== -->
       <div v-if="currentType === 'finance'" class="form-section">
         <h3>💰 添加班费收支</h3>
@@ -348,15 +385,15 @@
             <button @click="exportTreeholeCSV" class="treehole-export-btn">导出CSV</button>
             <div class="treehole-batch-actions" v-if="treeholeSelected.length > 0">
               <span class="treehole-selected-count">已选 {{ treeholeSelected.length }}</span>
-              <button @click="batchDeleteTreehole" class="treehole-delete-btn" :disabled="isReadOnly">批量删除</button>
-              <button @click="batchRestoreTreehole" class="treehole-restore-btn" :disabled="isReadOnly">批量恢复</button>
+              <button @click="batchDeleteTreehole" class="treehole-delete-btn">批量删除</button>
+              <button @click="batchRestoreTreehole" class="treehole-restore-btn">批量恢复</button>
             </div>
           </div>
 
           <!-- 全选栏 -->
           <div v-if="treeholeMessages.length > 0" class="treehole-select-bar">
             <label class="treehole-select-all">
-              <input type="checkbox" :checked="getIsAllSelected()" :indeterminate.prop="getIsIndeterminate()" @change="toggleSelectAll" :disabled="isReadOnly" />
+              <input type="checkbox" :checked="getIsAllSelected()" :indeterminate.prop="getIsIndeterminate()" @change="toggleSelectAll" />
               全选本页 ({{ treeholeMessages.length }})
             </label>
             <button v-if="treeholeSelected.length > 0" @click="clearSelection" class="treehole-clear-btn">清除选择</button>
@@ -370,7 +407,7 @@
           <div v-else class="treehole-list">
             <div v-for="msg in treeholeMessages" :key="msg.id" class="treehole-item" :class="{ deleted: msg.is_deleted, expanded: expandedId === msg.id }">
               <div class="treehole-item-check">
-                <input type="checkbox" :value="msg.id" v-model="treeholeSelected" :disabled="isReadOnly" />
+                <input type="checkbox" :value="msg.id" v-model="treeholeSelected" />
               </div>
               <div class="treehole-item-content" @click="toggleExpand(msg.id)">
                 <div class="treehole-item-header">
@@ -392,8 +429,8 @@
                 </div>
               </div>
               <div class="treehole-item-actions">
-                <button v-if="!msg.is_deleted" @click.stop="deleteSingleTreehole(msg.id)" class="treehole-single-delete" :disabled="isReadOnly">删除</button>
-                <button v-else @click.stop="restoreSingleTreehole(msg.id)" class="treehole-single-restore" :disabled="isReadOnly">恢复</button>
+                <button v-if="!msg.is_deleted" @click.stop="deleteSingleTreehole(msg.id)" class="treehole-single-delete">删除</button>
+                <button v-else @click.stop="restoreSingleTreehole(msg.id)" class="treehole-single-restore">恢复</button>
               </div>
             </div>
           </div>
@@ -469,6 +506,7 @@ const dataTypes = [
   { id: 'activities', name: '活动', icon: '🎉' },
   { id: 'polls', name: '投票', icon: '🗳️' },
   { id: 'courseMaterials', name: '课程资料', icon: '📚' },
+  { id: 'knowledge', name: '知识库', icon: '📖' },
   { id: 'finance', name: '班费', icon: '💰' },
   { id: 'gallery', name: '相册', icon: '🖼️' },
   { id: 'treehole', name: '树洞管理', icon: '🌳' },
@@ -476,12 +514,13 @@ const dataTypes = [
 const currentType = ref('announcements')
 
 // 各模块允许的角色（与 functions/_utils.js 的 MODULE_ROLES 保持一致，改动需同步）
-// supervisor（独立董事会）不在写权限内：可见全部模块但只读。
+// leader/deputy/supervisor 可见并可写全部模块；其余角色只看到本职能模块。
 const MODULE_ROLE_MAP = {
   announcements: ['leader', 'deputy', 'experience', 'finance', 'thinktank', 'memory'],
   activities: ['leader', 'deputy', 'experience'],
   polls: ['leader', 'deputy', 'experience'],
   courseMaterials: ['leader', 'deputy', 'thinktank'],
+  knowledge: ['leader', 'deputy', 'thinktank'],
   finance: ['leader', 'deputy', 'finance'],
   gallery: ['leader', 'deputy', 'memory'],
   treehole: ['leader', 'deputy', 'memory'],
@@ -500,8 +539,6 @@ const visibleTypes = computed(() => {
   return dataTypes.filter(t => (MODULE_ROLE_MAP[t.id] || []).includes(role))
 })
 const roleLabel = computed(() => ROLE_LABEL_MAP[currentUser.value?.role] || '')
-// 独立董事会为只读模式：所有表单与写/删/上传按钮禁用
-const isReadOnly = computed(() => currentUser.value?.role === 'supervisor')
 // 登录/角色变化后，若当前模块不在可见范围，自动切到第一个可见模块
 watch(visibleTypes, (list) => {
   if (list.length && !list.some(t => t.id === currentType.value)) {
@@ -516,6 +553,8 @@ const today = new Date().toISOString().split('T')[0]
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
 const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false })
 const cmForm = ref({ courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] })
+const kbForm = ref({ courseId:'general', type:'note', date:today, title:'', author:'', file:null })
+const kbCourses = ref([])
 const finForm = ref({ type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' })
 const activitiesList = ref([])
 async function loadActivitiesForSelect() {
@@ -546,6 +585,7 @@ function onPollOptionImage(e, idx) { pollForm.value.options[idx].imageFile = e.t
 
 function onSlideFile(e) { cmForm.value.slideFile = e.target.files[0] }
 function onHomeworkFile(e) { cmForm.value.homeworkFile = e.target.files[0] }
+function onKbFile(e) { kbForm.value.file = e.target.files[0] }
 function onRefFile(e, idx) { cmForm.value.references[idx].file = e.target.files[0] }
 function onCoverFile(e) { albForm.value.coverFile = e.target.files[0] }
 
@@ -1073,6 +1113,57 @@ async function submitCourseMaterial() {
   await saveRecord(rec)
 }
 
+// ===== 知识库（整包：DB 优先，失败回退静态 JSON）=====
+async function getCurrentKnowledgePack() {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const r = await fetchWithRetry(`${API_PREFIX}/api/knowledge-db`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (r.ok) {
+      const j = await r.json()
+      if (Array.isArray(j?.courses) && j.courses.length) return j
+    }
+  } catch (e) { /* 回退静态 */ }
+  const res = await fetchWithRetry('/data/knowledge-base.json')
+  if (!res.ok) throw new Error('读取知识库失败')
+  return res.json()
+}
+async function submitKnowledge() {
+  submitting.value = true
+  const f = kbForm.value
+  const rec = createRecord('knowledge', `上传知识库资料: ${f.title}`)
+  try {
+    if (!f.file) throw new Error('请选择要上传的文件')
+    const dateStr = f.date.replace(/-/g, '')
+    const r2Key = `files/knowledge/${f.courseId}/${dateStr}/${f.file.name}`
+    const url = await uploadFileToAdmin(f.file, r2Key)
+
+    const pack = await getCurrentKnowledgePack()
+    if (!Array.isArray(pack.documents)) pack.documents = []
+    const nextId = pack.documents.reduce((m, d) => Math.max(m, Number(d.id) || 0), 0) + 1
+    pack.documents.push({
+      id: nextId,
+      courseId: f.courseId,
+      type: f.type,
+      title: { zh: f.title, en: f.title, th: f.title },
+      author: f.author || '班级',
+      date: f.date,
+      size: formatSize(f.file.size),
+      url,
+    })
+
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/knowledge`, {
+      method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pack),
+    })
+    await throwIfNotOk(res, '保存知识库资料')
+    rec.status = 'success'
+    kbForm.value = { courseId:'general', type:'note', date:today, title:'', author:'', file:null }
+  } catch(e) { rec.status='failed'; rec.error=e.message }
+  submitting.value = false
+  await saveRecord(rec)
+}
+
 // ===== 提交班费（直连 Cloudflare：整包 PUT /api/admin/finance，body {transactions, activityFinances}）=====
 // 先读当前班费包（DB 优先，失败回退静态 JSON），追加新流水后整包写回。
 async function getCurrentFinancePack() {
@@ -1253,6 +1344,12 @@ async function submitPoll() {
 }
 
 // ===== 初始化 =====
+async function loadKbCourses() {
+  try {
+    const pack = await getCurrentKnowledgePack()
+    kbCourses.value = Array.isArray(pack.courses) ? pack.courses : []
+  } catch (e) { console.warn('加载知识库分类失败:', e) }
+}
 onMounted(() => {
   if (isAuthenticated.value) loadHistory()
 })
@@ -1261,6 +1358,7 @@ watch(isAuthenticated, (v) => { if (v) loadHistory() })
 watch(currentType, (val) => {
   if (val === 'finance' && activitiesList.value.length === 0) loadActivitiesForSelect()
   if (val === 'treehole' && treeholeMessages.value.length === 0) loadTreeholeMessages()
+  if (val === 'knowledge' && kbCourses.value.length === 0) loadKbCourses()
 })
 </script>
 
@@ -1460,21 +1558,5 @@ watch(currentType, (val) => {
   .treehole-batch-actions { margin-left: 0; flex-wrap: wrap; }
   .treehole-item { flex-direction: column; gap: 8px; }
   .treehole-item-actions { width: 100%; }
-}
-
-/* ===== 独立董事会只读模式 ===== */
-.readonly-banner {
-  margin: 12px 0; padding: 10px 14px; border-radius: 10px;
-  background: color-mix(in srgb, var(--c-accent) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c-accent) 30%, transparent);
-  color: var(--c-text-secondary); font-size: 13px;
-}
-/* 纯“添加”表单：只读时整体禁用；树洞管理保留搜索/翻页/展开/导出 */
-.readonly-mode .form-section:not(.treehole-admin) {
-  pointer-events: none; opacity: 0.5;
-}
-/* 提交记录：只读时禁用撤回，列表仍可查看 */
-.readonly-mode .history-section .revert-btn {
-  pointer-events: none; opacity: 0.4;
 }
 </style>
