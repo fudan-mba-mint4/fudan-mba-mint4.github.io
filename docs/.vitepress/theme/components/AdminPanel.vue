@@ -271,6 +271,18 @@
             {{ submitting ? '上传中...（文件较大请稍候）' : '上传文件并提交' }}
           </button>
         </form>
+
+        <div class="existing-list">
+          <h4>当前资料（{{ kbDocuments.length }}）</h4>
+          <p v-if="!kbDocuments.length" class="empty-hint">暂无资料</p>
+          <div v-for="doc in kbDocuments" :key="doc.id" class="existing-item">
+            <div class="existing-info">
+              <span class="existing-title">{{ doc.title?.zh || doc.title }}</span>
+              <span class="existing-meta">{{ doc.courseId }} · {{ doc.date }} · {{ doc.size }}</span>
+            </div>
+            <button type="button" class="existing-del" @click="deleteKnowledgeDoc(doc)">删除</button>
+          </div>
+        </div>
       </div>
 
       <!-- ===== 班费表单 ===== -->
@@ -554,6 +566,7 @@ const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pi
 const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false })
 const cmForm = ref({ courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] })
 const kbForm = ref({ courseId:'general', type:'note', date:today, title:'', author:'', file:null })
+const kbDocuments = ref([])
 const kbCourses = ref([])
 const finForm = ref({ type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' })
 const activitiesList = ref([])
@@ -1159,6 +1172,7 @@ async function submitKnowledge() {
     await throwIfNotOk(res, '保存知识库资料')
     rec.status = 'success'
     kbForm.value = { courseId:'general', type:'note', date:today, title:'', author:'', file:null }
+    await loadKbCourses()
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
   await saveRecord(rec)
@@ -1348,7 +1362,21 @@ async function loadKbCourses() {
   try {
     const pack = await getCurrentKnowledgePack()
     kbCourses.value = Array.isArray(pack.courses) ? pack.courses : []
+    kbDocuments.value = Array.isArray(pack.documents) ? pack.documents : []
   } catch (e) { console.warn('加载知识库分类失败:', e) }
+}
+
+// 直接删除单条资料（DB 记录 + R2 文件，由后端处理并记录操作人）
+async function deleteKnowledgeDoc(doc) {
+  const title = typeof doc.title === 'object' ? (doc.title?.zh || doc.title) : doc.title
+  if (!confirm(`确定删除「${title}」吗？\n将同时删除 R2 中的文件，并记录操作人。`)) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/knowledge`, {
+      method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ docId: doc.id }),
+    })
+    await throwIfNotOk(res, '删除资料')
+    kbDocuments.value = kbDocuments.value.filter(d => String(d.id) !== String(doc.id))
+  } catch (e) { alert('删除失败: ' + e.message) }
 }
 onMounted(() => {
   if (isAuthenticated.value) loadHistory()
@@ -1559,4 +1587,14 @@ watch(currentType, (val) => {
   .treehole-item { flex-direction: column; gap: 8px; }
   .treehole-item-actions { width: 100%; }
 }
+
+.existing-list { margin-top: 20px; border-top: 1px solid var(--c-border); padding-top: 16px; }
+.existing-list h4 { margin: 0 0 10px; font-size: 14px; color: var(--c-text); }
+.empty-hint { font-size: 13px; color: var(--c-text-tertiary); }
+.existing-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 10px; background: var(--c-bg-tertiary); margin-bottom: 8px; }
+.existing-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.existing-title { font-size: 13px; font-weight: 600; color: var(--c-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.existing-meta { font-size: 11px; color: var(--c-text-tertiary); }
+.existing-del { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all .2s; }
+.existing-del:hover { background: #ff3b30; color: #fff; }
 </style>
