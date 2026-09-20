@@ -458,22 +458,9 @@ function formatSize(bytes) {
   return (bytes/1048576).toFixed(1) + ' MB'
 }
 
-// ===== 自动翻译（走后端同源 /api/translate，Cloudflare 边缘翻译，无需 VPN、无需访问 Google）=====
-async function translateBoth(text) {
-  if (!text || !text.trim()) return { en: text, th: text }
-  try {
-    const res = await fetch('/api/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    })
-    if (!res.ok) throw new Error('翻译服务 HTTP ' + res.status)
-    const data = await res.json()
-    return { en: data.en ?? text, th: data.th ?? text }
-  } catch (e) {
-    console.warn('翻译失败，将以原文填充:', e.message)
-    return { en: text, th: text }
-  }
+// ===== 自动翻译已停用：英/泰字段暂以中文填充，不请求外部、不阻塞提交；后续需要可人工补译 =====
+function translateBoth(text) {
+  return Promise.resolve({ en: text, th: text })
 }
 
 // ===== 数据类型 =====
