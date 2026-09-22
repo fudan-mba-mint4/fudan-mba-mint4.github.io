@@ -1,5 +1,4 @@
 {
-  "last_updated": "2026-09-16",
   "note": "课程资料按课程分类，每门课按节次排列。文件较大，建议右键另存为下载。",
   "courses": [
     {
@@ -7,54 +6,69 @@
       "name": "数据、模型与决策",
       "name_en": "Data, Models and Decisions",
       "teacher": "黄达",
-      "location": "政立院区 B403",
       "weekday": "周四 18:00-21:30",
+      "location": "政立院区 B403",
       "sessions": [
         {
-          "session": 2,
-          "date": "2026-09-17",
-          "title": "第2讲：概率与概率分布",
+          "date": "2026-09-22",
           "files": [
             {
-              "name": "DMD 第2讲课件（学生版）",
-              "filename": "DMD_Lecture02_student_2604.pdf",
-              "url": "https://files.mint4.cn/files/courses/dmd/20260917/DMD_Lecture02_student_2604.pdf",
-              "size": "13 MB",
-              "type": "slide"
+              "url": "https://files.mint4.cn/files/courses/dmd/20260922/DMD_Lecture03_2026.pdf",
+              "name": "第3讲：线性规划 课件",
+              "size": "2.7 MB",
+              "type": "slide",
+              "filename": "DMD_Lecture03_2026.pdf"
             }
           ],
+          "title": "第3讲：线性规划",
+          "session": 3,
           "references": []
         },
         {
-          "session": 1,
-          "date": "2026-09-10",
-          "title": "第1讲：课程导论与数学基础回顾",
+          "date": "2026-09-17",
           "files": [
             {
-              "name": "DMD 第1讲课件（学生版）",
-              "filename": "DMD_Lecture01_student_2026.pdf",
-              "url": "https://files.mint4.cn/files/courses/dmd/20260910/DMD_Lecture01_student_2026.pdf",
-              "size": "5.4 MB",
-              "type": "slide"
+              "url": "https://files.mint4.cn/files/courses/dmd/20260917/DMD_Lecture02_student_2604.pdf",
+              "name": "DMD 第2讲课件（学生版）",
+              "size": "13 MB",
+              "type": "slide",
+              "filename": "DMD_Lecture02_student_2604.pdf"
             }
           ],
+          "title": "第2讲：概率与概率分布",
+          "session": 2,
+          "references": []
+        },
+        {
+          "date": "2026-09-10",
+          "files": [
+            {
+              "url": "https://files.mint4.cn/files/courses/dmd/20260910/DMD_Lecture01_student_2026.pdf",
+              "name": "DMD 第1讲课件（学生版）",
+              "size": "5.4 MB",
+              "type": "slide",
+              "filename": "DMD_Lecture01_student_2026.pdf"
+            }
+          ],
+          "title": "第1讲：课程导论与数学基础回顾",
+          "session": 1,
+          "homework": {
+            "url": "https://files.mint4.cn/files/courses/dmd/20260910/DMD_Homework1.pdf",
+            "name": "DMD 第一次作业",
+            "size": "92 KB",
+            "deadline": "2026-09-17",
+            "filename": "DMD_Homework1.pdf",
+            "submission": "纸质版手写，写姓名学号",
+            "description": "Oxenol 公司的市场决策：(a) 面临怎样的决策 (b) 构造决策树 (c) 指出最优战略"
+          },
           "references": [
             {
-              "name": "黄达老师推荐 · 数学基础读物（3本）",
-              "filename": "math-comics",
               "url": "",
-              "desc": "欧姆社学习漫画：微积分 / 统计学 / 回归分析 · 见企业微信DMD群"
+              "desc": "欧姆社学习漫画：微积分 / 统计学 / 回归分析 · 见企业微信DMD群",
+              "name": "黄达老师推荐 · 数学基础读物（3本）",
+              "filename": "math-comics"
             }
-          ],
-          "homework": {
-            "name": "DMD 第一次作业",
-            "deadline": "2026-09-17",
-            "submission": "纸质版手写，写姓名学号",
-            "description": "Oxenol 公司的市场决策：(a) 面临怎样的决策 (b) 构造决策树 (c) 指出最优战略",
-            "filename": "DMD_Homework1.pdf",
-            "url": "https://files.mint4.cn/files/courses/dmd/20260910/DMD_Homework1.pdf",
-            "size": "92 KB"
-          }
+          ]
         }
       ]
     },
@@ -63,43 +77,43 @@
       "name": "管理经济学",
       "name_en": "Managerial Economics",
       "teacher": "罗云辉",
-      "location": "政立院区 B403",
       "weekday": "周日 08:30-12:00",
+      "location": "政立院区 B403",
       "sessions": [
         {
-          "session": 1,
           "date": "2026-09-13",
-          "title": "第1讲：产量和投入要素量决策",
           "files": [
             {
-              "name": "资料3 · 产量和投入要素量决策",
-              "filename": "资料3-1.产量和投入要素量决策.pdf",
               "url": "https://files.mint4.cn/files/courses/managerial-economics/20260913/资料3-1.产量和投入要素量决策.pdf",
+              "name": "资料3 · 产量和投入要素量决策",
               "size": "1.8 MB",
-              "type": "slide"
+              "type": "slide",
+              "filename": "资料3-1.产量和投入要素量决策.pdf"
             }
           ],
+          "title": "第1讲：产量和投入要素量决策",
+          "session": 1,
           "homework": {
-            "name": "管理经济学 · 作业题",
-            "deadline": "",
-            "submission": "待老师通知",
-            "description": "资料2 · 作业题",
-            "filename": "资料2-作业题.pdf",
             "url": "https://files.mint4.cn/files/courses/managerial-economics/20260913/资料2-作业题.pdf",
-            "size": "289 KB"
+            "name": "管理经济学 · 作业题",
+            "size": "289 KB",
+            "deadline": "",
+            "filename": "资料2-作业题.pdf",
+            "submission": "待老师通知",
+            "description": "资料2 · 作业题"
           },
           "references": [
             {
-              "name": "资料1 · 课程介绍与教学大纲",
-              "filename": "资料1-封面+教师介绍+课程简介+教学大纲+汇报主题.pdf",
               "url": "https://files.mint4.cn/files/courses/managerial-economics/20260913/资料1-封面+教师介绍+课程简介+教学大纲+汇报主题.pdf",
-              "size": "348 KB"
+              "name": "资料1 · 课程介绍与教学大纲",
+              "size": "348 KB",
+              "filename": "资料1-封面+教师介绍+课程简介+教学大纲+汇报主题.pdf"
             },
             {
-              "name": "小组案例讨论分组表",
-              "filename": "《管理经济学》分组表.pdf",
               "url": "https://files.mint4.cn/files/courses/managerial-economics/20260913/《管理经济学》分组表.pdf",
-              "size": "286 KB"
+              "name": "小组案例讨论分组表",
+              "size": "286 KB",
+              "filename": "《管理经济学》分组表.pdf"
             }
           ]
         }
@@ -110,25 +124,28 @@
       "name": "会计学",
       "name_en": "Accounting",
       "teacher": "钟覃琳",
-      "location": "政立院区 B403",
       "weekday": "周日 13:30-17:00",
+      "location": "政立院区 B403",
       "sessions": [
         {
-          "session": 1,
           "date": "2026-09-13",
-          "title": "第1讲：收入与应收项目",
           "files": [
             {
-              "name": "会计学 第1讲课件 · 收入与应收项目",
-              "filename": "第一讲 收入与应收项目.pdf",
               "url": "https://files.mint4.cn/files/courses/accounting/20260913/第一讲 收入与应收项目.pdf",
+              "name": "会计学 第1讲课件 · 收入与应收项目",
               "size": "5.4 MB",
-              "type": "slide"
+              "type": "slide",
+              "filename": "第一讲 收入与应收项目.pdf"
             }
           ],
+          "title": "第1讲：收入与应收项目",
+          "session": 1,
           "references": []
         }
       ]
     }
-  ]
+  ],
+  "updated_by": "邹智宇",
+  "last_updated": "2026-09-16",
+  "updated_by_id": 7
 }
