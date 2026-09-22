@@ -85,6 +85,13 @@ const i18n = {
 const { lang: currentLang, t } = useLang(i18n)
 const currentCourse = computed(() => (materialsData.value?.courses || [])[activeCourse.value] || null)
 
+// 讲次统一按 session（讲号）降序，最新一讲始终在最上面；讲号缺失时按日期降序兜底
+const sortedSessions = computed(() =>
+  [...(currentCourse.value?.sessions || [])].sort((a, b) =>
+    (b.session ?? 0) - (a.session ?? 0)
+    || String(b.date || '').localeCompare(String(a.date || ''))),
+)
+
 const courseName = computed(() => {
   if (!currentCourse.value) return ''
   if (currentLang.value === 'en' && currentCourse.value.name_en) return currentCourse.value.name_en
@@ -164,7 +171,7 @@ const formatDate = (dateStr) => {
       <!-- 节次列表 -->
       <div v-else class="sessions-list">
         <div
-          v-for="session in (currentCourse.sessions || [])"
+          v-for="session in sortedSessions"
           :key="session.session"
           class="session-block"
         >
