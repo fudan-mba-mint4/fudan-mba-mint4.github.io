@@ -1,7 +1,20 @@
 // Cloudflare Pages Functions 共享工具
 // 数据库连接、密码哈希、CORS、请求解析等
 
-import { neon } from '@neondatabase/serverless'
+import { neon, neonConfig } from '@neondatabase/serverless'
+
+// 每个到 Neon 的 HTTP 查询最多等待 8s，超时即中止，避免 Neon 冷启动或
+// Cloudflare 边缘 -> Neon（跨区域）连接抖动时请求无限挂起（页面/登录卡死）。
+neonConfig.fetchFunction = (url, init) => {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(new Error('database query timeout')), 8000)
+  const userSignal = init?.signal
+  if (userSignal) {
+    if (userSignal.aborted) ctrl.abort(userSignal.reason)
+    else userSignal.addEventListener('abort', () => ctrl.abort(userSignal.reason), { once: true })
+  }
+  return fetch(url, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer))
+}
 
 let sqlInstance = null
 

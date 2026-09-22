@@ -346,7 +346,7 @@ function markSeen(keys) {
 // 拉取班委发布的真实通知（统一通知端点），转成弹窗项
 const fetchNewNotifications = async () => {
   try {
-    const r = await fetch('/api/notifications')
+    const r = await fetchWithRetry('/api/notifications', {}, { timeoutMs: 8000, retries: 0 })
     if (!r.ok) return []
     const j = await r.json()
     return (j.notifications || []).map(n => ({
