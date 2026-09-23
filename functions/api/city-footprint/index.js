@@ -2,8 +2,8 @@
 // GET  /api/city-footprint - 统计 + 城市光点
 // POST /api/city-footprint - 记录一次访问（静默，30 分钟去重）
 //
-// 部署架构：浏览器 -> Cloudflare 边缘（橙云代理）-> Pages Function -> Neon Postgres
-// 橙云代理不影响定位：cf-connecting-ip 与 request.cf 均基于【真实访客 IP】解析。
+// 部署架构：浏览器 -> Cloudflare 边缘 -> Pages Function -> D1（Cloudflare 内部 SQLite）
+// Cloudflare 代理不影响定位：cf-connecting-ip 与 request.cf 均基于【真实访客 IP】解析。
 // 访客自身挂 VPN 时只能看到 VPN 出口，故通过 ASN 黑名单 + ip-api 风险字段过滤机房/代理。
 import { getSql, hashIp, getClientIp, corsResponse, optionsResponse } from '../../_utils.js'
 
@@ -84,7 +84,7 @@ function apiResponse(data, status = 200) {
   return res
 }
 
-// 带超时的 SQL 执行（应对 Neon 冷启动）；queryFn 为返回 Promise 的 thunk
+// 带超时的 SQL 执行（兜底；D1 为内部调用，通常毫秒级）；queryFn 为返回 Promise 的 thunk
 async function runSql(queryFn, tag, attempt = 0) {
   const timeoutMs = attempt === 0 ? 8000 : 12000
   let timer

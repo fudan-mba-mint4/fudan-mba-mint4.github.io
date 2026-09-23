@@ -1,4 +1,4 @@
-// 提交历史 API（Cloudflare Pages Functions + Neon）
+// 提交历史 API（Cloudflare Pages Functions + D1）
 // GET  /api/admin/history - 列出所有提交记录（新到旧）
 // POST /api/admin/history - 追加一条提交记录
 // 鉴权：登录班委（任意角色）。operator 由服务端按登录真名写入，防止前端伪造。
