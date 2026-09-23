@@ -20,20 +20,20 @@ export async function onRequest(context) {
 
   const conditions = []
   const params = []
-  if (!includeDeleted) conditions.push('is_deleted = FALSE')
+  if (!includeDeleted) conditions.push('is_deleted = 0')
   if (search) {
-    conditions.push('(content ILIKE $' + (params.length + 1) + ' OR COALESCE(nickname, \'\') ILIKE $' + (params.length + 1) + ')')
+    conditions.push('(content LIKE $' + (params.length + 1) + ' OR COALESCE(nickname, \'\') LIKE $' + (params.length + 1) + ')')
     params.push(`%${search}%`)
   }
   const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
 
   const [statsResult, countResult] = await Promise.all([
-    sql`SELECT COUNT(*)::int as total,
-      COUNT(*) FILTER (WHERE is_deleted = FALSE)::int as active_count,
-      COUNT(*) FILTER (WHERE is_deleted = TRUE)::int as deleted_count,
-      COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int as today_count
+    sql`SELECT COUNT(*) as total,
+      SUM(CASE WHEN is_deleted = 0 THEN 1 ELSE 0 END) as active_count,
+      SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted_count,
+      SUM(CASE WHEN created_at >= CURRENT_DATE THEN 1 ELSE 0 END) as today_count
       FROM treehole_messages`,
-    sql.unsafe(`SELECT COUNT(*)::int as total FROM treehole_messages ${whereClause}`, params),
+    sql.unsafe(`SELECT COUNT(*) as total FROM treehole_messages ${whereClause}`, params),
   ])
 
   const total = countResult[0]?.total || 0

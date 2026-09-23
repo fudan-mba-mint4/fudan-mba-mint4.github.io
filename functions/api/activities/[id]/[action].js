@@ -51,7 +51,7 @@ async function handleSignup(request, env, activityId) {
     `
     return corsResponse({ message: '报名成功' }, 201)
   } catch (err) {
-    if (err.code === '23505') return corsResponse({ error: '您已报名此活动' }, 409)
+    if (/UNIQUE constraint failed|23505|duplicate key/i.test(err.message || String(err))) return corsResponse({ error: '您已报名此活动' }, 409)
     throw err
   }
 }

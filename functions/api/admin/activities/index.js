@@ -27,12 +27,12 @@ export async function onRequest(context) {
 
       const result = await sql`
         INSERT INTO activities (id, date, status, data)
-        VALUES (${id}, ${body.date ?? null}, ${body.status ?? null}, ${JSON.stringify(body)}::jsonb)
+        VALUES (${id}, ${body.date ?? null}, ${body.status ?? null}, ${JSON.stringify(body)})
         ON CONFLICT (id) DO UPDATE SET
           date = excluded.date,
           status = excluded.status,
           data = excluded.data,
-          updated_at = now()
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         RETURNING id
       `
       const titleText = typeof body.title === 'string'

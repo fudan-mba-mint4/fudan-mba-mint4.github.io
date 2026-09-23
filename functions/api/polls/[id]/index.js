@@ -3,7 +3,7 @@
 import { getSql, corsResponse, optionsResponse } from '../../../_utils.js'
 
 async function getVoteCounts(sql, pollId) {
-  const result = await sql`SELECT option_id, COUNT(*)::int as votes FROM poll_votes WHERE poll_id = ${pollId} GROUP BY option_id`
+  const result = await sql`SELECT option_id, COUNT(*) as votes FROM poll_votes WHERE poll_id = ${pollId} GROUP BY option_id`
   const counts = {}
   for (const row of result) counts[row.option_id] = row.votes
   return counts

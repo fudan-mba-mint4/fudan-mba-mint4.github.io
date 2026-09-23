@@ -16,6 +16,9 @@ PROJECT_MEMORY.md
 _*.mjs
 list-r2.mjs
 
+# D1 数据导出（含密码哈希，仅本地迁移用，不入库）
+scripts/d1-data.sql
+
 # 本地运维/部署指南（含环境拓扑，不进公共仓库）
 CLOUDFLARE_PAGES_SETUP.md
 

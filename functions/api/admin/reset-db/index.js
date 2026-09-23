@@ -16,11 +16,11 @@ export async function onRequest(context) {
   if (user.role !== 'leader') return corsResponse({ error: '该破坏性操作仅班级主理人可执行' }, 403)
 
   try {
-    // 逐条 DROP（表名固定常量，直接写死，不做参数插值）
-    await sql`DROP TABLE IF EXISTS announcements CASCADE`
-    await sql`DROP TABLE IF EXISTS activities CASCADE`
-    await sql`DROP TABLE IF EXISTS finance_records CASCADE`
-    await sql`DROP TABLE IF EXISTS polls_admin CASCADE`
+    // 逐条 DROP（表名固定常量，直接写死，不做参数插值；SQLite 无 CASCADE 关键字）
+    await sql`DROP TABLE IF EXISTS announcements`
+    await sql`DROP TABLE IF EXISTS activities`
+    await sql`DROP TABLE IF EXISTS finance_records`
+    await sql`DROP TABLE IF EXISTS polls_admin`
 
     const dropped = ['announcements', 'activities', 'finance_records', 'polls_admin']
 

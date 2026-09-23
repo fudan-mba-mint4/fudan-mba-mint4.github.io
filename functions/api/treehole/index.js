@@ -28,9 +28,9 @@ async function handleGet(request, env) {
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)))
   const offset = (page - 1) * limit
 
-  const countResult = await sql`SELECT COUNT(*)::int as total FROM treehole_messages WHERE is_deleted = FALSE`
-  const todayResult = await sql`SELECT COUNT(*)::int as today_count FROM treehole_messages WHERE is_deleted = FALSE AND created_at >= CURRENT_DATE`
-  const messages = await sql`SELECT id, nickname, content, created_at FROM treehole_messages WHERE is_deleted = FALSE ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`
+  const countResult = await sql`SELECT COUNT(*) as total FROM treehole_messages WHERE is_deleted = 0`
+  const todayResult = await sql`SELECT COUNT(*) as today_count FROM treehole_messages WHERE is_deleted = 0 AND created_at >= CURRENT_DATE`
+  const messages = await sql`SELECT id, nickname, content, created_at FROM treehole_messages WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`
 
   const total = countResult[0]?.total || 0
   const todayCount = todayResult[0]?.today_count || 0

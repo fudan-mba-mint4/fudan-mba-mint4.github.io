@@ -21,9 +21,11 @@ export async function onRequest(context) {
   if (validIds.length === 0) return corsResponse({ error: '无效的ID列表' }, 400)
 
   if (action === 'delete') {
-    const result = await sql`
-      UPDATE treehole_messages SET is_deleted = TRUE
-      WHERE id = ANY(${validIds}::int[]) AND is_deleted = FALSE RETURNING id`
+    const ph = validIds.map(() => '?').join(',')
+    const result = await sql.unsafe(
+      `UPDATE treehole_messages SET is_deleted = 1 WHERE id IN (${ph}) AND is_deleted = 0 RETURNING id`,
+      validIds
+    )
     if (result.length) {
       await logHistory(sql, {
         type: 'treehole', action: 'delete',
@@ -35,9 +37,11 @@ export async function onRequest(context) {
   }
 
   if (action === 'restore') {
-    const result = await sql`
-      UPDATE treehole_messages SET is_deleted = FALSE
-      WHERE id = ANY(${validIds}::int[]) AND is_deleted = TRUE RETURNING id`
+    const ph = validIds.map(() => '?').join(',')
+    const result = await sql.unsafe(
+      `UPDATE treehole_messages SET is_deleted = 0 WHERE id IN (${ph}) AND is_deleted = 1 RETURNING id`,
+      validIds
+    )
     if (result.length) {
       await logHistory(sql, {
         type: 'treehole', action: 'restore',

@@ -42,10 +42,10 @@ export async function onRequest(context) {
 
       const result = await sql`
         INSERT INTO polls_admin (id, data)
-        VALUES (${id}, ${JSON.stringify(body)}::jsonb)
+        VALUES (${id}, ${JSON.stringify(body)})
         ON CONFLICT (id) DO UPDATE SET
           data = excluded.data,
-          updated_at = now()
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         RETURNING id
       `
       const titleText = typeof body.title === 'string' ? body.title : (body.title?.zh || id)

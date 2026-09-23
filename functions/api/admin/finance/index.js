@@ -25,8 +25,8 @@ export async function onRequest(context) {
       data.transactions = (data.transactions || []).filter(t => String(t.id) !== String(txId))
       await sql`
         INSERT INTO finance_records (id, data)
-        VALUES ('default', ${JSON.stringify(data)}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+        VALUES ('default', ${JSON.stringify(data)})
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
       `
       await logHistory(sql, { type: 'finance', action: 'delete',
         description: `删除流水：${target.description || txId}`, operator: auth.user.name })
@@ -43,8 +43,8 @@ export async function onRequest(context) {
 
       const result = await sql`
         INSERT INTO finance_records (id, data)
-        VALUES ('default', ${JSON.stringify(body)}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+        VALUES ('default', ${JSON.stringify(body)})
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         RETURNING id
       `
       const added = (body.transactions || []).filter(t => !prevTx.has(String(t.id))).length

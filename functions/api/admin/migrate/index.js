@@ -43,8 +43,8 @@ export async function onRequest(context) {
       if (key === 'finance') {
         await sql`
           INSERT INTO finance_records (id, data)
-          VALUES ('default', ${JSON.stringify(json)}::jsonb)
-          ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+          VALUES ('default', ${JSON.stringify(json)})
+          ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
           RETURNING id
         `
         result.inserted.finance = 1
@@ -57,24 +57,24 @@ export async function onRequest(context) {
         if (key === 'announcements') {
           await sql`
             INSERT INTO announcements (id, date, category, pinned, data)
-            VALUES (${item.id}, ${item.date ?? null}, ${item.category ?? null}, ${item.pinned === true}, ${JSON.stringify(item)}::jsonb)
+            VALUES (${item.id}, ${item.date ?? null}, ${item.category ?? null}, ${item.pinned === true}, ${JSON.stringify(item)})
             ON CONFLICT (id) DO UPDATE SET
               date = excluded.date, category = excluded.category, pinned = excluded.pinned,
-              data = excluded.data, updated_at = now()
+              data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
           `
         } else if (key === 'activities') {
           await sql`
             INSERT INTO activities (id, date, status, data)
-            VALUES (${item.id}, ${item.date ?? null}, ${item.status ?? null}, ${JSON.stringify(item)}::jsonb)
+            VALUES (${item.id}, ${item.date ?? null}, ${item.status ?? null}, ${JSON.stringify(item)})
             ON CONFLICT (id) DO UPDATE SET
               date = excluded.date, status = excluded.status,
-              data = excluded.data, updated_at = now()
+              data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
           `
         } else if (key === 'polls') {
           await sql`
             INSERT INTO polls_admin (id, data)
-            VALUES (${item.id}, ${JSON.stringify(item)}::jsonb)
-            ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+            VALUES (${item.id}, ${JSON.stringify(item)})
+            ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
           `
         }
         result.inserted[key] += 1
@@ -92,8 +92,8 @@ export async function onRequest(context) {
       const cmJson = await cmRes.json()
       await sql`
         INSERT INTO course_materials (id, data)
-        VALUES ('default', ${JSON.stringify(cmJson)}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+        VALUES ('default', ${JSON.stringify(cmJson)})
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
       `
       result.inserted.courseMaterials = 1
     }

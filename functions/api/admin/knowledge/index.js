@@ -27,8 +27,8 @@ export async function onRequest(context) {
       data.documents = docs.filter(d => String(d.id) !== String(docId))
       await sql`
         INSERT INTO knowledge_base (id, data)
-        VALUES ('default', ${JSON.stringify(data)}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+        VALUES ('default', ${JSON.stringify(data)})
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
       `
       let r2Deleted = false
       const key = r2KeyFromUrl(target.url, env)
@@ -52,8 +52,8 @@ export async function onRequest(context) {
 
       const result = await sql`
         INSERT INTO knowledge_base (id, data)
-        VALUES ('default', ${JSON.stringify(body)}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+        VALUES ('default', ${JSON.stringify(body)})
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         RETURNING id
       `
       const docLabel = d => fileNameFromUrl(d.url)

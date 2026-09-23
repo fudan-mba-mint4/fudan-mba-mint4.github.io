@@ -30,7 +30,7 @@ export async function onRequest(context) {
     // GET
     const rows = await sql`
       SELECT id, type, action, ref_id, description, operator, status,
-             to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS') as time
+             created_at as time
       FROM admin_history
       ORDER BY created_at DESC
       LIMIT 200

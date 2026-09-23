@@ -54,8 +54,8 @@ export async function onRequest(context) {
 
       await sql`
         INSERT INTO course_materials (id, data)
-        VALUES ('default', ${JSON.stringify(data)}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+        VALUES ('default', ${JSON.stringify(data)})
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
       `
       const key = r2KeyFromUrl(fileUrl, env)
       if (key && env.R2 && typeof env.R2.delete === 'function') await env.R2.delete(key)
@@ -76,8 +76,8 @@ export async function onRequest(context) {
 
       const result = await sql`
         INSERT INTO course_materials (id, data)
-        VALUES ('default', ${JSON.stringify(body)}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = now()
+        VALUES ('default', ${JSON.stringify(body)})
+        ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         RETURNING id
       `
       const addedNames = [...collectFileUrls(body)]

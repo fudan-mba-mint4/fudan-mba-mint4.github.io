@@ -10,7 +10,7 @@ export async function onRequest(context) {
 
   const sql = getSql(env)
   const result = await sql`
-    SELECT poll_id, option_id, COUNT(*)::int as votes
+    SELECT poll_id, option_id, COUNT(*) as votes
     FROM poll_votes
     GROUP BY poll_id, option_id
   `

@@ -34,13 +34,13 @@ export async function onRequest(context) {
       await sql`INSERT INTO poll_votes (poll_id, option_id, user_id, anonymous, ip_hash) VALUES (${pollId}, ${oid}, ${anonymous ? null : userId}, ${anonymous}, ${ipHash})`
     }
 
-    const result = await sql`SELECT option_id, COUNT(*)::int as votes FROM poll_votes WHERE poll_id = ${pollId} GROUP BY option_id`
+    const result = await sql`SELECT option_id, COUNT(*) as votes FROM poll_votes WHERE poll_id = ${pollId} GROUP BY option_id`
     const votes = {}
     for (const row of result) votes[row.option_id] = row.votes
 
     return corsResponse({ message: '投票成功', data: { votes, userVoted: optionIds } }, 201)
   } catch (err) {
-    if (err.code === '23505') return corsResponse({ error: '您已投过票了' }, 409)
+    if (/UNIQUE constraint failed|23505|duplicate key/i.test(err.message || String(err))) return corsResponse({ error: '您已投过票了' }, 409)
     throw err
   }
 }

@@ -192,7 +192,7 @@ export async function onRequest(context) {
       // 30 分钟去重窗口
       const recent = await runSqlWithRetry(() => sql`
         SELECT id, city FROM city_visits
-        WHERE ip_hash = ${ipHash} AND visited_at > NOW() - INTERVAL '30 minutes'
+        WHERE ip_hash = ${ipHash} AND visited_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 minutes')
         ORDER BY visited_at DESC LIMIT 1
       `, 'dedup')
       if (recent.length > 0 && recent[0].city && recent[0].city !== 'Unknown')
@@ -206,7 +206,7 @@ export async function onRequest(context) {
 
       if (recent.length > 0) {
         await runSqlWithRetry(() => sql`
-          UPDATE city_visits SET country=${loc.country}, city=${loc.city}, lat=${loc.lat}, lng=${loc.lng}, visited_at=NOW()
+          UPDATE city_visits SET country=${loc.country}, city=${loc.city}, lat=${loc.lat}, lng=${loc.lng}, visited_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
           WHERE id=${recent[0].id}
         `, 'update')
       } else {
@@ -220,23 +220,23 @@ export async function onRequest(context) {
 
     // GET 统计
     const totalResult = await runSqlWithRetry(() => sql`
-      SELECT COUNT(DISTINCT ip_hash)::int as total
-      FROM city_visits WHERE visited_at >= DATE_TRUNC('month', NOW())
+      SELECT COUNT(DISTINCT ip_hash) as total
+      FROM city_visits WHERE visited_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','start of month')
     `, 'total')
     const citiesResult = await runSqlWithRetry(() => sql`
-      SELECT COUNT(DISTINCT city)::int as count
+      SELECT COUNT(DISTINCT city) as count
       FROM city_visits WHERE city != 'Unknown' AND city != ''
     `, 'citycount')
     // 按 city+country 聚合，经纬度取均值，避免同一城市分裂成多个光点
     const topCities = await runSqlWithRetry(() => sql`
-      SELECT city, country, ROUND(AVG(lat)::numeric, 4)::float as lat, ROUND(AVG(lng)::numeric, 4)::float as lng,
-             COUNT(DISTINCT ip_hash)::int as visits
+      SELECT city, country, ROUND(AVG(lat), 4) as lat, ROUND(AVG(lng), 4) as lng,
+             COUNT(DISTINCT ip_hash) as visits
       FROM city_visits WHERE city != 'Unknown' AND city != ''
       GROUP BY city, country ORDER BY visits DESC LIMIT 20
     `, 'top')
     const allCities = await runSqlWithRetry(() => sql`
-      SELECT city, country, ROUND(AVG(lat)::numeric, 4)::float as lat, ROUND(AVG(lng)::numeric, 4)::float as lng,
-             COUNT(DISTINCT ip_hash)::int as visits
+      SELECT city, country, ROUND(AVG(lat), 4) as lat, ROUND(AVG(lng), 4) as lng,
+             COUNT(DISTINCT ip_hash) as visits
       FROM city_visits WHERE city != 'Unknown' AND city != '' AND lat != 0
       GROUP BY city, country
     `, 'all')

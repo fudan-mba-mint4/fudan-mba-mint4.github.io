@@ -27,13 +27,13 @@ export async function onRequest(context) {
 
       const result = await sql`
         INSERT INTO announcements (id, date, category, pinned, data)
-        VALUES (${id}, ${body.date ?? null}, ${body.category ?? null}, ${body.pinned === true}, ${JSON.stringify(body)}::jsonb)
+        VALUES (${id}, ${body.date ?? null}, ${body.category ?? null}, ${body.pinned === true}, ${JSON.stringify(body)})
         ON CONFLICT (id) DO UPDATE SET
           date = excluded.date,
           category = excluded.category,
           pinned = excluded.pinned,
           data = excluded.data,
-          updated_at = now()
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         RETURNING id
       `
       const titleText = typeof body.title === 'string' ? body.title : (body.title?.zh || id)

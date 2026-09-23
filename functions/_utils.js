@@ -1,203 +1,160 @@
 // Cloudflare Pages Functions 共享工具
-// 数据库连接、密码哈希、CORS、请求解析等
+// 数据库访问（Cloudflare D1 / SQLite）、密码哈希、CORS、请求解析等
 
-import { neon, neonConfig } from '@neondatabase/serverless'
+import { createD1Sql } from './_d1.js'
 
-// 每个到 Neon 的 HTTP 查询最多等待 8s，超时即中止，避免 Neon 冷启动或
-// Cloudflare 边缘 -> Neon（跨区域）连接抖动时请求无限挂起（页面/登录卡死）。
-neonConfig.fetchFunction = (url, init) => {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(new Error('database query timeout')), 8000)
-  const userSignal = init?.signal
-  if (userSignal) {
-    if (userSignal.aborted) ctrl.abort(userSignal.reason)
-    else userSignal.addEventListener('abort', () => ctrl.abort(userSignal.reason), { once: true })
-  }
-  return fetch(url, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer))
-}
-
-let sqlInstance = null
-
+// 数据库为 Cloudflare D1（SQLite），通过 Pages Functions 的 D1 binding（env.DB）
+// 在 Cloudflare 网络内部访问：毫秒级、无跨区域连接、无外部冷启动，
+// 从根本上消除了原先「边缘 -> 跨区域 Neon」连接抖动 / 挂起导致的页面、登录卡死。
 export function getSql(env) {
-  if (!sqlInstance) {
-    if (!env.DATABASE_URL) {
-      throw new Error('DATABASE_URL 环境变量未配置')
-    }
-    sqlInstance = neon(env.DATABASE_URL)
+  if (!env.DB) {
+    throw new Error('D1 数据库绑定（env.DB）未配置：请在 Pages 项目绑定 D1，本地用 --d1=DB')
   }
-  return sqlInstance
+  return createD1Sql(env.DB)
 }
 
-// 初始化数据库表（幂等）—— 全部 8 张表
-// 注意：@neondatabase/serverless v1.1.0 走 extended/prepared-statement 协议，
-// 单条查询只允许一条语句，严禁用 sql.unsafe 拼分号分隔的多语句 DDL。
-// 保持生产验证过的逐条 await 模板字符串写法。
-// 关键：线上表已全部建好，此函数只在“懒初始化兜底”（查询报 undefined_table）或
-// admin/migrate 时才被调用，绝不在每个冷节点首请求的热路径上跑，根治冷启动+DDL 的 545。
+// ===== D1（SQLite）建表 Schema =====
+// 时间列统一存「带 Z 的 ISO 字符串」（UTC），默认值用 strftime 生成，
+// 与前端 new Date(iso) 解析、JS toISOString() 完全一致。
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS treehole_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nickname TEXT,
+  content TEXT NOT NULL,
+  is_deleted INTEGER DEFAULT 0,
+  ip_hash TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_treehole_created_at ON treehole_messages (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS poll_votes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  poll_id TEXT NOT NULL,
+  option_id TEXT NOT NULL,
+  user_id TEXT,
+  anonymous INTEGER DEFAULT 0,
+  ip_hash TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_poll_votes_poll_id ON poll_votes (poll_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_poll_votes_user ON poll_votes (poll_id, user_id) WHERE user_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  nickname TEXT DEFAULT '',
+  group_no INTEGER,
+  role TEXT,
+  token TEXT,
+  token_expires_at TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS activity_signups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  activity_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  username TEXT NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE(activity_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_activity_signups_activity ON activity_signups (activity_id);
+
+CREATE TABLE IF NOT EXISTS announcements (
+  id TEXT PRIMARY KEY,
+  date TEXT,
+  category TEXT,
+  pinned INTEGER DEFAULT 0,
+  data TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS activities (
+  id TEXT PRIMARY KEY,
+  date TEXT,
+  status TEXT,
+  data TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS finance_records (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  data TEXT,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS polls_admin (
+  id TEXT PRIMARY KEY,
+  data TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS city_visits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip_hash TEXT NOT NULL,
+  country TEXT,
+  city TEXT,
+  lat REAL DEFAULT 0,
+  lng REAL DEFAULT 0,
+  visited_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_city_visits_ip_time ON city_visits (ip_hash, visited_at DESC);
+CREATE INDEX IF NOT EXISTS idx_city_visits_city ON city_visits (city);
+
+CREATE TABLE IF NOT EXISTS admin_history (
+  id TEXT PRIMARY KEY,
+  type TEXT,
+  action TEXT,
+  ref_id TEXT,
+  description TEXT,
+  operator TEXT,
+  status TEXT DEFAULT 'success',
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_admin_history_created ON admin_history (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS course_materials (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  data TEXT,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_base (
+  id TEXT PRIMARY KEY DEFAULT 'default',
+  data TEXT,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  type TEXT,
+  title TEXT,
+  body TEXT,
+  module_path TEXT,
+  operator TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (created_at DESC);
+`
+
+// 初始化数据库表（幂等）。D1 的 exec 支持一次执行多语句。
+// 只在「懒初始化兜底」（查询报 no such table）或需要时调用，不在每个冷节点
+// 首请求的热路径上跑。
 export async function initDatabase(env) {
-  const sql = getSql(env)
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS treehole_messages (
-      id SERIAL PRIMARY KEY,
-      nickname VARCHAR(50),
-      content TEXT NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-      is_deleted BOOLEAN DEFAULT FALSE,
-      ip_hash VARCHAR(64)
-    )
-  `
-  await sql`CREATE INDEX IF NOT EXISTS idx_treehole_created_at ON treehole_messages (created_at DESC)`
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS poll_votes (
-      id SERIAL PRIMARY KEY,
-      poll_id VARCHAR(50) NOT NULL,
-      option_id VARCHAR(50) NOT NULL,
-      user_id VARCHAR(50),
-      anonymous BOOLEAN DEFAULT FALSE,
-      ip_hash VARCHAR(64),
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    )
-  `
-  await sql`CREATE INDEX IF NOT EXISTS idx_poll_votes_poll_id ON poll_votes (poll_id)`
-  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_poll_votes_user ON poll_votes (poll_id, user_id) WHERE user_id IS NOT NULL`
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      username VARCHAR(50) UNIQUE NOT NULL,
-      password_hash VARCHAR(128) NOT NULL,
-      name VARCHAR(100) NOT NULL,
-      nickname VARCHAR(100) DEFAULT '',
-      group_no INTEGER,
-      role VARCHAR(20),
-      token VARCHAR(128),
-      token_expires_at TIMESTAMP WITH TIME ZONE,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    )
-  `
-  // 对已存在的 users 库幂等补 role 列（班委角色，见 COMMITTEE_ROLES）
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20)`
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS activity_signups (
-      id SERIAL PRIMARY KEY,
-      activity_id VARCHAR(50) NOT NULL,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      username VARCHAR(50) NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-      UNIQUE(activity_id, user_id)
-    )
-  `
-  await sql`CREATE INDEX IF NOT EXISTS idx_activity_signups_activity ON activity_signups (activity_id)`
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS announcements (
-      id TEXT PRIMARY KEY,
-      date TEXT,
-      category TEXT,
-      pinned BOOLEAN DEFAULT FALSE,
-      data JSONB,
-      created_at timestamptz DEFAULT now(),
-      updated_at timestamptz DEFAULT now()
-    )
-  `
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS activities (
-      id TEXT PRIMARY KEY,
-      date TEXT,
-      status TEXT,
-      data JSONB,
-      created_at timestamptz DEFAULT now(),
-      updated_at timestamptz DEFAULT now()
-    )
-  `
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS finance_records (
-      id TEXT PRIMARY KEY DEFAULT 'default',
-      data JSONB,
-      updated_at timestamptz DEFAULT now()
-    )
-  `
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS polls_admin (
-      id TEXT PRIMARY KEY,
-      data JSONB,
-      created_at timestamptz DEFAULT now(),
-      updated_at timestamptz DEFAULT now()
-    )
-  `
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS city_visits (
-      id SERIAL PRIMARY KEY,
-      ip_hash TEXT NOT NULL,
-      country TEXT,
-      city TEXT,
-      lat FLOAT DEFAULT 0,
-      lng FLOAT DEFAULT 0,
-      visited_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `
-  await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_ip_time ON city_visits (ip_hash, visited_at DESC)`
-  await sql`CREATE INDEX IF NOT EXISTS idx_city_visits_city ON city_visits (city)`
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS admin_history (
-      id TEXT PRIMARY KEY,
-      type TEXT,
-      action TEXT,
-      ref_id TEXT,
-      description TEXT,
-      operator TEXT,
-      status TEXT DEFAULT 'success',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `
-  await sql`CREATE INDEX IF NOT EXISTS idx_admin_history_created ON admin_history (created_at DESC)`
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS course_materials (
-      id TEXT PRIMARY KEY DEFAULT 'default',
-      data JSONB,
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS knowledge_base (
-      id TEXT PRIMARY KEY DEFAULT 'default',
-      data JSONB,
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS notifications (
-      id TEXT PRIMARY KEY,
-      type TEXT,
-      title TEXT,
-      body TEXT,
-      module_path TEXT,
-      operator TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `
-  await sql`CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (created_at DESC)`
-
+  await env.DB.exec(SCHEMA)
 }
 
-// 兼容旧 import：内容表已并入 initDatabase
+// 兼容旧 import
 export async function ensureContentTables(env) {
   return initDatabase(env)
 }
 
 // 模块级一次性初始化 promise：仅在“懒初始化兜底”时首次触发。
-// 正常请求路径绝不调用（表已存在，直接查库即可）。
 let initPromise = null
 export function ensureTables(env) {
   if (!initPromise) {
@@ -211,7 +168,9 @@ export function ensureTables(env) {
 
 // 判断错误是否为“表/列不存在”，用于触发懒建表兜底
 export function isMissingTableError(e) {
-  return /does not exist|undefined_table|relation .* does not exist/i.test(String((e && e.message) || e || ''))
+  return /no such table|no such column|does not exist|undefined_table/i.test(
+    String((e && e.message) || e || '')
+  )
 }
 
 // 密码哈希（SHA-256，和前端一致）
@@ -255,7 +214,8 @@ export async function getAuthUser(request, sql) {
   const result = await sql`
     SELECT id, username, name, nickname, group_no, role, created_at
     FROM users
-    WHERE token = ${token} AND (token_expires_at IS NULL OR token_expires_at > NOW())
+    WHERE token = ${token}
+      AND (token_expires_at IS NULL OR token_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     LIMIT 1
   `
   return result[0] || null
@@ -323,7 +283,7 @@ export async function requireRole(request, env, module) {
 }
 
 // 按模块鉴权【读】（后台内部列表）：登录且是班委（含 supervisor）即可；
-// 普通同学（role 为空）→ 403。具体可见的模块由前端 tab 过滤控制。
+// 普通同学（role 为空）→ 403。
 export async function requireRead(request, env) {
   const sql = getSql(env)
   const user = await getAuthUser(request, sql)
