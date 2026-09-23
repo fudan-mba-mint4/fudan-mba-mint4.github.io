@@ -1,6 +1,9 @@
 # wrangler 配置：本地开发（pages dev / d1）与 Cloudflare Pages Functions 的资源绑定
 name = "mint4"
 compatibility_date = "2026-09-21"
+# 关键：声明 Pages 构建输出目录后，本配置才会在 Git 部署时生效（绑定 D1/R2）；
+# 缺此字段时 Pages 仅将其用于本地开发，线上不绑定。
+pages_build_output_dir = "docs/.vitepress/dist"
 
 # D1 —— Cloudflare 边缘 SQLite 数据库（替代原先跨区域的 Neon Postgres）
 [[d1_databases]]
