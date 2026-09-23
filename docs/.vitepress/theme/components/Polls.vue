@@ -85,7 +85,7 @@ const { lang, t } = useLang({
   },
 })
 
-const { isAuthenticated, currentUser } = useAuth()
+const { isAuthenticated, currentUser, getToken } = useAuth()
 
 import { API_PREFIX } from '../composables/apiConfig.js'
 
@@ -220,10 +220,12 @@ async function submitVote(poll) {
   try {
     const res = await fetchWithRetry(`${API_PREFIX}/api/polls/${poll.id}/vote`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
       body: JSON.stringify({
         optionIds: selectedOptions.value[poll.id],
-        userId: currentUser.value.username,
         anonymous: poll.anonymous,
       }),
     })

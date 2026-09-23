@@ -1,4 +1,4 @@
-// 认证状态管理（调用 Cloudflare Pages Functions + Neon Postgres）
+// 认证状态管理（调用 Cloudflare Pages Functions + D1）
 import { ref, computed } from 'vue'
 
 import { API_PREFIX } from './apiConfig.js'
@@ -10,7 +10,7 @@ const currentUser = ref(null)
 const authToken = ref(null)
 const isAuthenticated = computed(() => !!currentUser.value)
 
-// 统一请求：单次 10s 超时（后端 Neon 查询 8s 超时 + 余量），失败自动重试。
+// 统一请求：单次 10s 超时，失败自动重试。
 // 读（me）重试 3 次；写（登录/注册/改密/更新）重试 2 次——写接口均为
 // 「校验/覆盖」语义，DB 超时时事务未提交，重试安全；成功(2xx)不重试。
 async function authRequest(path, { method = 'GET', body = null, withToken = false, retries = 2 } = {}) {

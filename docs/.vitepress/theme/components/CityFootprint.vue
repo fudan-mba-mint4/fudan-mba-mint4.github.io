@@ -85,7 +85,7 @@ let htmlObserver = null
 let lastDark = null
 let mounted = false
 
-// 带超时的 fetch（8s），避免 Neon 冷启动时挂起
+// 带超时的 fetch（8s），避免网络慢时无限等待
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
@@ -469,7 +469,7 @@ onMounted(async () => {
   // 1) 记录本次访问（fire-and-forget，不阻塞统计拉取）
   fetchWithTimeout(`${API_PREFIX}/api/city-footprint`, { method: 'POST', keepalive: true }, 8000).catch(() => {})
 
-  // 2) 拉取统计（独立于 POST，避免 Neon 冷启动时 POST 慢拖累 GET）
+  // 2) 拉取统计（独立于 POST，避免 POST 慢拖累 GET）
   try {
     const res = await fetchWithTimeout(`${API_PREFIX}/api/city-footprint`, {}, 8000)
     if (res.ok) {

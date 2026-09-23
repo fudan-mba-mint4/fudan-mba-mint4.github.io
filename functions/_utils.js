@@ -4,8 +4,7 @@
 import { createD1Sql } from './_d1.js'
 
 // 数据库为 Cloudflare D1（SQLite），通过 Pages Functions 的 D1 binding（env.DB）
-// 在 Cloudflare 网络内部访问：毫秒级、无跨区域连接、无外部冷启动，
-// 从根本上消除了原先「边缘 -> 跨区域 Neon」连接抖动 / 挂起导致的页面、登录卡死。
+// 在 Cloudflare 网络内部访问：毫秒级、无外部连接、无冷启动。
 export function getSql(env) {
   if (!env.DB) {
     throw new Error('D1 数据库绑定（env.DB）未配置：请在 Pages 项目绑定 D1，本地用 --d1=DB')

@@ -5,7 +5,7 @@ compatibility_date = "2026-09-21"
 # 缺此字段时 Pages 仅将其用于本地开发，线上不绑定。
 pages_build_output_dir = "docs/.vitepress/dist"
 
-# D1 —— Cloudflare 边缘 SQLite 数据库（替代原先跨区域的 Neon Postgres）
+# D1 —— Cloudflare 边缘 SQLite 数据库
 [[d1_databases]]
 binding = "DB"
 database_name = "mint4"

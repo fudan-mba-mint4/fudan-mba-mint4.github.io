@@ -960,7 +960,7 @@ function formatTreeholeTime(iso) {
   return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-// ===== 提交记录（数据源：Neon admin_history 表）=====
+// ===== 提交记录（数据源：D1 admin_history 表）=====
 const submitHistory = ref([])
 const historyLoading = ref(false)
 function shortTime(t){ if(!t) return ''; const [d,h]=t.split('T'); return `${d.slice(5)} ${h.slice(0,5)}` }
@@ -1089,7 +1089,7 @@ async function submitActivity() {
   await saveRecord(rec)
 }
 
-// ===== 提交课程资料（PDF 存 R2，元数据存 Neon）=====
+// ===== 提交课程资料（PDF 存 R2，元数据存 D1）=====
 async function getCurrentCourseMaterials() {
   try {
     const ctrl = new AbortController()

@@ -1,7 +1,7 @@
 // 投票提交（POST /api/polls/:id/vote）
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
-  getSql, hashIp, getClientIp,
+  getSql, hashIp, getClientIp, getAuthUser,
   corsResponse, optionsResponse, parseBody,
 } from '../../../_utils.js'
 
@@ -15,9 +15,12 @@ export async function onRequest(context) {
   if (action !== 'vote') return corsResponse({ error: '接口不存在' }, 404)
 
   const body = await parseBody(request)
-  const { optionIds, userId, anonymous } = body
+  const { optionIds, anonymous } = body
+  // 登录为硬性前置：一律从 Authorization token 识别，忽略请求体里的 userId（防伪造）
+  const authUser = await getAuthUser(request, sql)
+  if (!authUser) return corsResponse({ error: '请先登录' }, 401)
   if (!optionIds?.length) return corsResponse({ error: '请选择投票选项' }, 400)
-  if (!userId) return corsResponse({ error: '请先登录' }, 401)
+  const voterName = authUser.username
 
   const ipHash = await hashIp(getClientIp(request))
 
@@ -26,12 +29,12 @@ export async function onRequest(context) {
       const existing = await sql`SELECT id FROM poll_votes WHERE poll_id = ${pollId} AND ip_hash = ${ipHash} LIMIT 1`
       if (existing.length) return corsResponse({ error: '您已投过票了' }, 409)
     } else {
-      const existing = await sql`SELECT id FROM poll_votes WHERE poll_id = ${pollId} AND user_id = ${userId} LIMIT 1`
+      const existing = await sql`SELECT id FROM poll_votes WHERE poll_id = ${pollId} AND user_id = ${voterName} LIMIT 1`
       if (existing.length) return corsResponse({ error: '您已投过票了' }, 409)
     }
 
     for (const oid of optionIds) {
-      await sql`INSERT INTO poll_votes (poll_id, option_id, user_id, anonymous, ip_hash) VALUES (${pollId}, ${oid}, ${anonymous ? null : userId}, ${anonymous}, ${ipHash})`
+      await sql`INSERT INTO poll_votes (poll_id, option_id, user_id, anonymous, ip_hash) VALUES (${pollId}, ${oid}, ${anonymous ? null : voterName}, ${anonymous}, ${ipHash})`
     }
 
     const result = await sql`SELECT option_id, COUNT(*) as votes FROM poll_votes WHERE poll_id = ${pollId} GROUP BY option_id`

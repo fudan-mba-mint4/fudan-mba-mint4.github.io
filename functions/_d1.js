@@ -1,9 +1,6 @@
-// D1 适配层
-// 让原有 neon 风格的模板字符串查询在 Cloudflare D1（SQLite）上运行，
-// 从而把数据库从「跨区域 Neon Postgres」迁到「Cloudflare 内部 D1」，
-// 消除跨区域连接 / 外部冷启动导致的请求挂起。
+// D1 适配层：为 Cloudflare D1（SQLite）提供模板字符串风格的查询接口。
 //
-// 用法保持不变：
+// 用法：
 //   const sql = getSql(env)
 //   const rows = await sql`SELECT * FROM users WHERE id = ${id}`  // -> 行数组
 //   await sql.unsafe('... $1 ...', [param])                        // 动态查询
@@ -20,10 +17,10 @@ function toBind(v) {
   return v
 }
 
-// 生成「当前 UTC 时间」的 ISO 带 Z 字符串（SQLite 内），用于替换 Postgres 的 now()
+// 生成「当前 UTC 时间」的 ISO 带 Z 字符串（SQLite 内），作为统一的时间默认值
 export const SQL_NOW = `strftime('%Y-%m-%dT%H:%M:%fZ','now')`
 
-// D1 里 JSON blob 以 TEXT 存储，不会像 Postgres JSONB 那样自动 parse。
+// D1 里 JSON blob 以 TEXT 存储，不会自动 parse。
 // 本站所有整对象 blob 列统一命名为 data（announcements / activities / finance_records /
 // course_materials / knowledge_base / polls_admin），故对结果行中名为 data 的列
 // 自动 JSON.parse，保持「r.data 是对象」这一原有契约，前端无需改动。
@@ -40,7 +37,7 @@ function parseDataCols(rows) {
 }
 
 export function createD1Sql(db) {
-  // 模板字符串 tag：返回 Promise<行数组>（与 @neondatabase/serverless 一致）
+  // 模板字符串 tag：返回 Promise<行数组>
   function sql(strings, ...values) {
     let query = strings[0]
     const binds = []
@@ -55,8 +52,8 @@ export function createD1Sql(db) {
     })()
   }
 
-  // 动态查询：兼容 neon 的 sql.unsafe(text, params[])。
-  //  - text 含 $n 占位：按 $n 从 params 取值（neon 风格）
+  // 动态查询：sql.unsafe(text, params[])。
+  //  - text 含 $n 占位：按 $n 从 params 取值
   //  - text 仅含 ? 占位：params 按顺序绑定（可配合动态 IN 子句）
   sql.unsafe = (text, params = []) => {
     let binds = []
