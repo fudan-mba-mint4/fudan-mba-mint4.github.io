@@ -202,8 +202,45 @@ const scheduleData = ref(null)
 const scheduleLoading = ref(true)
 const scheduleError = ref(false)
 
-/* ========== 作业数据 ========== */
-const homeworkData = ref([])
+/* ========== 课程资料运行时数据（D1 优先、静态回退；与课程资料页同源，保证首页作业同步） ========== */
+const coursePack = ref(null)
+async function fetchCoursePack() {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 6000)
+    const r = await fetchWithRetry(`/api/course-materials-db`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (r.ok) {
+      const j = await r.json()
+      if (Array.isArray(j?.courses)) { coursePack.value = j; return }
+    }
+  } catch (e) { /* 回退静态 */ }
+  try {
+    const res = await fetchWithRetry('/data/course-materials.json')
+    if (res.ok) coursePack.value = await res.json()
+  } catch (e) { console.error('加载课程资料失败', e) }
+}
+/* ========== 作业待办：直接从课程资料各讲 homework 派生（不再维护独立 homework.json） ========== */
+const homeworkData = computed(() => {
+  const out = []
+  ;(coursePack.value?.courses || []).forEach(c => {
+    ;(c.sessions || []).forEach(sn => {
+      const hw = sn.homework
+      if (hw && hw.name && hw.deadline) {
+        out.push({
+          id: `${c.id}@${sn.date}@hw`,
+          course_id: c.id,
+          course: c.name?.zh || c.name,
+          title: hw.name,
+          deadline: hw.deadline,
+          url: hw.url || '',
+          status: 'pending',
+        })
+      }
+    })
+  })
+  return out
+})
 
 /* ========== 班费数据（从finance.json读取） ========== */
 const { data: financeRaw } = useData('/data/finance.json')
@@ -237,22 +274,6 @@ const activitiesData = computed(() => activitiesRaw.value?.activities || [])
 const { data: pollsRaw } = useData('/data/polls.json')
 const { data: courseRaw } = useData('/data/course-materials.json')
 const { data: knowledgeRaw } = useData('/data/knowledge-base.json')
-
-async function fetchHomework() {
-  try {
-    const res = await fetchWithRetry(`${langPrefix.value}/data/homework.json`)
-    const data = await res.json()
-    homeworkData.value = data.homework || []
-  } catch (e) {
-    try {
-      const res = await fetchWithRetry('/data/homework.json')
-      const data = await res.json()
-      homeworkData.value = data.homework || []
-    } catch (e2) {
-      console.error('加载作业失败', e2)
-    }
-  }
-}
 
 // 课程简称映射
 const courseShortNames = {
@@ -438,7 +459,7 @@ onUnmounted(() => { notifTimers.forEach(t => clearTimeout(t)); notifTimers = [] 
 onMounted(() => {
   loadModuleRead()
   fetchSchedule()
-  fetchHomework()
+  fetchCoursePack()
   setTimeout(triggerAlerts, 1200)
 })
 
