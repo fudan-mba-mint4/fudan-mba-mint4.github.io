@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useData } from '../composables/useData.js'
+import { deriveActivity } from '../composables/useActivities.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import classData from '../../../public/data/class-members.json'
 
@@ -202,28 +203,12 @@ const scheduleData = ref(null)
 const scheduleLoading = ref(true)
 const scheduleError = ref(false)
 
-/* ========== 课程资料运行时数据（D1 优先、静态回退；与课程资料页同源，保证首页作业同步） ========== */
-const coursePack = ref(null)
-async function fetchCoursePack() {
-  try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 6000)
-    const r = await fetchWithRetry(`/api/course-materials-db`, { signal: ctrl.signal })
-    clearTimeout(timer)
-    if (r.ok) {
-      const j = await r.json()
-      if (Array.isArray(j?.courses)) { coursePack.value = j; return }
-    }
-  } catch (e) { /* 回退静态 */ }
-  try {
-    const res = await fetchWithRetry('/data/course-materials.json')
-    if (res.ok) coursePack.value = await res.json()
-  } catch (e) { console.error('加载课程资料失败', e) }
-}
+/* ========== 课程资料（D1 优先、静态回退；与课程资料页同源，作业待办从此派生） ========== */
+const { data: courseRaw } = useData('/data/course-materials.json', { dbUrl: '/api/course-materials-db' })
 /* ========== 作业待办：直接从课程资料各讲 homework 派生（不再维护独立 homework.json） ========== */
 const homeworkData = computed(() => {
   const out = []
-  ;(coursePack.value?.courses || []).forEach(c => {
+  ;(courseRaw.value?.courses || []).forEach(c => {
     ;(c.sessions || []).forEach(sn => {
       const hw = sn.homework
       if (hw && hw.name && hw.deadline) {
@@ -243,7 +228,7 @@ const homeworkData = computed(() => {
 })
 
 /* ========== 班费数据（从finance.json读取） ========== */
-const { data: financeRaw } = useData('/data/finance.json')
+const { data: financeRaw } = useData('/data/finance.json', { dbUrl: '/api/finance-db' })
 const financeData = computed(() => {
   const txs = financeRaw.value?.transactions || []
   const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
@@ -252,7 +237,7 @@ const financeData = computed(() => {
 })
 
 /* ========== 公告数据（从announcements.json读取） ========== */
-const { data: announcementsRaw } = useData('/data/announcements.json')
+const { data: announcementsRaw } = useData('/data/announcements.json', { dbUrl: '/api/announcements' })
 const announcementsData = computed(() => {
   return (announcementsRaw.value?.announcements || [])
     .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
@@ -260,9 +245,10 @@ const announcementsData = computed(() => {
 })
 
 /* ========== 活动相册数据 ========== */
-const { data: activitiesRaw } = useData('/data/activities.json')
+const { data: activitiesRaw } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 const galleryActivities = computed(() => {
   return (activitiesRaw.value?.activities || [])
+    .map(a => deriveActivity(a))
     .filter(a => a.tags && a.tags.hasMedia && a.tags.cover)
     .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
     .slice(0, 4)
@@ -271,9 +257,8 @@ const galleryActivities = computed(() => {
 const activitiesData = computed(() => activitiesRaw.value?.activities || [])
 
 /* ========== 投票 / 课件 / 知识库数据 ========== */
-const { data: pollsRaw } = useData('/data/polls.json')
-const { data: courseRaw } = useData('/data/course-materials.json')
-const { data: knowledgeRaw } = useData('/data/knowledge-base.json')
+const { data: pollsRaw } = useData('/data/polls.json', { dbUrl: '/api/polls-admin' })
+const { data: knowledgeRaw } = useData('/data/knowledge-base.json', { dbUrl: '/api/knowledge-db' })
 
 // 课程简称映射
 const courseShortNames = {
@@ -459,7 +444,6 @@ onUnmounted(() => { notifTimers.forEach(t => clearTimeout(t)); notifTimers = [] 
 onMounted(() => {
   loadModuleRead()
   fetchSchedule()
-  fetchCoursePack()
   setTimeout(triggerAlerts, 1200)
 })
 

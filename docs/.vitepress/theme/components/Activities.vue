@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vitepress'
 import { useLang, formatDate, formatRelative } from '../composables/useLang'
 import { useNow } from '../composables/useNow.js'
 import { parseDate } from '../utils/dateUtils.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useAuth } from '../composables/useAuth.js'
+import { useActivities } from '../composables/useActivities.js'
 
 const router = useRouter()
 const { currentUser, isAuthenticated, authToken } = useAuth()
@@ -69,39 +70,8 @@ const i18n = {
 }
 const { lang, t } = useLang(i18n)
 
-/* ========== 活动数据：数据库优先，失败/空则静默回退静态 JSON ========== */
-// 先 GET /api/activities-db；成功且 activities 非空才用 DB，否则回退 /data/activities.json。
-// 所有网络访问都在 onMounted（浏览器端）内，异常静默回退不白屏。
-async function fetchActivitiesData() {
-  try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 3000)
-    const res = await fetchWithRetry('/api/activities-db', { signal: ctrl.signal })
-    clearTimeout(timer)
-    if (res.ok) {
-      const json = await res.json()
-      if (Array.isArray(json?.activities) && json.activities.length > 0) return json
-    }
-  } catch (e) {
-    /* DB 不可达/超时，静默回退 */
-  }
-  try {
-    const res = await fetchWithRetry('/data/activities.json')
-    if (!res.ok) throw new Error('HTTP ' + res.status)
-    return await res.json()
-  } catch (e) {
-    console.error(`[Activities] 静态 JSON 加载失败:`, e)
-    return null
-  }
-}
-
-const activitiesData = ref(null)
-const activities = computed(() => activitiesData.value?.activities || [])
-
-onMounted(async () => {
-  if (typeof window === 'undefined') return
-  activitiesData.value = await fetchActivitiesData()
-})
+/* ========== 活动数据：统一 selector（DB 优先、静态回退），相册/班费标记自动派生 ========== */
+const { activities } = useActivities({ withFinance: true })
 
 /* ========== 时钟（每分钟刷新一次，倒计时不秒跳） ========== */
 const { now } = useNow()

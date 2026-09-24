@@ -122,10 +122,6 @@
             <div class="form-group"><label>报名人数上限 <span class="required">*</span></label><input type="number" v-model.number="actForm.capacity" required placeholder="84" /></div>
             <div class="form-group"><label>已报名人数 <span class="required">*</span></label><input type="number" v-model.number="actForm.registered" required placeholder="0" /></div>
           </div>
-          <div class="form-row checkbox-row">
-            <label class="checkbox-label"><input type="checkbox" v-model="actForm.hasMedia" /> 📷 有相册/图片直播</label>
-            <label class="checkbox-label"><input type="checkbox" v-model="actForm.involvesFinance" /> 💰 涉及班费</label>
-          </div>
           <button type="submit" class="submit-btn" :disabled="submitting || !actCanSubmit">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
@@ -559,6 +555,8 @@ import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 import { API_PREFIX } from '../composables/apiConfig.js'
 import { useAuth } from '../composables/useAuth.js'
+import { invalidateResource } from '../composables/useData.js'
+import { dbKeyOf, HISTORY_TYPE_TO_RESOURCE } from '../composables/resourceRegistry.js'
 
 // ===== 认证（班委实名登录；登录态由 useAuth 用 localStorage 持久化，刷新/重开免登录）=====
 const { currentUser, isAuthenticated, login, logout, getToken } = useAuth()
@@ -638,7 +636,7 @@ const submitting = ref(false)
 // ===== 表单数据 =====
 const today = new Date().toISOString().split('T')[0]
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
-const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false })
+const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0 })
 const cmForm = ref({
   courseId: 'dmd',
   target: 'existing',         // existing | new
@@ -1109,6 +1107,8 @@ async function revertCommit(record) {
     await throwIfNotOk(res, '撤回')
     const j = await res.json().catch(() => ({}))
     record.status = 'reverted'
+    const revertedResource = HISTORY_TYPE_TO_RESOURCE[record.type]
+    if (revertedResource) invalidateResource(dbKeyOf(revertedResource))
     let msg = '撤回成功'
     if (j.note) msg += '\n' + j.note
     alert(msg)
@@ -1147,6 +1147,7 @@ async function submitAnnouncement() {
     await throwIfNotOk(res, '发布公告')
     rec.ref_id = ann.id
     rec.status = 'success'
+    invalidateResource('/api/announcements')
     annForm.value = { titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
@@ -1170,7 +1171,7 @@ async function submitActivity() {
       location: { zh: actForm.value.locationZh || '待定', en: locT.en, th: locT.th },
       organizer: { zh: actForm.value.organizerZh || '班级筹备组', en: 'Class Committee', th: 'คณะกรรมการชั้นเรียน' },
       description: { zh: actForm.value.descriptionZh || '', en: descT.en, th: descT.th },
-      tags: { hasMedia: actForm.value.hasMedia, involvesFinance: actForm.value.involvesFinance, cover: '' },
+      tags: { cover: '', mediaUrl: '' },
       capacity: actForm.value.capacity || 84, registered: actForm.value.registered || 0, status: 'upcoming',
     }
     const res = await fetchWithRetry(`${API_PREFIX}/api/admin/activities`, {
@@ -1181,7 +1182,8 @@ async function submitActivity() {
     await throwIfNotOk(res, '添加活动')
     rec.ref_id = act.id
     rec.status = 'success'
-    actForm.value = { titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false }
+    invalidateResource('/api/activities-db')
+    actForm.value = { titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0 }
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
   await saveRecord(rec)
@@ -1259,6 +1261,7 @@ async function submitCourseMaterial() {
     })
     await throwIfNotOk(res, '保存课程资料')
     rec.status = 'success'
+    invalidateResource('/api/course-materials-db')
     resetCmForm()
     await loadCourseFiles()
   } catch(e) { rec.status='failed'; rec.error=e.message }
@@ -1311,6 +1314,7 @@ async function submitKnowledge() {
     })
     await throwIfNotOk(res, '保存知识库资料')
     rec.status = 'success'
+    invalidateResource('/api/knowledge-db')
     kbForm.value = { courseId:'general', type:'note', date:today, title:'', author:'', file:null }
     await loadKbCourses()
   } catch(e) { rec.status='failed'; rec.error=e.message }
@@ -1348,6 +1352,7 @@ async function submitFinance() {
     })
     await throwIfNotOk(res, '添加班费记录')
     rec.status = 'success'
+    invalidateResource('/api/finance-db')
     finForm.value = { type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' }
     await loadFinanceTransactions()
   } catch(e) { rec.status='failed'; rec.error=e.message }
@@ -1384,6 +1389,7 @@ async function deleteCourseFile(item) {
       method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ fileUrl: item.fileUrl }),
     })
     await throwIfNotOk(res, '删除课件')
+    invalidateResource('/api/course-materials-db')
     cmFiles.value = cmFiles.value.filter(x => x.fileUrl !== item.fileUrl)
   } catch (e) { alert('删除失败: ' + e.message) }
 }
@@ -1398,6 +1404,7 @@ async function deleteFinanceTx(tx) {
       method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ txId: tx.id }),
     })
     await throwIfNotOk(res, '删除流水')
+    invalidateResource('/api/finance-db')
     finTransactions.value = finTransactions.value.filter(t => String(t.id) !== String(tx.id))
   } catch (e) { alert('删除失败: ' + e.message) }
 }
@@ -1474,6 +1481,7 @@ async function submitAlbum() {
     await throwIfNotOk(actRes, '保存相册')
     rec.status = 'success'
     rec.ref_id = act.id
+    invalidateResource('/api/activities-db')
     albForm.value.localPhotos.forEach(p => p.previewUrl && URL.revokeObjectURL(p.previewUrl))
     albForm.value = { title:'', date:today, url:'', albumType:'live', coverFile:null, localPhotos:[], description:'' }
   } catch(e) { rec.status='failed'; rec.error=e.message }
@@ -1535,6 +1543,7 @@ async function submitPoll() {
     await throwIfNotOk(res, '发布投票')
     rec.ref_id = pollId
     rec.status = 'success'
+    invalidateResource('/api/polls-admin')
     pollForm.value = {
       titleZh: '', descriptionZh: '', type: 'single', anonymous: false,
       visibility: 'after_vote', deadline: '',
@@ -1563,6 +1572,7 @@ async function deleteKnowledgeDoc(doc) {
       method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ docId: doc.id }),
     })
     await throwIfNotOk(res, '删除资料')
+    invalidateResource('/api/knowledge-db')
     kbDocuments.value = kbDocuments.value.filter(d => String(d.id) !== String(doc.id))
   } catch (e) { alert('删除失败: ' + e.message) }
 }

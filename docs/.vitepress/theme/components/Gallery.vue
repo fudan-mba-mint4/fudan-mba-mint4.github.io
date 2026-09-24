@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useLang } from '../composables/useLang'
-import { useData } from '../composables/useData.js'
+import { useActivities } from '../composables/useActivities.js'
 
 const i18n = {
   zh: {
@@ -38,10 +38,9 @@ const i18n = {
 
 const { lang, t } = useLang(i18n)
 
-const { data: activitiesData, loading } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
+const { activities: derivedActivities, loading } = useActivities()
 const albums = computed(() => {
-  if (!activitiesData.value?.activities) return []
-  return (activitiesData.value.activities || [])
+  return derivedActivities.value
     .filter(a => a.tags && a.tags.hasMedia)
     .map(a => ({
       id: a.id,

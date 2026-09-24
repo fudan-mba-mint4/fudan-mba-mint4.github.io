@@ -6,11 +6,46 @@
  * 支持数据库优先：传入 options.dbUrl（公开只读 API），先用短超时原生 fetch 探测 DB，
  * 成功则用 DB 数据；失败/超时快速回退到静态 JSON url。
  *   useData('/data/course-materials.json', { dbUrl: '/api/course-materials-db' })
+ *
+ * 自动更新：写入侧（admin）发布 / 删除 / 撤回成功后调用 invalidateResource(dbUrl)，
+ * 本标签及其他已打开标签中所有消费该资源的 useData 实例会自动清缓存并静默重新拉取。
  */
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 const cache = new Map()
+
+/* ===== 跨标签 / 本标签 自动失效（一处变更，所有消费组件自动刷新） ===== */
+const CHANNEL_NAME = 'mint4-resources'
+const EVENT_NAME = 'mint4:resource-invalidated'
+let channel = null
+
+function getChannel() {
+  if (typeof BroadcastChannel === 'undefined') return null
+  if (!channel) {
+    channel = new BroadcastChannel(CHANNEL_NAME)
+    channel.onmessage = (e) => {
+      if (e?.data?.type === 'invalidate') dispatchInvalidate(e.data.key)
+    }
+  }
+  return channel
+}
+
+function dispatchInvalidate(key) {
+  if (!key) return
+  cache.delete(key)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: { key } }))
+  }
+}
+
+// 发布 / 删除 / 撤回成功后调用：失效该资源缓存，本标签 + 其他标签的所有消费组件自动重新拉取
+export function invalidateResource(key) {
+  if (!key) return
+  dispatchInvalidate(key)
+  const ch = getChannel()
+  if (ch) { try { ch.postMessage({ type: 'invalidate', key }) } catch { /* 忽略 */ } }
+}
 
 export function useData(url, options = {}) {
   const { useCache = true, dbUrl = null, dbTimeout = 4000 } = options
@@ -74,8 +109,22 @@ export function useData(url, options = {}) {
     return fetchData(true)
   }
 
+  function onInvalidate(e) {
+    if (e?.detail?.key === cacheKey) fetchData(true)
+  }
+
   onMounted(() => {
     fetchData()
+    if (typeof window !== 'undefined') {
+      window.addEventListener(EVENT_NAME, onInvalidate)
+      getChannel()
+    }
+  })
+
+  onUnmounted(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener(EVENT_NAME, onInvalidate)
+    }
   })
 
   return { data, loading, error, source, reload }

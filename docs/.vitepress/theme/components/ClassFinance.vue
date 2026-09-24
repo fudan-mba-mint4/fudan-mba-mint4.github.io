@@ -136,7 +136,7 @@ async function fetchFinanceData() {
 }
 
 const financeData = ref(null)
-const { data: activitiesData } = useData('/data/activities.json')
+const { data: activitiesData } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 const transactions = computed(() => financeData.value?.transactions || [])
 const activityFinances = computed(() => financeData.value?.activityFinances || [])
 

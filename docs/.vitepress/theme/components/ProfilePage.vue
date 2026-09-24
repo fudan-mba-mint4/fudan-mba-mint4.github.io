@@ -131,7 +131,7 @@ import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 const router = useRouter()
 import { API_PREFIX } from '../composables/apiConfig.js'
 const { currentUser, isAuthenticated, logout, updateProfile, changePassword, authToken } = useAuth()
-const { data: activitiesData } = useData('/data/activities.json')
+const { data: activitiesData } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 
 const saving = ref(false)
 const saveMsg = ref('')
