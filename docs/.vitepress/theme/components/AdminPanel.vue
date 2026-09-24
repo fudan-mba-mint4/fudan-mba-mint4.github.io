@@ -88,8 +88,8 @@
             <label class="checkbox-label"><input type="checkbox" v-model="annForm.pinned" /> 置顶显示</label>
           </div>
           <div class="form-group">
-            <label>摘要 <span class="required">*</span></label>
-            <input v-model="annForm.summaryZh" required placeholder="一句话摘要" />
+            <label>摘要（可选）</label>
+            <input v-model="annForm.summaryZh" placeholder="一句话摘要（不填则自动取正文开头）" />
           </div>
           <div class="form-group">
             <label>内容主体 <span class="required">*</span></label>
@@ -110,17 +110,17 @@
             <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="actForm.date" required /></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>开始时间</label><input type="time" v-model="actForm.startTime" /></div>
-            <div class="form-group"><label>结束时间</label><input type="time" v-model="actForm.endTime" /></div>
+            <div class="form-group"><label>开始时间 <span class="required">*</span></label><input type="time" v-model="actForm.startTime" required /></div>
+            <div class="form-group"><label>结束时间 <span class="required">*</span></label><input type="time" v-model="actForm.endTime" required /></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>地点</label><input v-model="actForm.locationZh" placeholder="政立院区 B403" /></div>
-            <div class="form-group"><label>组织者</label><input v-model="actForm.organizerZh" placeholder="班级筹备组" /></div>
+            <div class="form-group"><label>地点 <span class="required">*</span></label><input v-model="actForm.locationZh" required placeholder="政立院区 B403" /></div>
+            <div class="form-group"><label>组织者 <span class="required">*</span></label><input v-model="actForm.organizerZh" required placeholder="班级筹备组" /></div>
           </div>
-          <div class="form-group"><label>活动描述</label><textarea v-model="actForm.descriptionZh" rows="3"></textarea></div>
+          <div class="form-group"><label>活动描述 <span class="required">*</span></label><textarea v-model="actForm.descriptionZh" rows="3" required></textarea></div>
           <div class="form-row">
-            <div class="form-group"><label>报名人数上限</label><input type="number" v-model.number="actForm.capacity" placeholder="84" /></div>
-            <div class="form-group"><label>已报名人数</label><input type="number" v-model.number="actForm.registered" placeholder="0" /></div>
+            <div class="form-group"><label>报名人数上限 <span class="required">*</span></label><input type="number" v-model.number="actForm.capacity" required placeholder="84" /></div>
+            <div class="form-group"><label>已报名人数 <span class="required">*</span></label><input type="number" v-model.number="actForm.registered" required placeholder="0" /></div>
           </div>
           <div class="form-row checkbox-row">
             <label class="checkbox-label"><input type="checkbox" v-model="actForm.hasMedia" /> 📷 有相册/图片直播</label>
@@ -137,7 +137,7 @@
         <h3>🗳️ 发布投票</h3>
         <form @submit.prevent="submitPoll" class="data-form">
           <div class="form-group"><label>投票标题 <span class="required">*</span></label><input v-model="pollForm.titleZh" placeholder="下次班级聚餐地点投票" /></div>
-          <div class="form-group"><label>投票描述</label><textarea v-model="pollForm.descriptionZh" rows="2" placeholder="简单说明投票背景"></textarea></div>
+          <div class="form-group"><label>投票描述 <span class="required">*</span></label><textarea v-model="pollForm.descriptionZh" rows="2" required placeholder="简单说明投票背景"></textarea></div>
           <div class="form-row">
             <div class="form-group">
               <label>投票类型</label>
@@ -170,7 +170,7 @@
             <div class="poll-options-editor">
               <div v-for="(opt, idx) in pollForm.options" :key="idx" class="poll-option-row">
                 <span class="poll-option-num">{{ idx + 1 }}</span>
-                <input v-model="opt.textZh" :placeholder="`选项 ${idx + 1} 文字`" class="poll-option-input" />
+                <input v-model="opt.textZh" required :placeholder="`选项 ${idx + 1} 文字`" class="poll-option-input" />
                 <label class="poll-option-img-btn">
                   <input type="file" accept="image/*" class="hidden-file" @change="onPollOptionImage($event, idx)" />
                   {{ opt.imageFile ? '✓ 已选图' : '📷 图片' }}
@@ -714,16 +714,15 @@ function onPollOptionImage(e, idx) { pollForm.value.options[idx].imageFile = e.t
 // 各表单提交校验：必填未满足时提交按钮置灰（与课程资料/知识库体验一致，也避免提交空数据）
 const annCanSubmit = computed(() => {
   const f = annForm.value
-  return !!(f.titleZh.trim() && f.date && f.summaryZh.trim() && f.contentZh.trim())
+  return !!(f.titleZh.trim() && f.date && f.contentZh.trim())
 })
 const actCanSubmit = computed(() => {
   const f = actForm.value
-  return !!(f.titleZh.trim() && f.date)
+  return !!(f.titleZh.trim() && f.date && f.startTime && f.endTime && f.locationZh.trim() && f.organizerZh.trim() && f.descriptionZh.trim() && typeof f.capacity === 'number' && f.capacity > 0)
 })
 const pollCanSubmit = computed(() => {
   const f = pollForm.value
-  const filled = f.options.filter(o => o.textZh.trim()).length
-  return !!(f.titleZh.trim() && f.deadline && filled >= 2)
+  return !!(f.titleZh.trim() && f.deadline && f.options.length >= 2 && f.options.every(o => o.textZh.trim()))
 })
 const finCanSubmit = computed(() => {
   const f = finForm.value
@@ -1125,16 +1124,18 @@ async function submitAnnouncement() {
   submitting.value = true
   const rec = createRecord('announcements', `发布公告: ${annForm.value.titleZh}`)
   try {
+    // 摘要可选：不填则自动取正文开头 30 字
+    const summaryZh = annForm.value.summaryZh.trim() || annForm.value.contentZh.trim().slice(0, 30)
     // 自动翻译
     const [titleT, summaryT, contentT] = await Promise.all([
       translateBoth(annForm.value.titleZh),
-      translateBoth(annForm.value.summaryZh),
+      translateBoth(summaryZh),
       translateBoth(annForm.value.contentZh),
     ])
     const ann = {
       id: 'ann-' + Date.now(), date: annForm.value.date, category: annForm.value.category, pinned: annForm.value.pinned,
       title: { zh: annForm.value.titleZh, en: titleT.en, th: titleT.th },
-      summary: { zh: annForm.value.summaryZh, en: summaryT.en, th: summaryT.th },
+      summary: { zh: summaryZh, en: summaryT.en, th: summaryT.th },
       content: { zh: annForm.value.contentZh, en: contentT.en, th: contentT.th },
     }
     if (annForm.value.deadline) ann.deadline = annForm.value.deadline
