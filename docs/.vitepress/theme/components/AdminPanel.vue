@@ -191,48 +191,88 @@
       <div v-if="currentType === 'courseMaterials'" class="form-section">
         <h3>📚 添加课程资料</h3>
         <form @submit.prevent="submitCourseMaterial" class="data-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label>课程 <span class="required">*</span></label>
-              <select v-model="cmForm.courseId">
-                <option value="dmd">数据、模型与决策（DMD）</option>
-                <option value="managerial-economics">管理经济学</option>
-                <option value="accounting">会计学</option>
-              </select>
-            </div>
-            <div class="form-group"><label>第几讲 <span class="required">*</span></label><input type="number" v-model.number="cmForm.session" required placeholder="1" /></div>
-          </div>
-          <div class="form-row">
-            <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="cmForm.date" required /></div>
-            <div class="form-group"><label>本讲标题 <span class="required">*</span></label><input v-model="cmForm.title" required placeholder="第1讲：..." /></div>
-          </div>
+          <!-- 1. 选课程 -->
           <div class="form-group">
-            <label>课件PDF <span class="required">*</span></label>
-            <input type="file" accept=".pdf" @change="onSlideFile" class="file-input" />
+            <label>课程 <span class="required">*</span></label>
+            <select v-model="cmForm.courseId" @change="onCmCourseChange">
+              <option value="dmd">数据、模型与决策（DMD）</option>
+              <option value="managerial-economics">管理经济学</option>
+              <option value="accounting">会计学</option>
+            </select>
+          </div>
+
+          <!-- 2. 选目标讲次 -->
+          <div class="form-group">
+            <label>目标讲次 <span class="required">*</span></label>
+            <div class="seg-control">
+              <button type="button" :class="{ active: cmForm.target === 'existing' }" @click="cmForm.target = 'existing'">追加到已有讲次</button>
+              <button type="button" :class="{ active: cmForm.target === 'new' }" @click="cmForm.target = 'new'">新建讲次</button>
+            </div>
+            <select v-if="cmForm.target === 'existing'" v-model="cmForm.sessionKey">
+              <option value="" disabled>选择讲次…</option>
+              <option v-for="s in cmExistingSessions" :key="s.key" :value="s.key">
+                第{{ s.session }}讲 · {{ s.title }} · {{ s.date }}
+              </option>
+            </select>
+            <template v-else>
+              <div class="form-row">
+                <div class="form-group"><label>第几讲 <span class="required">*</span></label><input type="number" min="1" v-model.number="cmForm.session" placeholder="1" /></div>
+                <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="cmForm.date" /></div>
+              </div>
+              <div class="form-group"><label>本讲标题 <span class="required">*</span></label><input v-model="cmForm.title" placeholder="第1讲：..." /></div>
+            </template>
+          </div>
+
+          <!-- 3. 选内容类型 -->
+          <div class="form-group">
+            <label>要添加的内容 <span class="required">*</span></label>
+            <div class="seg-control">
+              <button type="button" :class="{ active: cmForm.itemType === 'slide' }" @click="cmForm.itemType = 'slide'">课件</button>
+              <button type="button" :class="{ active: cmForm.itemType === 'homework' }" @click="cmForm.itemType = 'homework'">作业</button>
+              <button type="button" :class="{ active: cmForm.itemType === 'reference' }" @click="cmForm.itemType = 'reference'">参考资料</button>
+            </div>
+          </div>
+
+          <!-- 课件 -->
+          <div v-if="cmForm.itemType === 'slide'" class="form-group">
+            <label>课件文件 <span class="required">*</span></label>
+            <input type="file" accept=".pdf,.ppt,.pptx" @change="onSlideFile" class="file-input" />
             <span v-if="cmForm.slideFile" class="file-info">📄 {{ cmForm.slideFile.name }} ({{ formatSize(cmForm.slideFile.size) }})</span>
           </div>
-          <div class="form-group">
-            <label>作业PDF（可选）</label>
-            <input type="file" accept=".pdf" @change="onHomeworkFile" class="file-input" />
-            <span v-if="cmForm.homeworkFile" class="file-info">📄 {{ cmForm.homeworkFile.name }}</span>
-          </div>
-          <div v-if="cmForm.homeworkFile" class="form-row">
-            <div class="form-group"><label>作业截止日期</label><input type="date" v-model="cmForm.hwDeadline" /></div>
-            <div class="form-group"><label>提交方式</label><input v-model="cmForm.hwSubmission" placeholder="纸质版手写" /></div>
-          </div>
-          <div class="form-group"><label>作业说明（可选）</label><input v-model="cmForm.hwDescription" /></div>
-          <div class="form-group">
-            <label>参考资料（可选，可多个）</label>
-            <div v-for="(ref, idx) in cmForm.references" :key="idx" class="ref-item">
-              <input v-model="ref.name" placeholder="资料名称" class="ref-name" />
-              <input type="file" accept=".pdf" @change="onRefFile($event, idx)" class="ref-file-input" />
-              <input v-if="!ref.file" v-model="ref.desc" placeholder="或填写文字说明（无文件）" class="ref-desc" />
-              <button type="button" @click="cmForm.references.splice(idx,1)" class="ref-remove">✕</button>
+
+          <!-- 作业 -->
+          <template v-if="cmForm.itemType === 'homework'">
+            <div class="form-group">
+              <label>作业文件 <span class="required">*</span></label>
+              <input type="file" accept=".pdf,.doc,.docx" @change="onHomeworkFile" class="file-input" />
+              <span v-if="cmForm.homeworkFile" class="file-info">📄 {{ cmForm.homeworkFile.name }} ({{ formatSize(cmForm.homeworkFile.size) }})</span>
             </div>
-            <button type="button" @click="cmForm.references.push({name:'',file:null,desc:''})" class="add-ref-btn">+ 添加参考资料</button>
-          </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !cmForm.slideFile">
-            {{ submitting ? '上传中...（PDF较大请稍候）' : '上传文件并提交' }}
+            <div class="form-row">
+              <div class="form-group"><label>作业截止日期</label><input type="date" v-model="cmForm.hwDeadline" /></div>
+              <div class="form-group"><label>提交方式</label><input v-model="cmForm.hwSubmission" placeholder="纸质版手写" /></div>
+            </div>
+            <div class="form-group"><label>作业说明（可选）</label><input v-model="cmForm.hwDescription" /></div>
+          </template>
+
+          <!-- 参考资料 -->
+          <template v-if="cmForm.itemType === 'reference'">
+            <div class="form-group">
+              <label>资料名称 <span class="required">*</span></label>
+              <input v-model="cmForm.refName" placeholder="如：演示线性规划" />
+            </div>
+            <div class="form-group">
+              <label>资料文件（文件与链接二选一）</label>
+              <input type="file" accept=".pdf,.xls,.xlsx,.doc,.docx,.ppt,.pptx" @change="onRefSingleFile" class="file-input" />
+              <span v-if="cmForm.refFile" class="file-info">📄 {{ cmForm.refFile.name }} ({{ formatSize(cmForm.refFile.size) }})</span>
+            </div>
+            <div class="form-group">
+              <label>或填写链接 / 文字说明</label>
+              <input v-model="cmForm.refDesc" placeholder="https://… 或文字说明（无文件时）" />
+            </div>
+          </template>
+
+          <button type="submit" class="submit-btn" :disabled="submitting || !cmCanSubmit">
+            {{ submitting ? '上传中…（文件较大请稍候）' : '提交' }}
           </button>
         </form>
 
@@ -599,8 +639,46 @@ const submitting = ref(false)
 const today = new Date().toISOString().split('T')[0]
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
 const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0, hasMedia:false, involvesFinance:false })
-const cmForm = ref({ courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] })
+const cmForm = ref({
+  courseId: 'dmd',
+  target: 'existing',         // existing | new
+  sessionKey: '',             // existing 时选中讲次的 key（N@date）
+  session: 1, date: today, title: '',   // new 时使用
+  itemType: 'slide',          // slide | homework | reference
+  slideFile: null,
+  homeworkFile: null, hwDeadline: '', hwSubmission: '', hwDescription: '',
+  refName: '', refFile: null, refDesc: '',
+})
 const cmFiles = ref([])
+const cmPack = ref(null)
+// 所选课程的已有讲次（下拉用），按讲次倒序
+const cmExistingSessions = computed(() => {
+  const c = cmPack.value?.courses?.find(x => x.id === cmForm.value.courseId)
+  return (c?.sessions || []).slice().sort((a, b) => Number(b.session) - Number(a.session)).map(s => ({
+    key: `${s.session}@${s.date}`, session: s.session, title: s.title || '', date: s.date,
+  }))
+})
+function onCmCourseChange() { cmForm.value.sessionKey = '' }
+// 提交校验：必填项随目标讲次与内容类型动态变化
+const cmCanSubmit = computed(() => {
+  const f = cmForm.value
+  if (f.target === 'new') {
+    if (!f.session || !f.date || !f.title.trim()) return false
+  } else if (!f.sessionKey) return false
+  if (f.itemType === 'slide') return !!f.slideFile
+  if (f.itemType === 'homework') return !!f.homeworkFile
+  if (f.itemType === 'reference') return !!f.refName.trim() && (!!f.refFile || !!f.refDesc.trim())
+  return false
+})
+function resetCmForm() {
+  const courseId = cmForm.value.courseId
+  cmForm.value = {
+    courseId, target: 'existing', sessionKey: '',
+    session: 1, date: today, title: '', itemType: 'slide',
+    slideFile: null, homeworkFile: null, hwDeadline: '', hwSubmission: '', hwDescription: '',
+    refName: '', refFile: null, refDesc: '',
+  }
+}
 const kbForm = ref({ courseId:'general', type:'note', date:today, title:'', author:'', file:null })
 const kbDocuments = ref([])
 const kbCourses = ref([])
@@ -636,7 +714,7 @@ function onPollOptionImage(e, idx) { pollForm.value.options[idx].imageFile = e.t
 function onSlideFile(e) { cmForm.value.slideFile = e.target.files[0] }
 function onHomeworkFile(e) { cmForm.value.homeworkFile = e.target.files[0] }
 function onKbFile(e) { kbForm.value.file = e.target.files[0] }
-function onRefFile(e, idx) { cmForm.value.references[idx].file = e.target.files[0] }
+function onRefSingleFile(e) { cmForm.value.refFile = e.target.files[0] }
 function onCoverFile(e) { albForm.value.coverFile = e.target.files[0] }
 
 // ===== 图片压缩（超过1M自动压缩到质量0.8）=====
@@ -1108,57 +1186,60 @@ async function getCurrentCourseMaterials() {
 async function submitCourseMaterial() {
   submitting.value = true
   const f = cmForm.value
-  const rec = createRecord('courseMaterials', `添加${f.courseId}第${f.session}讲资料`)
+  const rec = createRecord('courseMaterials', `更新${f.courseId}课程资料`)
   try {
-    const dateStr = f.date.replace(/-/g, '')
-    const r2Base = `files/courses/${f.courseId}/${dateStr}`
-
-    // 1. 课件 PDF → R2
-    const slideUrl = await uploadFileToAdmin(f.slideFile, `${r2Base}/${f.slideFile.name}`)
-
-    // 2. 作业 PDF → R2
-    let homework = null
-    if (f.homeworkFile) {
-      const hwUrl = await uploadFileToAdmin(f.homeworkFile, `${r2Base}/${f.homeworkFile.name}`)
-      homework = {
-        name: f.title + ' 作业', deadline: f.hwDeadline,
-        submission: f.hwSubmission || '待通知', description: f.hwDescription || '',
-        filename: f.homeworkFile.name, url: hwUrl, size: formatSize(f.homeworkFile.size),
-      }
-    }
-
-    // 3. 参考资料 → R2 / 纯描述
-    const references = []
-    for (const ref of f.references) {
-      if (ref.file) {
-        const u = await uploadFileToAdmin(ref.file, `${r2Base}/${ref.file.name}`)
-        references.push({ name: ref.name || ref.file.name, filename: ref.file.name, url: u, size: formatSize(ref.file.size) })
-      } else if (ref.desc) {
-        references.push({ name: ref.name, filename: '', url: '', desc: ref.desc })
-      }
-    }
-
-    // 4. 读整包、追加本讲、写回 DB
+    // 1. 读整包
     const pack = await getCurrentCourseMaterials()
     if (!Array.isArray(pack.courses)) pack.courses = []
     const course = pack.courses.find(c => c.id === f.courseId)
     if (!course) throw new Error('课程不存在')
     if (!Array.isArray(course.sessions)) course.sessions = []
-    const session = {
-      session: Number(f.session), date: f.date, title: f.title,
-      files: [{ name: f.title + ' 课件', filename: f.slideFile.name, url: slideUrl, size: formatSize(f.slideFile.size), type: 'slide' }],
-      references,
+
+    // 2. 定位目标讲次（已有 / 新建）
+    let session
+    if (f.target === 'existing') {
+      const [sn, sdate] = f.sessionKey.split('@')
+      session = course.sessions.find(s => Number(s.session) === Number(sn) && s.date === sdate)
+      if (!session) throw new Error('目标讲次不存在，请刷新后重试')
+      if (!Array.isArray(session.files)) session.files = []
+      if (!Array.isArray(session.references)) session.references = []
+    } else {
+      if (course.sessions.some(s => Number(s.session) === Number(f.session)))
+        throw new Error(`第${f.session}讲已存在，请改用「追加到已有讲次」`)
+      session = { session: Number(f.session), date: f.date, title: f.title, files: [], references: [] }
+      course.sessions.push(session)
     }
-    if (homework) session.homework = homework
-    course.sessions.push(session)
+
+    // 3. 按内容类型局部合并；R2 路径统一用该讲日期
+    const dateStr = session.date.replace(/-/g, '')
+    const r2Base = `files/courses/${f.courseId}/${dateStr}`
+    if (f.itemType === 'slide') {
+      const url = await uploadFileToAdmin(f.slideFile, `${r2Base}/${f.slideFile.name}`)
+      session.files.push({ name: (session.title || '') + ' 课件', filename: f.slideFile.name, url, size: formatSize(f.slideFile.size), type: 'slide' })
+    } else if (f.itemType === 'homework') {
+      const url = await uploadFileToAdmin(f.homeworkFile, `${r2Base}/${f.homeworkFile.name}`)
+      session.homework = {
+        name: (session.title || '') + ' 作业', deadline: f.hwDeadline || '',
+        submission: f.hwSubmission || '待通知', description: f.hwDescription || '',
+        filename: f.homeworkFile.name, url, size: formatSize(f.homeworkFile.size),
+      }
+    } else if (f.itemType === 'reference') {
+      if (f.refFile) {
+        const url = await uploadFileToAdmin(f.refFile, `${r2Base}/${f.refFile.name}`)
+        session.references.push({ name: f.refName.trim(), filename: f.refFile.name, url, size: formatSize(f.refFile.size) })
+      } else {
+        session.references.push({ name: f.refName.trim(), filename: '', url: '', desc: f.refDesc.trim() })
+      }
+    }
     course.sessions.sort((a, b) => Number(a.session) - Number(b.session))
 
+    // 4. 整包写回
     const res = await fetchWithRetry(`${API_PREFIX}/api/admin/course-materials`, {
       method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pack),
     })
     await throwIfNotOk(res, '保存课程资料')
     rec.status = 'success'
-    cmForm.value = { courseId:'dmd', session:1, date:today, title:'', slideFile:null, homeworkFile:null, hwDeadline:'', hwSubmission:'', hwDescription:'', references:[] }
+    resetCmForm()
     await loadCourseFiles()
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
@@ -1270,8 +1351,11 @@ function flattenCourseFiles(pack) {
   return out
 }
 async function loadCourseFiles() {
-  try { const pack = await getCurrentCourseMaterials(); cmFiles.value = flattenCourseFiles(pack) }
-  catch (e) { console.warn('加载课件列表失败:', e.message) }
+  try {
+    const pack = await getCurrentCourseMaterials()
+    cmPack.value = pack
+    cmFiles.value = flattenCourseFiles(pack)
+  } catch (e) { console.warn('加载课件列表失败:', e.message) }
 }
 async function deleteCourseFile(item) {
   if (!confirm(`确定删除「${item.name}」吗？\n将同时删除 R2 中的文件，并记录操作人。`)) return
@@ -1696,4 +1780,9 @@ watch(currentType, (val) => {
 .existing-del:hover { background: #ff3b30; color: #fff; }
 .tx-income { color: #ff3b30; font-weight: 700; }
 .tx-expense { color: #248a3d; font-weight: 700; }
+
+.seg-control { display: flex; gap: 4px; padding: 3px; background: var(--c-bg-tertiary); border-radius: 10px; margin-bottom: 10px; }
+.seg-control button { flex: 1; padding: 7px 10px; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: var(--c-text-secondary); cursor: pointer; transition: all .2s; white-space: nowrap; }
+.seg-control button.active { background: var(--c-bg); color: var(--c-accent); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.seg-control button:hover:not(.active) { color: var(--c-text); }
 </style>

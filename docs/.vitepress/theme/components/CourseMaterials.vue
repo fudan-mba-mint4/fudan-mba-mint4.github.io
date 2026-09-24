@@ -34,7 +34,8 @@ const i18n = {
     updated: '数据更新',
     tip: '在新标签页预览PDF，可自由下载',
     externalSource: '教务网站',
-    sessionsShort: '讲'
+    sessionsShort: '讲',
+    tbd: '待定'
   },
   en: {
     label: 'Course Materials · By Session',
@@ -56,7 +57,8 @@ const i18n = {
     updated: 'Updated',
     tip: 'Open PDF in new tab — download freely',
     externalSource: 'School Portal',
-    sessionsShort: 'sessions'
+    sessionsShort: 'sessions',
+    tbd: 'TBD'
   },
   th: {
     label: 'เอกสารรายวิชา · แยกตามคาบเรียน',
@@ -78,7 +80,8 @@ const i18n = {
     updated: 'อัปเดต',
     tip: 'เปิด PDF ในแท็บใหม่ ดาวน์โหลดได้ตามต้องการ',
     externalSource: 'เว็บไซต์วิชาการ',
-    sessionsShort: 'คาบ'
+    sessionsShort: 'คาบ',
+    tbd: 'รอแจ้ง'
   }
 }
 
@@ -109,6 +112,18 @@ const formatDate = (dateStr) => {
   if (currentLang.value === 'zh') return `${d.getMonth() + 1}月${d.getDate()}日`
   if (currentLang.value === 'en') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
+}
+
+// 根据文件名/URL 扩展名返回人类可读的文件类型标签
+const typeLabel = (f) => {
+  const s = String((f && (f.filename || f.url || f.name)) || '')
+  const m = /\.([a-z0-9]+)(?:[?#]|$)/i.exec(s)
+  const ext = m ? m[1].toLowerCase() : ''
+  const map = {
+    pdf: 'PDF', xlsx: 'Excel', xls: 'Excel', csv: 'CSV',
+    docx: 'Word', doc: 'Word', pptx: 'PPT', ppt: 'PPT',
+  }
+  return map[ext] || (ext ? ext.toUpperCase() : 'FILE')
 }
 </script>
 
@@ -206,7 +221,7 @@ const formatDate = (dateStr) => {
                   </div>
                   <div class="file-info">
                     <span class="file-name">{{ file.name }}</span>
-                    <span class="file-meta">{{ file.external ? t.externalSource : (file.size ? (file.size + ' · PDF') : 'PDF') }}</span>
+                    <span class="file-meta">{{ file.external ? t.externalSource : (file.size ? (file.size + ' · ' + typeLabel(file)) : typeLabel(file)) }}</span>
                   </div>
                   <div class="file-download">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -224,7 +239,7 @@ const formatDate = (dateStr) => {
                   <div class="file-info">
                     <span class="file-name">{{ file.name }}</span>
                     <span class="file-meta" v-if="file.desc">{{ file.desc }}</span>
-                    <span class="file-meta" v-else-if="file.size">{{ file.size }} · PDF</span>
+                    <span class="file-meta" v-else-if="file.size">{{ file.size }} · {{ typeLabel(file) }}</span>
                   </div>
                 </div>
               </template>
@@ -252,7 +267,7 @@ const formatDate = (dateStr) => {
                   <div class="file-info">
                     <span class="file-name">{{ ref.name }}</span>
                     <span class="file-meta" v-if="ref.desc">{{ ref.desc }}</span>
-                    <span class="file-meta" v-if="ref.size">{{ ref.size }} · PDF</span>
+                    <span class="file-meta" v-if="ref.size">{{ ref.size }} · {{ typeLabel(ref) }}</span>
                   </div>
                   <div class="file-download">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -292,7 +307,7 @@ const formatDate = (dateStr) => {
                 <div class="homework-card-meta">
                   <span class="homework-meta-item homework-meta-item--deadline">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    {{ t.deadline }}: {{ session.homework.deadline }}
+                    {{ t.deadline }}: {{ session.homework.deadline ? formatDate(session.homework.deadline) : t.tbd }}
                   </span>
                   <span class="homework-meta-item">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>

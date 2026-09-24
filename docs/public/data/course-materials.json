@@ -10,36 +10,6 @@
       "location": "政立院区 B403",
       "sessions": [
         {
-          "date": "2026-09-22",
-          "files": [
-            {
-              "url": "https://files.mint4.cn/files/courses/dmd/20260922/DMD_Lecture03_2026.pdf",
-              "name": "第3讲：线性规划 课件",
-              "size": "2.7 MB",
-              "type": "slide",
-              "filename": "DMD_Lecture03_2026.pdf"
-            }
-          ],
-          "title": "第3讲：线性规划",
-          "session": 3,
-          "references": []
-        },
-        {
-          "date": "2026-09-17",
-          "files": [
-            {
-              "url": "https://files.mint4.cn/files/courses/dmd/20260917/DMD_Lecture02_student_2604.pdf",
-              "name": "DMD 第2讲课件（学生版）",
-              "size": "13 MB",
-              "type": "slide",
-              "filename": "DMD_Lecture02_student_2604.pdf"
-            }
-          ],
-          "title": "第2讲：概率与概率分布",
-          "session": 2,
-          "references": []
-        },
-        {
           "date": "2026-09-10",
           "files": [
             {
@@ -69,6 +39,52 @@
               "filename": "math-comics"
             }
           ]
+        },
+        {
+          "date": "2026-09-17",
+          "files": [
+            {
+              "url": "https://files.mint4.cn/files/courses/dmd/20260917/DMD_Lecture02_student_2604.pdf",
+              "name": "DMD 第2讲课件（学生版）",
+              "size": "13 MB",
+              "type": "slide",
+              "filename": "DMD_Lecture02_student_2604.pdf"
+            }
+          ],
+          "title": "第2讲：概率与概率分布",
+          "session": 2,
+          "references": []
+        },
+        {
+          "date": "2026-09-24",
+          "files": [
+            {
+              "url": "https://files.mint4.cn/files/courses/dmd/20260924/DMD_Lecture03_2026.pdf",
+              "name": "第3讲：线性规划 课件",
+              "size": "2.7 MB",
+              "type": "slide",
+              "filename": "DMD_Lecture03_2026.pdf"
+            }
+          ],
+          "title": "第3讲：线性规划",
+          "session": 3,
+          "references": [
+            {
+              "name": "演示线性规划",
+              "filename": "DMD_Lecture03_演示线性规划.xlsx",
+              "url": "https://files.mint4.cn/files/courses/dmd/20260924/DMD_Lecture03_演示线性规划.xlsx",
+              "size": "17 KB"
+            }
+          ],
+          "homework": {
+            "name": "第3讲：线性规划 作业",
+            "deadline": "",
+            "submission": "待通知",
+            "description": "",
+            "filename": "DMD_Homework2.pdf",
+            "url": "https://files.mint4.cn/files/courses/dmd/20260924/DMD_Homework2.pdf",
+            "size": "206 KB"
+          }
         }
       ]
     },
