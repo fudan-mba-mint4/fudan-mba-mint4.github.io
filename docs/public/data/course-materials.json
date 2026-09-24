@@ -78,8 +78,8 @@
           ],
           "homework": {
             "name": "第3讲：线性规划 作业",
-            "deadline": "",
-            "submission": "待通知",
+            "deadline": "2026-10-15",
+            "submission": "下次上课提交",
             "description": "",
             "filename": "DMD_Homework2.pdf",
             "url": "https://files.mint4.cn/files/courses/dmd/20260924/DMD_Homework2.pdf",
@@ -162,6 +162,6 @@
     }
   ],
   "updated_by": "邹智宇",
-  "last_updated": "2026-09-16",
+  "last_updated": "2026-09-24",
   "updated_by_id": 7
 }

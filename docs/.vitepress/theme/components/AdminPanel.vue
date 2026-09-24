@@ -95,7 +95,7 @@
             <label>内容主体 <span class="required">*</span></label>
             <textarea v-model="annForm.contentZh" rows="5" required></textarea>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting">
+          <button type="submit" class="submit-btn" :disabled="submitting || !annCanSubmit">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
         </form>
@@ -126,7 +126,7 @@
             <label class="checkbox-label"><input type="checkbox" v-model="actForm.hasMedia" /> 📷 有相册/图片直播</label>
             <label class="checkbox-label"><input type="checkbox" v-model="actForm.involvesFinance" /> 💰 涉及班费</label>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting">
+          <button type="submit" class="submit-btn" :disabled="submitting || !actCanSubmit">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
         </form>
@@ -181,7 +181,7 @@
             <button type="button" class="add-option-btn" @click="addPollOption">+ 添加选项</button>
           </div>
 
-          <button type="submit" class="submit-btn" :disabled="submitting">
+          <button type="submit" class="submit-btn" :disabled="submitting || !pollCanSubmit">
             {{ submitting ? '提交中...' : '发布投票' }}
           </button>
         </form>
@@ -261,13 +261,13 @@
               <input v-model="cmForm.refName" placeholder="如：演示线性规划" />
             </div>
             <div class="form-group">
-              <label>资料文件（文件与链接二选一）</label>
+              <label>资料文件 <span class="required">*</span></label>
               <input type="file" accept=".pdf,.xls,.xlsx,.doc,.docx,.ppt,.pptx" @change="onRefSingleFile" class="file-input" />
               <span v-if="cmForm.refFile" class="file-info">📄 {{ cmForm.refFile.name }} ({{ formatSize(cmForm.refFile.size) }})</span>
             </div>
             <div class="form-group">
-              <label>或填写链接 / 文字说明</label>
-              <input v-model="cmForm.refDesc" placeholder="https://… 或文字说明（无文件时）" />
+              <label>说明（可选）</label>
+              <input v-model="cmForm.refDesc" placeholder="补充说明（可选）" />
             </div>
           </template>
 
@@ -372,7 +372,7 @@
               <option v-for="act in activitiesList" :key="act.id" :value="act.id">{{ act.date }} · {{ act.title.zh || act.title }}</option>
             </select>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting">
+          <button type="submit" class="submit-btn" :disabled="submitting || !finCanSubmit">
             {{ submitting ? '提交中...' : '提交并发布' }}
           </button>
         </form>
@@ -667,7 +667,7 @@ const cmCanSubmit = computed(() => {
   } else if (!f.sessionKey) return false
   if (f.itemType === 'slide') return !!f.slideFile
   if (f.itemType === 'homework') return !!f.homeworkFile
-  if (f.itemType === 'reference') return !!f.refName.trim() && (!!f.refFile || !!f.refDesc.trim())
+  if (f.itemType === 'reference') return !!f.refName.trim() && !!f.refFile
   return false
 })
 function resetCmForm() {
@@ -710,6 +710,25 @@ const pollForm = ref({
 function addPollOption() { pollForm.value.options.push({ textZh: '', imageFile: null }) }
 function removePollOption(idx) { if (pollForm.value.options.length > 2) pollForm.value.options.splice(idx, 1) }
 function onPollOptionImage(e, idx) { pollForm.value.options[idx].imageFile = e.target.files[0] }
+
+// 各表单提交校验：必填未满足时提交按钮置灰（与课程资料/知识库体验一致，也避免提交空数据）
+const annCanSubmit = computed(() => {
+  const f = annForm.value
+  return !!(f.titleZh.trim() && f.date && f.summaryZh.trim() && f.contentZh.trim())
+})
+const actCanSubmit = computed(() => {
+  const f = actForm.value
+  return !!(f.titleZh.trim() && f.date)
+})
+const pollCanSubmit = computed(() => {
+  const f = pollForm.value
+  const filled = f.options.filter(o => o.textZh.trim()).length
+  return !!(f.titleZh.trim() && f.deadline && filled >= 2)
+})
+const finCanSubmit = computed(() => {
+  const f = finForm.value
+  return !!(f.date && typeof f.amount === 'number' && f.amount > 0 && f.description.trim())
+})
 
 function onSlideFile(e) { cmForm.value.slideFile = e.target.files[0] }
 function onHomeworkFile(e) { cmForm.value.homeworkFile = e.target.files[0] }
