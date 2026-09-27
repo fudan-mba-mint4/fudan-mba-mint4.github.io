@@ -17,12 +17,13 @@ export async function onRequest(context) {
     if (!key || !dataBase64) return corsResponse({ error: '缺少 key 或 dataBase64' }, 400)
     if (!env.R2) return corsResponse({ error: 'R2 binding 未配置（请在 Pages 设置绑定 R2）' }, 500)
 
-    // base64 -> 二进制
+    // base64 -> 二进制（for 循环逐字节，避免 Uint8Array.from 的逐元素回调在大文件上消耗过多 CPU）
     const binaryStr = atob(dataBase64)
-    const bodyBytes = Uint8Array.from(binaryStr, c => c.charCodeAt(0))
+    const bodyBytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) bodyBytes[i] = binaryStr.charCodeAt(i)
 
     await env.R2.put(key, bodyBytes, {
-      httpContentType: contentType || 'application/octet-stream',
+      httpMetadata: { contentType: contentType || 'application/octet-stream' },
     })
 
     // 底层文件上传默认不单独写历史（由 knowledge/course/activities 等业务端点

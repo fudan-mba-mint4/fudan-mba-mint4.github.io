@@ -1057,12 +1057,18 @@ function formatTreeholeTime(iso) {
 // ===== 提交记录（数据源：D1 admin_history 表）=====
 const submitHistory = ref([])
 const historyLoading = ref(false)
-function shortTime(t){ if(!t) return ''; const [d,h]=t.split('T'); return `${d.slice(5)} ${h.slice(0,5)}` }
+function shortTime(t){
+  if(!t) return ''
+  const d = t instanceof Date ? t : new Date(t)
+  if(isNaN(d.getTime())) return String(t)
+  const p = n => String(n).padStart(2,'0')
+  return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
 function createRecord(type, desc, refId = null) {
   const r = {
     id: 'h-' + Date.now() + '-' + randomHex(3),
     type, typeName: dataTypes.find(t => t.id === type)?.name || type,
-    description: desc, time: new Date().toLocaleString('zh-CN'),
+    description: desc, time: new Date().toISOString(),
     status: 'pending', error: null, ref_id: refId,
   }
   submitHistory.value.unshift(r)
