@@ -283,6 +283,24 @@
             <button type="button" class="existing-del" @click="deleteCourseFile(item)">删除</button>
           </div>
         </div>
+
+        <!-- 讲次管理：编辑标题/日期、删除讲次（空讲次也可删） -->
+        <div class="session-mgr">
+          <h4>讲次管理</h4>
+          <p class="mgr-hint">可直接修改讲次标题或日期后点「保存」；标题填错、空讲次都可在此处理。删除含文件的讲次会一并删除其文件。</p>
+          <div v-for="course in cmMgr" :key="course.id" class="mgr-course">
+            <div class="mgr-course-name">{{ course.name }}</div>
+            <div v-for="sx in course.sessions" :key="course.id + '@' + sx.session + '@' + sx.date" class="mgr-row">
+              <span class="mgr-no">第{{ sx.session }}讲</span>
+              <input class="mgr-title" v-model="sx.draftTitle" placeholder="讲次标题" />
+              <input class="mgr-date" type="date" v-model="sx.draftDate" />
+              <span class="mgr-count">{{ sx.fileCount }} 个文件</span>
+              <button type="button" class="mgr-save" :disabled="submitting || (sx.draftTitle.trim() === sx.title && sx.draftDate === sx.date)" @click="saveSession(course, sx)">保存</button>
+              <button type="button" class="mgr-del" :disabled="submitting" @click="deleteSession(course, sx)">删除讲次</button>
+            </div>
+            <p v-if="!course.sessions.length" class="empty-hint">暂无讲次</p>
+          </div>
+        </div>
       </div>
 
       <!-- ===== 知识库表单 ===== -->
@@ -1388,6 +1406,7 @@ async function loadCourseFiles() {
     const pack = await getCurrentCourseMaterials()
     cmPack.value = pack
     cmFiles.value = flattenCourseFiles(pack)
+    buildCmMgr(pack)
   } catch (e) { console.warn('加载课件列表失败:', e.message) }
 }
 async function deleteCourseFile(item) {
@@ -1401,6 +1420,76 @@ async function deleteCourseFile(item) {
     cmFiles.value = cmFiles.value.filter(x => x.fileUrl !== item.fileUrl)
   } catch (e) { alert('删除失败: ' + e.message) }
 }
+// ===== 讲次管理（编辑标题/日期、删除讲次） =====
+const cmMgr = ref([])
+function sessionUrls(sess) {
+  const urls = []
+  ;(sess.files || []).forEach(f => f.url && urls.push(f.url))
+  ;(sess.references || []).forEach(r => r.url && urls.push(r.url))
+  if (sess.homework?.url) urls.push(sess.homework.url)
+  return [...new Set(urls)]
+}
+function buildCmMgr(pack) {
+  cmMgr.value = (pack.courses || []).map(c => ({
+    id: c.id, name: c.name,
+    sessions: (c.sessions || []).slice().sort((a, b) => Number(a.session) - Number(b.session)).map(sess => {
+      const urls = sessionUrls(sess)
+      return {
+        session: sess.session, date: sess.date, title: sess.title || '',
+        draftTitle: sess.title || '', draftDate: sess.date,
+        fileCount: urls.length, urls,
+      }
+    }),
+  }))
+}
+async function saveSession(course, sx) {
+  if (!sx.draftTitle.trim()) { alert('讲次标题不能为空'); return }
+  submitting.value = true
+  try {
+    const pack = await getCurrentCourseMaterials()
+    const co = pack.courses.find(c => c.id === course.id)
+    const target = (co?.sessions || []).find(x => Number(x.session) === Number(sx.session) && x.date === sx.date)
+    if (!target) throw new Error('未找到该讲次，请刷新后重试')
+    target.title = sx.draftTitle.trim()
+    target.date = sx.draftDate
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/course-materials`, {
+      method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pack),
+    })
+    await throwIfNotOk(res, '保存讲次')
+    invalidateResource('/api/course-materials-db')
+    await loadCourseFiles()
+  } catch (e) { alert('保存讲次失败: ' + e.message) }
+  submitting.value = false
+}
+async function deleteSession(course, sx) {
+  const has = sx.urls.length > 0
+  if (!confirm(`确定删除「${course.name} 第${sx.session}讲」吗？` +
+    (has ? `\n该讲次下 ${sx.urls.length} 个文件将一并从云存储删除，且不可恢复。` : '\n该讲次为空，可安全删除。'))) return
+  submitting.value = true
+  try {
+    for (const u of sx.urls) {
+      try {
+        await fetchWithRetry(`${API_PREFIX}/api/admin/course-materials`, {
+          method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ fileUrl: u }),
+        })
+      } catch { /* 继续，最后整包清理 */ }
+    }
+    const pack = await getCurrentCourseMaterials()
+    const co = pack.courses.find(c => c.id === course.id)
+    if (co) {
+      co.sessions = (co.sessions || []).filter(x =>
+        !(Number(x.session) === Number(sx.session) && x.date === sx.date))
+    }
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/course-materials`, {
+      method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pack),
+    })
+    await throwIfNotOk(res, '删除讲次')
+    invalidateResource('/api/course-materials-db')
+    await loadCourseFiles()
+  } catch (e) { alert('删除讲次失败: ' + e.message) }
+  submitting.value = false
+}
+
 async function loadFinanceTransactions() {
   try { const pack = await getCurrentFinancePack(); finTransactions.value = pack.transactions || [] }
   catch (e) { console.warn('加载流水列表失败:', e.message) }
@@ -1816,6 +1905,22 @@ watch(currentType, (val) => {
 .existing-meta { font-size: 11px; color: var(--c-text-tertiary); }
 .existing-del { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all .2s; }
 .existing-del:hover { background: #ff3b30; color: #fff; }
+.session-mgr { margin-top: 16px; border-top: 1px dashed var(--c-border); padding-top: 14px; }
+.session-mgr h4 { margin: 0 0 4px; font-size: 14px; color: var(--c-text-primary); }
+.mgr-hint { margin: 0 0 10px; font-size: 12px; color: var(--c-text-tertiary); line-height: 1.5; }
+.mgr-course { margin-bottom: 12px; }
+.mgr-course-name { font-size: 13px; font-weight: 600; color: var(--c-text-primary); margin-bottom: 6px; }
+.mgr-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.mgr-no { flex-shrink: 0; font-size: 12px; color: var(--c-text-tertiary); min-width: 46px; }
+.mgr-title { flex: 1 1 180px; min-width: 140px; padding: 6px 9px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-primary); color: var(--c-text-primary); font-size: 13px; }
+.mgr-date { flex-shrink: 0; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-primary); color: var(--c-text-primary); font-size: 12px; }
+.mgr-count { flex-shrink: 0; font-size: 11px; color: var(--c-text-tertiary); }
+.mgr-save { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--c-accent); color: var(--c-accent); background: transparent; cursor: pointer; transition: all .2s; }
+.mgr-save:hover:not(:disabled) { background: var(--c-accent); color: #fff; }
+.mgr-save:disabled { opacity: .45; cursor: not-allowed; }
+.mgr-del { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all .2s; }
+.mgr-del:hover:not(:disabled) { background: #ff3b30; color: #fff; }
+.mgr-del:disabled { opacity: .45; cursor: not-allowed; }
 .tx-income { color: #ff3b30; font-weight: 700; }
 .tx-expense { color: #248a3d; font-weight: 700; }
 
