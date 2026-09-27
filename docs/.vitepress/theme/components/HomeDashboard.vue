@@ -205,7 +205,7 @@ const scheduleLoading = ref(true)
 const scheduleError = ref(false)
 
 /* ========== 课程资料（D1 优先、静态回退；与课程资料页同源，作业待办从此派生） ========== */
-const { data: courseRaw } = useData('/data/course-materials.json', { dbUrl: '/api/course-materials-db' })
+const { data: courseRaw, loading: courseLoading } = useData('/data/course-materials.json', { dbUrl: '/api/course-materials-db' })
 /* ========== 作业待办：直接从课程资料各讲 homework 派生（不再维护独立 homework.json） ========== */
 const homeworkData = computed(() => {
   const out = []
@@ -229,7 +229,7 @@ const homeworkData = computed(() => {
 })
 
 /* ========== 班费数据（从finance.json读取） ========== */
-const { data: financeRaw } = useData('/data/finance.json', { dbUrl: '/api/finance-db' })
+const { data: financeRaw, loading: financeLoading } = useData('/data/finance.json', { dbUrl: '/api/finance-db' })
 const financeData = computed(() => {
   const txs = financeRaw.value?.transactions || []
   const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
@@ -238,7 +238,7 @@ const financeData = computed(() => {
 })
 
 /* ========== 公告数据（从announcements.json读取） ========== */
-const { data: announcementsRaw } = useData('/data/announcements.json', { dbUrl: '/api/announcements' })
+const { data: announcementsRaw, loading: annLoading } = useData('/data/announcements.json', { dbUrl: '/api/announcements' })
 const announcementsData = computed(() => {
   return (announcementsRaw.value?.announcements || [])
     .sort((a, b) => new Date(b.date + 'T00:00:00') - new Date(a.date + 'T00:00:00'))
@@ -246,7 +246,7 @@ const announcementsData = computed(() => {
 })
 
 /* ========== 活动相册数据 ========== */
-const { data: activitiesRaw } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
+const { data: activitiesRaw, loading: actLoading } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 const galleryActivities = computed(() => {
   return (activitiesRaw.value?.activities || [])
     .map(a => deriveActivity(a))
@@ -258,8 +258,8 @@ const galleryActivities = computed(() => {
 const activitiesData = computed(() => activitiesRaw.value?.activities || [])
 
 /* ========== 投票 / 课件 / 知识库数据 ========== */
-const { data: pollsRaw } = useData('/data/polls.json', { dbUrl: '/api/polls-admin' })
-const { data: knowledgeRaw } = useData('/data/knowledge-base.json', { dbUrl: '/api/knowledge-db' })
+const { data: pollsRaw, loading: pollLoading } = useData('/data/polls.json', { dbUrl: '/api/polls-admin' })
+const { data: knowledgeRaw, loading: kbLoading } = useData('/data/knowledge-base.json', { dbUrl: '/api/knowledge-db' })
 
 // 课程简称映射
 const courseShortNames = {
@@ -443,7 +443,6 @@ const triggerAlerts = async () => {
 onUnmounted(() => { notifTimers.forEach(t => clearTimeout(t)); notifTimers = [] })
 
 onMounted(() => {
-  ensureBaselines()
   fetchSchedule()
   setTimeout(triggerAlerts, 1200)
 })
@@ -572,8 +571,13 @@ function ensureBaselines() {
     }
   }
 }
-// 数据异步到达后再兜底执行一次（isInitialized 保证幂等）
-watch(moduleItems, ensureBaselines)
+/* 基线必须在所有资源「加载完成」后才建立：onMounted 时数据可能尚未到达，
+ * 若用空数据初始化会把模块错误标记为空集合，导致历史内容全部变未读。 */
+const allLoaded = computed(() =>
+  courseLoading.value === false && financeLoading.value === false &&
+  annLoading.value === false && actLoading.value === false &&
+  pollLoading.value === false && kbLoading.value === false)
+watch(allLoaded, (v) => { if (v) ensureBaselines() })
 
 /* ===== 未读计数（标识不在已读集合中的条目数） ===== */
 const unreadCounts = computed(() => {
