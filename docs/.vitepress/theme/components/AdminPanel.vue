@@ -837,11 +837,12 @@ function readFileAsBase64(file) {
 async function uploadFileToAdmin(file, customKey) {
   const key = customKey || `uploads/${Date.now()}-${randomHex(4)}.${extFromFileName(file.name)}`
   const dataBase64 = await readFileAsBase64(file)
+  // 大文件给足单次超时（慢网络/代理下避免误判超时），并减少重试以免反复重传整个大文件
   const res = await fetchWithRetry(`${API_PREFIX}/api/admin/upload`, {
     method: 'POST',
     headers: adminHeaders(),
     body: JSON.stringify({ key, contentType: file.type || 'application/octet-stream', dataBase64 }),
-  })
+  }, { timeoutMs: 120000, retries: 2 })
   await throwIfNotOk(res, '上传文件')
   const data = await res.json()
   if (!data.url) throw new Error('上传未返回 url')
