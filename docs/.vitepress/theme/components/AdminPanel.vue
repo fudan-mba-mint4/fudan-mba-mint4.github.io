@@ -1244,18 +1244,19 @@ async function submitCourseMaterial() {
     const r2Base = `files/courses/${f.courseId}/${dateStr}`
     if (f.itemType === 'slide') {
       const url = await uploadFileToAdmin(f.slideFile, `${r2Base}/${f.slideFile.name}`)
-      session.files.push({ name: (session.title || '') + ' 课件', filename: f.slideFile.name, url, size: formatSize(f.slideFile.size), type: 'slide' })
+      session.files.push({ name: (session.title || '') + ' 课件', filename: f.slideFile.name, url, size: formatSize(f.slideFile.size), type: 'slide', addedAt: new Date().toISOString() })
     } else if (f.itemType === 'homework') {
       const url = await uploadFileToAdmin(f.homeworkFile, `${r2Base}/${f.homeworkFile.name}`)
       session.homework = {
         name: (session.title || '') + ' 作业', deadline: f.hwDeadline || '',
         submission: f.hwSubmission || '待通知', description: f.hwDescription || '',
         filename: f.homeworkFile.name, url, size: formatSize(f.homeworkFile.size),
+        addedAt: new Date().toISOString(),
       }
     } else if (f.itemType === 'reference') {
       if (f.refFile) {
         const url = await uploadFileToAdmin(f.refFile, `${r2Base}/${f.refFile.name}`)
-        session.references.push({ name: f.refName.trim(), filename: f.refFile.name, url, size: formatSize(f.refFile.size) })
+        session.references.push({ name: f.refName.trim(), filename: f.refFile.name, url, size: formatSize(f.refFile.size), addedAt: new Date().toISOString() })
       } else {
         session.references.push({ name: f.refName.trim(), filename: '', url: '', desc: f.refDesc.trim() })
       }

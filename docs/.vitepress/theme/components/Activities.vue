@@ -7,6 +7,7 @@ import { parseDate } from '../utils/dateUtils.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useActivities } from '../composables/useActivities.js'
+import { markRead } from '../composables/useUnread.js'
 
 const router = useRouter()
 const { currentUser, isAuthenticated, authToken } = useAuth()
@@ -72,6 +73,10 @@ const { lang, t } = useLang(i18n)
 
 /* ========== 活动数据：统一 selector（DB 优先、静态回退），相册/班费标记自动派生 ========== */
 const { activities } = useActivities({ withFinance: true })
+
+watch(activities, (list) => {
+  markRead('activities', list.map(a => String(a.id)))
+})
 
 /* ========== 时钟（每分钟刷新一次，倒计时不秒跳） ========== */
 const { now } = useNow()

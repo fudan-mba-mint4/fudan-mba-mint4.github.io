@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useNow } from '../composables/useNow.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import { markRead } from '../composables/useUnread.js'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -110,6 +111,10 @@ async function fetchWithDbFallback(dbUrl, staticUrl, isUsable) {
 
 const announcementsData = ref(null)
 const announcements = computed(() => announcementsData.value?.announcements || [])
+
+watch(announcements, (list) => {
+  markRead('announcements', list.map(a => String(a.id)))
+})
 
 onMounted(async () => {
   if (typeof window === 'undefined') return

@@ -2,8 +2,19 @@
 import { ref, computed, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useData } from '../composables/useData.js'
+import { markRead } from '../composables/useUnread.js'
 
 const { data: materialsData, loading } = useData('/data/course-materials.json', { dbUrl: '/api/course-materials-db' })
+
+watch(materialsData, (d) => {
+  const urls = []
+  ;(d?.courses || []).forEach(co => {
+    ;(co.sessions || []).forEach(sx => {
+      ;(sx.files || []).forEach(f => urls.push(f.url))
+    })
+  })
+  markRead('slides', urls)
+})
 const activeCourse = ref(0)
 
 watch(materialsData, (data) => {

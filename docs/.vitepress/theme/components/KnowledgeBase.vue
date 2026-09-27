@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { sortByDateDesc } from '../utils/dateUtils.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import { markRead } from '../composables/useUnread.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -46,6 +47,10 @@ const { lang, t } = useLang(i18n)
 const kbData = ref(null)
 const courses = computed(() => kbData.value?.courses || [])
 const documents = computed(() => kbData.value?.documents || [])
+
+watch(documents, (list) => {
+  markRead('knowledge', list.map(d => String(d.id)))
+})
 async function loadKbData() {
   // 1. 先用静态 JSON 立即渲染（SWR 兜底，保证冷启动也不白屏）
   try {

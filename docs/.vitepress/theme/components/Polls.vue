@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vitepress'
 import { useLang } from '../composables/useLang.js'
 import { useAuth } from '../composables/useAuth.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import { markRead } from '../composables/useUnread.js'
 
 const router = useRouter()
 
@@ -90,6 +91,10 @@ const { isAuthenticated, currentUser, getToken } = useAuth()
 import { API_PREFIX } from '../composables/apiConfig.js'
 
 const polls = ref([])
+
+watch(polls, (list) => {
+  markRead('polls', list.map(p => String(p.id)))
+})
 const loading = ref(true)
 const expandedId = ref(null)
 const selectedOptions = ref({}) // pollId -> [optionId]

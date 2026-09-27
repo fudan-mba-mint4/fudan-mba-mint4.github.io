@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { sortByDateDesc, formatShortDate } from '../utils/dateUtils.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useData } from '../composables/useData.js'
+import { markRead } from '../composables/useUnread.js'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -138,6 +139,10 @@ async function fetchFinanceData() {
 const financeData = ref(null)
 const { data: activitiesData } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 const transactions = computed(() => financeData.value?.transactions || [])
+
+watch(transactions, (list) => {
+  markRead('finance', list.map(t => String(t.id)))
+})
 const activityFinances = computed(() => financeData.value?.activityFinances || [])
 
 onMounted(async () => {

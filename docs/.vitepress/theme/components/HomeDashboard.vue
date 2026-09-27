@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useData } from '../composables/useData.js'
+import { getSeen, isInitialized, itemKey, markRead, readState } from '../composables/useUnread.js'
 import { deriveActivity } from '../composables/useActivities.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import classData from '../../../public/data/class-members.json'
@@ -442,7 +443,7 @@ const triggerAlerts = async () => {
 onUnmounted(() => { notifTimers.forEach(t => clearTimeout(t)); notifTimers = [] })
 
 onMounted(() => {
-  loadModuleRead()
+  ensureBaselines()
   fetchSchedule()
   setTimeout(triggerAlerts, 1200)
 })
@@ -530,38 +531,61 @@ const classStats = computed(() => {
 
 /* ========== 快速入口配置 ========== */
 /* ========== 模块未读计数（点进模块才清零，与弹窗展示相互独立）========== */
-const MODULE_READ_STORE = 'mint4_module_read'
-const moduleRead = ref({})
-function loadModuleRead() {
-  if (typeof localStorage === 'undefined') return
-  try { moduleRead.value = JSON.parse(localStorage.getItem(MODULE_READ_STORE) || '{}') }
-  catch { moduleRead.value = {} }
-}
-function markModuleRead(key) {
-  moduleRead.value[key] = new Date().toISOString()
-  if (typeof localStorage !== 'undefined')
-    localStorage.setItem(MODULE_READ_STORE, JSON.stringify(moduleRead.value))
-}
-const moduleItemDates = computed(() => {
+/* ===== 模块条目（统一收集条目标识，用于基线初始化与未读计数） ===== */
+const moduleItems = computed(() => {
   const d = { announcements: [], activities: [], slides: [], polls: [], knowledge: [], finance: [] }
-  ;(announcementsRaw.value?.announcements || []).forEach(a => d.announcements.push(a.date))
-  ;(activitiesRaw.value?.activities || []).forEach(a => d.activities.push(a.date))
-  ;(pollsRaw.value?.polls || []).forEach(p => d.polls.push(p.date || p.createdAt || ''))
+  ;(announcementsRaw.value?.announcements || []).forEach(a => d.announcements.push({ key: itemKey(a.id) }))
+  ;(activitiesRaw.value?.activities || []).forEach(a => d.activities.push({ key: itemKey(a.id) }))
+  ;(pollsRaw.value?.polls || []).forEach(p => d.polls.push({ key: itemKey(p.id) }))
+  ;(knowledgeRaw.value?.documents || []).forEach(x => d.knowledge.push({ key: itemKey(x.id) }))
+  ;(financeRaw.value?.transactions || []).forEach(tx => d.finance.push({ key: itemKey(tx.id) }))
   ;(courseRaw.value?.courses || []).forEach(co =>
-    (co.sessions || []).forEach(sx => (sx.files || []).forEach(() => d.slides.push(sx.date))))
-  ;(knowledgeRaw.value?.documents || []).forEach(x => d.knowledge.push(x.date))
-  ;(financeRaw.value?.transactions || []).forEach(tx => d.finance.push(tx.date))
+    (co.sessions || []).forEach(sx =>
+      (sx.files || []).forEach(f => d.slides.push({
+        key: itemKey(f.url),
+        at: f.addedAt || `${sx.date}T12:00:00`,
+      }))))
   return d
 })
-const unreadCounts = computed(() => {
-  const out = {}
-  for (const mod in moduleItemDates.value) {
-    const readISO = moduleRead.value[mod]
-    const list = moduleItemDates.value[mod].filter(Boolean)
-    if (!readISO) { out[mod] = list.length; continue }
-    const readDay = readISO.slice(0, 10)
-    out[mod] = list.filter(x => x > readDay).length
+
+/* ===== 一次性基线初始化（仅在该模块从未初始化时执行，幂等） =====
+ * - 公告/活动/投票/知识库/班费：基线 = 当前所有条目标识（历史内容视为已读，
+ *   红点只追踪之后出现的新 id）。
+ * - 课件 slides：基线只包含「最新日期之前」的文件，于是最新一天发布的文件在首次
+ *   访问时仍为未读（当天新课件会提醒），更早的历史文件视为已读。 */
+const ID_MODULES = ['announcements', 'activities', 'polls', 'knowledge', 'finance']
+function ensureBaselines() {
+  const items = moduleItems.value
+  ID_MODULES.forEach(m => {
+    if (isInitialized(m)) return
+    markRead(m, items[m].map(x => x.key))
+  })
+  if (!isInitialized('slides')) {
+    const files = items.slides
+    const ats = files.map(x => x.at).filter(Boolean).sort()
+    if (ats.length) {
+      const latestDay = ats[ats.length - 1].slice(0, 10)
+      const baselineKeys = files.filter(x => x.at < `${latestDay}T00:00:00`).map(x => x.key)
+      markRead('slides', baselineKeys)
+    } else {
+      markRead('slides', [])
+    }
   }
+}
+// 数据异步到达后再兜底执行一次（isInitialized 保证幂等）
+watch(moduleItems, ensureBaselines)
+
+/* ===== 未读计数（标识不在已读集合中的条目数） ===== */
+const unreadCounts = computed(() => {
+  void readState.value // 建立对集合变化的响应式依赖
+  const items = moduleItems.value
+  const out = {}
+  ID_MODULES.forEach(m => {
+    const seenSet = getSeen(m)
+    out[m] = items[m].filter(x => !seenSet.has(x.key)).length
+  })
+  const slideSeen = getSeen('slides')
+  out.slides = items.slides.filter(x => !slideSeen.has(x.key)).length
   return out
 })
 
@@ -935,7 +959,6 @@ onUnmounted(() => {
             :href="link.href"
             class="quicklink-item"
             :aria-label="link.label"
-            @click="markModuleRead(link.key)"
           >
             <span v-if="unreadCounts[link.key] > 0" class="unread-badge" :aria-label="unreadCounts[link.key] + ' 条未读'">{{ unreadCounts[link.key] }}</span>
             <svg class="quicklink-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
