@@ -1,14 +1,19 @@
 <template>
-  <!-- 当天有寿星：首次进首页自动播放，悬浮按钮全天在、可随时重播；无寿星则零元素 -->
-  <div v-if="hasBirthday" class="bd-module">
-    <button
-      type="button"
-      class="bd-fab"
-      :disabled="playing"
-      @click="replay"
-    >生 日 快 乐 🎂</button>
-    <BirthdayCelebration v-if="playing" :names="names" @done="onDone" />
-  </div>
+  <!-- Teleport 到 body：脱离 VPContent(z:1) 层叠上下文，保证按钮/动效在根上下文、永远压过 VPFooter(z:10)/m-tabbar(z:1000)；ClientOnly 避免 SSG hydration 问题 -->
+  <ClientOnly>
+    <Teleport to="body">
+      <!-- 当天有寿星：首次进首页自动播放，悬浮按钮全天在、可随时重播；无寿星则零元素 -->
+      <div v-if="hasBirthday" class="bd-module">
+        <button
+          type="button"
+          class="bd-fab"
+          :disabled="playing"
+          @click="replay"
+        >生 日 快 乐 🎂</button>
+        <BirthdayCelebration v-if="playing" :names="names" @done="onDone" />
+      </div>
+    </Teleport>
+  </ClientOnly>
 </template>
 
 <script setup>
