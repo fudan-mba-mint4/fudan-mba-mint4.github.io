@@ -6,8 +6,7 @@ import { getSeen, isInitialized, itemKey, markRead, readState } from '../composa
 import { deriveActivity } from '../composables/useActivities.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import classData from '../../../public/data/class-members.json'
-import BirthdayCelebration from './BirthdayCelebration.vue'
-import { useAuth } from '../composables/useAuth.js'
+import BirthdayModule from './BirthdayModule.vue'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -791,52 +790,12 @@ onUnmounted(() => {
   window.removeEventListener('scroll', onWindowScroll)
 })
 
-/* ========== 生日全屏祝贺 ========== */
-const { currentUser, authToken } = useAuth()
-const showBirthday = ref(false)
-const birthdayNames = ref([])
-const BDAY_KEY_PREFIX = 'mint4_bday_shown_'
-
-async function checkBirthday() {
-  try {
-    const headers = {}
-    if (authToken.value) headers.Authorization = 'Bearer ' + authToken.value
-    const res = await fetchWithRetry('/api/birthday/today', { headers }, { timeoutMs: 8000, retries: 1 })
-    const data = await res.json()
-    if (!data.celebrate || !data.names || !data.names.length) return
-
-    // 当天是否已看：登录用户以服务端 viewed 为准；未登录以本设备 localStorage 为准
-    const already = currentUser.value
-      ? !!data.viewed
-      : localStorage.getItem(BDAY_KEY_PREFIX + data.day) === '1'
-    if (already) return
-
-    // 播放，并立即落已看（即使播放中刷新也不会重复）
-    birthdayNames.value = data.names
-    showBirthday.value = true
-    if (currentUser.value) {
-      fetchWithRetry('/api/birthday/view', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + authToken.value },
-      }, { timeoutMs: 8000, retries: 1 }).catch(() => {})
-    } else {
-      localStorage.setItem(BDAY_KEY_PREFIX + data.day, '1')
-    }
-  } catch (e) {
-    // 生日功能静默降级，不影响首页
-  }
-}
-
-onMounted(() => {
-  checkBirthday()
-})
-
 </script>
 
 <template>
   <div class="home-dashboard">
-    <!-- 生日全屏祝贺（当天寿星，每人当天只看一次） -->
-    <BirthdayCelebration v-if="showBirthday" :names="birthdayNames" />
+    <!-- 生日模块：当天有寿星则首次自动播放，悬浮按钮全天在、可重播 -->
+    <BirthdayModule />
     <!-- Bento 网格 -->
     <div
       ref="gridRef"

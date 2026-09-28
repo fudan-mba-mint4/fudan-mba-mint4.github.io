@@ -22,6 +22,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 const props = defineProps({
   names: { type: Array, default: () => [] },
 })
+const emit = defineEmits(['done'])
 const displayNames = computed(() => props.names.join('｜'))
 
 const fwRef = ref(null)
@@ -149,6 +150,8 @@ function play() {
   at(1750, launch)
   at(2350, launch)
   at(6500, function () { greetState.value = 'hide'; showCannons(false) })
+  // 卡片/礼炮收起、粒子收尾后，通知父级卸载本组件
+  at(7900, function () { emit('done') })
 }
 
 onMounted(() => {
