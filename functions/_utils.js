@@ -139,6 +139,32 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS classmates_birthday (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  nickname TEXT DEFAULT '',
+  cal_type TEXT DEFAULT 'solar',
+  month INTEGER NOT NULL,
+  day INTEGER NOT NULL,
+  celebrate INTEGER DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS birthday_views (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  device_key TEXT,
+  view_date TEXT NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_birthday_views_date ON birthday_views (view_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_birthday_views_user_date ON birthday_views (user_id, view_date) WHERE user_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS birthday_today (
+  day_key TEXT PRIMARY KEY,
+  data TEXT,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
 `
 
 // 初始化数据库表（幂等）。D1 的 exec 支持一次执行多语句。

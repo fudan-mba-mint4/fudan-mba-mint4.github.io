@@ -1,0 +1,13 @@
+name = "mint4-birthday-cron"
+main = "src/index.js"
+compatibility_date = "2026-09-21"
+
+# 每天 UTC 16:10（北京时间 00:10）预热当天生日缓存，避开整点高峰
+[triggers]
+crons = ["10 16 * * *"]
+
+# 与 Pages 站点共用同一个 D1
+[[d1_databases]]
+binding = "DB"
+database_name = "mint4"
+database_id = "e3ec14ca-48ee-45ae-84ca-fbf0156bf87a"
