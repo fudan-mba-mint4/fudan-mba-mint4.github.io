@@ -23,7 +23,7 @@ import { useAuth } from '../composables/useAuth.js'
 
 const BDAY_KEY_PREFIX = 'mint4_bday_shown_'
 
-const { currentUser, authToken } = useAuth()
+const { authToken } = useAuth()
 const hasBirthday = ref(false)
 const names = ref([])
 const playing = ref(false)
@@ -34,9 +34,10 @@ function authHeaders() {
   if (authToken.value) h.Authorization = 'Bearer ' + authToken.value
   return h
 }
-// 自动播放开始即落“当天已自动播放”，保证刷新/再次进入不重复自动播放
+// 自动播放开始即落“当天已自动播放”，保证刷新/再次进入不重复自动播放。
+// 以同步就绪的 authToken 为登录判据（currentUser 异步恢复，勿用，避免竞态）。
 function markViewed() {
-  if (currentUser.value) {
+  if (authToken.value) {
     fetch('/api/birthday/view', { method: 'POST', headers: authHeaders() }).catch(() => {})
   } else if (dayKey) {
     localStorage.setItem(BDAY_KEY_PREFIX + dayKey, '1')
@@ -59,7 +60,7 @@ onMounted(async () => {
     hasBirthday.value = true
 
     // 当天首次：自动播放并落已看；之后只保留悬浮按钮供重播
-    const alreadyAuto = currentUser.value
+    const alreadyAuto = authToken.value
       ? !!data.viewed
       : localStorage.getItem(BDAY_KEY_PREFIX + dayKey) === '1'
     if (!alreadyAuto) {
