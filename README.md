@@ -4,7 +4,7 @@
 
 ## 网站地址
 
-https://fudan-mba-mint4.github.io/
+https://mint4.cn/
 
 ## 核心功能
 
