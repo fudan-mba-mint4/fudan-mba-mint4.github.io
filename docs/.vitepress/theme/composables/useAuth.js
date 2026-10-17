@@ -70,6 +70,21 @@ async function register({ username, password, name, nickname }) {
   }
 }
 
+// 校验真实姓名（注册页“真实姓名”框失焦时调用）
+// 返回 state：empty / not_in_roster（非本班）/ name_taken（已注册）/ ok（可注册）/ error（网络异常）
+async function checkName(name) {
+  try {
+    const res = await authRequest(`/api/auth/check-name?name=${encodeURIComponent(name || '')}`, {
+      method: 'GET',
+      retries: 1,
+    })
+    const result = await res.json()
+    return { state: (result.data && result.data.state) || 'error' }
+  } catch (e) {
+    return { state: 'error' }
+  }
+}
+
 // 登录
 async function login({ username, password }) {
   try {
@@ -147,6 +162,7 @@ export function useAuth() {
     isAuthenticated,
     authToken,
     register,
+    checkName,
     login,
     logout,
     changePassword,

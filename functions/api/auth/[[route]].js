@@ -9,6 +9,7 @@ import {
   getSql, hashPassword, generateToken,
   getAuthUser, corsResponse, optionsResponse, parseBody, COMMITTEE_ROLES,
 } from '../../_utils.js'
+import { isInRoster, normalizeName } from '../../_roster.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -24,6 +25,7 @@ export async function onRequest(context) {
     if (request.method === 'POST' && path === 'change-password') return handleChangePassword(request, env)
     if (request.method === 'PUT' && path === 'profile') return handleUpdateProfile(request, env)
     if (request.method === 'GET' && path === 'me') return handleMe(request, env)
+    if (request.method === 'GET' && path === 'check-name') return handleCheckName(request, env)
     return corsResponse({ error: '接口不存在' }, 404)
   } catch (err) {
     console.error('认证API错误:', err)
@@ -39,7 +41,20 @@ async function handleRegister(request, env) {
   if (!username || username.trim().length < 2) return corsResponse({ error: '用户名至少2个字符' }, 400)
   if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) return corsResponse({ error: '用户名只能包含字母、数字和下划线' }, 400)
   if (!password || password.length < 6) return corsResponse({ error: '密码至少6位' }, 400)
-  if (!name || name.trim().length < 2) return corsResponse({ error: '请输入真实姓名' }, 400)
+  // 规范化真名（去空白/异体归一），后续白名单、查重、入库、角色识别全部使用它
+  const cleanName = normalizeName(name)
+  if (cleanName.length < 2) return corsResponse({ error: '请输入真实姓名' }, 400)
+
+  // 只有同学名录（84 人，含班主任、传承人）内的真名可注册
+  if (!isInRoster(cleanName)) {
+    return corsResponse({ error: '非本班同学，请联系4班副主理人雷振宇注册', code: 'NOT_IN_ROSTER' }, 403)
+  }
+
+  // 真名唯一：已被注册的真名不能再被他人使用
+  const nameTaken = await sql`SELECT id FROM users WHERE name = ${cleanName} LIMIT 1`
+  if (nameTaken.length > 0) {
+    return corsResponse({ error: '该真名已被注册，如为本人请直接登录', code: 'NAME_TAKEN' }, 409)
+  }
 
   const existing = await sql`SELECT id FROM users WHERE username = ${username.trim()} LIMIT 1`
   if (existing.length > 0) return corsResponse({ error: '该用户名已被注册' }, 409)
@@ -47,11 +62,11 @@ async function handleRegister(request, env) {
   const token = generateToken()
   const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   // 按真名自动识别班委角色（非班委为 null）
-  const role = COMMITTEE_ROLES[name.trim()] || null
+  const role = COMMITTEE_ROLES[cleanName] || null
 
   const result = await sql`
     INSERT INTO users (username, password_hash, name, nickname, role, token, token_expires_at)
-    VALUES (${username.trim()}, ${await hashPassword(password)}, ${name.trim()}, ${nickname?.trim() || ''}, ${role}, ${token}, ${tokenExpires})
+    VALUES (${username.trim()}, ${await hashPassword(password)}, ${cleanName}, ${nickname?.trim() || ''}, ${role}, ${token}, ${tokenExpires})
     RETURNING id, username, name, nickname, role, group_no, created_at
   `
 
@@ -59,6 +74,23 @@ async function handleRegister(request, env) {
     message: role ? '注册成功，已识别为班委' : '注册成功',
     data: { user: result[0], token, expiresAt: tokenExpires.toISOString() },
   }, 201)
+}
+
+// GET /api/auth/check-name?name=xxx —— 注册页“真实姓名”框失焦时校验（公开、无需登录）
+// 返回 state：empty（未填，不提示）| too_short（只输了一个字，提示填完整）| not_in_roster（非本班）| name_taken（真名已被注册）| ok（可注册）
+async function handleCheckName(request, env) {
+  const sql = getSql(env)
+  const url = new URL(request.url)
+  const cleanName = normalizeName(url.searchParams.get('name'))
+
+  if (cleanName.length === 0) return corsResponse({ data: { state: 'empty' } })
+  if (cleanName.length < 2) return corsResponse({ data: { state: 'too_short' } })
+  if (!isInRoster(cleanName)) return corsResponse({ data: { state: 'not_in_roster' } })
+
+  const taken = await sql`SELECT id FROM users WHERE name = ${cleanName} LIMIT 1`
+  if (taken.length > 0) return corsResponse({ data: { state: 'name_taken' } })
+
+  return corsResponse({ data: { state: 'ok' } })
 }
 
 async function handleLogin(request, env) {
@@ -120,7 +152,19 @@ async function handleUpdateProfile(request, env) {
   const { name, nickname, group_no } = body
 
   if (name !== undefined) {
-    await sql`UPDATE users SET name = ${String(name).trim()} WHERE id = ${user.id}`
+    const cleanName = normalizeName(name)
+    if (cleanName.length < 2) return corsResponse({ error: '请输入真实姓名' }, 400)
+    // 改名同样必须本班同学、且不能与他人重名（排除自己），防止绕过注册校验
+    if (!isInRoster(cleanName)) {
+      return corsResponse({ error: '非本班同学，请联系4班副主理人雷振宇注册', code: 'NOT_IN_ROSTER' }, 403)
+    }
+    const dup = await sql`SELECT id FROM users WHERE name = ${cleanName} AND id != ${user.id} LIMIT 1`
+    if (dup.length > 0) {
+      return corsResponse({ error: '该真名已被注册', code: 'NAME_TAKEN' }, 409)
+    }
+    // 同步按新真名重算班委角色，避免改名后身份不一致
+    const newRole = COMMITTEE_ROLES[cleanName] || null
+    await sql`UPDATE users SET name = ${cleanName}, role = ${newRole} WHERE id = ${user.id}`
   }
   if (nickname !== undefined) {
     await sql`UPDATE users SET nickname = ${String(nickname).trim()} WHERE id = ${user.id}`

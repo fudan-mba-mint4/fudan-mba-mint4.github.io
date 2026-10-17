@@ -85,7 +85,19 @@
             </div>
             <div class="form-group">
               <label class="form-label">真实姓名 <span class="required">*</span></label>
-              <input v-model="regForm.name" type="text" class="form-input" placeholder="张三" required />
+              <input
+                v-model="regForm.name"
+                type="text"
+                class="form-input"
+                :class="{ 'input-error': nameInvalid }"
+                placeholder="请输入真实姓名，离开本框后校验"
+                autocomplete="name"
+                @blur="onNameBlur"
+                @input="onNameInput"
+                required
+              />
+              <p v-if="nameHint" class="field-error">{{ nameHint }}</p>
+              <p v-else-if="nameCheck.state === 'ok'" class="field-ok">✓ 已在班级名录</p>
             </div>
             <div class="form-group">
               <label class="form-label">密码 <span class="required">*</span></label>
@@ -105,9 +117,9 @@
               <p v-if="confirmMismatch" class="field-error">两次输入的密码不一致</p>
             </div>
             <div v-if="regError" class="form-error">{{ regError }}</div>
-            <button type="submit" class="submit-btn" :disabled="regLoading">
+            <button type="submit" class="submit-btn" :class="{ 'btn-blocked': nameInvalid }" :disabled="registerDisabled">
               <span v-if="regLoading" class="btn-spinner"></span>
-              {{ regLoading ? '注册中...' : '注 册' }}
+              {{ regLoading ? '注册中...' : (nameCheck.loading ? '校验中…' : '注 册') }}
             </button>
             <p class="auth-hint">
               已有账号？<a href="#" @click.prevent="switchTab('login')">直接登录</a>
@@ -120,12 +132,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vitepress'
 import { useAuth } from '../composables/useAuth.js'
 
 const router = useRouter()
-const { login, register } = useAuth()
+const { login, register, checkName } = useAuth()
 
 const activeTab = ref('login')
 const loginLoading = ref(false)
@@ -137,6 +149,47 @@ const loginForm = ref({ username: '', password: '' })
 const regForm = ref({
   username: '', password: '', confirmPassword: '',
   name: '',
+})
+
+// 真实姓名校验状态：idle（未检测/已重置）| checking | ok | too_short | not_in_roster | name_taken
+// 仅在“真实姓名”框失焦(blur)时检测；输入(含拼音)过程中不检测、不提示。
+const nameCheck = ref({ state: 'idle', loading: false })
+const NAME_HINTS = {
+  too_short: '请输入完整姓名',
+  not_in_roster: '非本班同学，请联系4班副主理人雷振宇注册',
+  name_taken: '该真名已被注册，如为本人请直接登录',
+}
+const nameHint = computed(() => NAME_HINTS[nameCheck.value.state] || '')
+const nameInvalid = computed(() =>
+  ['too_short', 'not_in_roster', 'name_taken'].includes(nameCheck.value.state)
+)
+// 真名未通过校验（或检测中）时，注册按钮禁用变灰
+const registerDisabled = computed(() =>
+  regLoading.value || nameCheck.value.loading || nameCheck.value.state !== 'ok'
+)
+
+// 失焦时才校验：此时用户已输完真名并跳到下一框，避免拼音输入过程中误弹提示
+async function onNameBlur() {
+  const raw = (regForm.value.name || '').trim()
+  if (!raw) { nameCheck.value.state = 'idle'; return }
+  // 只输了一个字（如只输姓氏）：立刻提示填完整，不用等接口
+  if (raw.length === 1) { nameCheck.value.state = 'too_short'; return }
+  nameCheck.value.loading = true
+  const { state } = await checkName(raw)
+  nameCheck.value.loading = false
+  // 网络异常时不锁定，交给提交时后端兜底，避免临时网络问题挡住本班同学
+  nameCheck.value.state = state === 'error' ? 'idle' : state
+}
+
+// 输入过程中只清除上一次结果，不做任何检测（防止打拼音时弹出提示）
+function onNameInput() {
+  if (nameCheck.value.state !== 'idle') nameCheck.value.state = 'idle'
+}
+
+// v-model 已占用 input 事件，显式 @input 不可靠；这里直接 watch 真名数据变化，
+// 保证用户一旦重新键入（含拼音过程中），上一次失焦的提示立即清除。
+watch(() => regForm.value.name, () => {
+  if (nameCheck.value.state !== 'idle') nameCheck.value.state = 'idle'
 })
 
 // 实时校验：确认密码是否一致
@@ -178,6 +231,16 @@ async function handleLogin() {
 
 async function handleRegister() {
   regError.value = ''
+
+  // 真名未通过名录/重名校验时不提交（按钮已禁用，此处双保险）
+  if (nameCheck.value.state !== 'ok') {
+    if ((regForm.value.name || '').trim()) {
+      await onNameBlur()
+    } else {
+      regError.value = '请填写真实姓名'
+    }
+    return
+  }
 
   // 前端校验
   if (regForm.value.password !== regForm.value.confirmPassword) {
@@ -343,6 +406,11 @@ async function handleRegister() {
   color: #ff3b30;
   margin: 4px 0 0;
 }
+.field-ok {
+  font-size: 12px;
+  color: #1a9e6e;
+  margin: 4px 0 0;
+}
 .form-error {
   padding: 10px 14px;
   background: rgba(255, 59, 48, 0.1);
@@ -367,7 +435,10 @@ async function handleRegister() {
   margin-top: 4px;
 }
 .submit-btn:hover:not(:disabled) { opacity: 0.9; }
-.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* 真名未通过（非本班/重名）时按钮明确变灰 */
+.submit-btn.btn-blocked { background: #c3cad2; opacity: 1; }
+.submit-btn.btn-blocked:hover { opacity: 1; }
 .btn-spinner {
   width: 16px;
   height: 16px;

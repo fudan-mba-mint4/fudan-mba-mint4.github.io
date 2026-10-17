@@ -271,9 +271,9 @@ export const COMMITTEE_ROLES = {
   高晓梅: 'finance', 叶宏颖: 'finance', 李浩鹏: 'finance', 程枭: 'finance',
   // 智库研究员
   孟维翰: 'thinktank', 邹智宇: 'thinktank',
-  // 记忆主理人（徐佩莹/徐珮莹为同一人异体写法，都识别）
+  // 记忆主理人
   杨旻: 'memory', 陈飘逸: 'memory', 徐哲明: 'memory',
-  李甜: 'memory', 徐佩莹: 'memory', 徐珮莹: 'memory',
+  李甜: 'memory', 徐珮莹: 'memory',
   // 独立董事会（监督，与主理人/副主理人同权）
   周楠骐: 'supervisor', 李浩: 'supervisor',
   王星然: 'supervisor', 王胜: 'supervisor',
