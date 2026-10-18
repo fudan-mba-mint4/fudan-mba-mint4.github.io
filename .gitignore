@@ -2,6 +2,7 @@ node_modules
 docs/.vitepress/dist
 docs/.vitepress/cache
 .DS_Store
+**/.DS_Store
 *.log
 .env
 .env.local
@@ -19,9 +20,8 @@ list-r2.mjs
 # D1 数据导出（含密码哈希，仅本地迁移用，不入库）
 scripts/d1-data.sql
 
-# 本地运维/部署指南（含环境拓扑，不进公共仓库）
-CLOUDFLARE_PAGES_SETUP.md
+# 本地运维/部署文档（含环境拓扑、班委内部操作指引，不进公共仓库）
+local-docs/
 
-# 班委内部操作指引（仅本地/私下发，不进公共仓库）
-班委网站操作指引.pdf
-.local-backups
+# 本地数据迁移脚本与备份（含真实数据，不入库）
+.local-backups/
