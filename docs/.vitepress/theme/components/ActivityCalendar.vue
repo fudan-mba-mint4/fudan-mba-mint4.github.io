@@ -1,5 +1,6 @@
 <template>
   <div class="cal-wrap">
+    <div class="cal-grid-pane">
     <!-- 月份切换 -->
     <div class="cal-toolbar">
       <button class="cal-nav" @click="shiftMonth(-1)" aria-label="上个月">‹</button>
@@ -47,7 +48,9 @@
         </div>
       </div>
     </div>
+    </div><!-- /cal-grid-pane -->
 
+    <div class="cal-detail-pane">
     <!-- 选中日期详情 -->
     <div v-if="selectedCell" class="day-detail">
       <h4 class="day-detail-title">{{ selectedTitle }}</h4>
@@ -97,6 +100,7 @@
         </div>
       </div>
     </div>
+    </div><!-- /cal-detail-pane -->
 
     <!-- 文字计划弹窗 -->
     <div v-if="showPlan" class="plan-modal" @click.self="showPlan = false">
@@ -594,6 +598,8 @@ onMounted(() => {
 .cal-wrap {
   margin-bottom: 40px;
 }
+/* 两个分区：月历本体 / 详情+待排期（在活动页由外层网格决定列宽，此处只留间距） */
+.cal-detail-pane { margin-bottom: 40px; }
 
 /* 工具栏 */
 .cal-toolbar {
@@ -674,7 +680,8 @@ onMounted(() => {
   gap: 4px;
 }
 .cal-cell {
-  min-height: 92px;
+  min-height: 72px;
+  min-width: 0;
   border: 1px solid var(--c-border-light);
   border-radius: var(--radius-md);
   padding: 5px;
@@ -682,6 +689,7 @@ onMounted(() => {
   transition: border-color 0.15s, background 0.15s;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .cal-cell:hover { border-color: var(--c-border-accent); }
 .cal-cell.muted { background: var(--c-bg-tertiary); opacity: 0.55; }
@@ -719,11 +727,14 @@ onMounted(() => {
   flex-direction: column;
   gap: 2px;
   flex: 1;
+  min-width: 0;
 }
 .ev-chip {
   display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
+  min-width: 0;
   border: none;
   background: transparent;
   padding: 1px 3px;
@@ -742,6 +753,8 @@ onMounted(() => {
   flex-shrink: 0;
 }
 .ev-name {
+  flex: 1;
+  min-width: 0;
   color: var(--c-text-secondary);
   white-space: nowrap;
   overflow: hidden;

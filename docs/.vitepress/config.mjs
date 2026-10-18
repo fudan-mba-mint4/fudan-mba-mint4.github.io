@@ -26,6 +26,7 @@ const zhNav = [
     items: [
       { text: '班级投票', link: '/polls/' },
       { text: '活动日历', link: '/activities/' },
+      { text: '许愿池', link: '/wishes/' },
       { text: '同学名录', link: '/directory/' },
       { text: '职业发展', link: '/career/' },
     ],
@@ -99,6 +100,7 @@ const enNav = [
     items: [
       { text: 'Polls', link: '/en/polls/' },
       { text: 'Activities', link: '/en/activities/' },
+      { text: 'Wish Wall', link: '/en/wishes/' },
       { text: 'Directory', link: '/en/directory/' },
       { text: 'Career', link: '/en/career/' },
     ],
@@ -172,6 +174,7 @@ const thNav = [
     items: [
       { text: 'โหวต', link: '/th/polls/' },
       { text: 'กิจกรรม', link: '/th/activities/' },
+      { text: 'กระดานคำขอ', link: '/th/wishes/' },
       { text: 'รายชื่อ', link: '/th/directory/' },
       { text: 'อาชีพ', link: '/th/career/' },
     ],

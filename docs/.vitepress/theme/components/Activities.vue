@@ -9,12 +9,11 @@ import { useAuth } from '../composables/useAuth.js'
 import { useActivities } from '../composables/useActivities.js'
 import { markRead } from '../composables/useUnread.js'
 import ActivityCalendar from './ActivityCalendar.vue'
-import Wishes from './Wishes.vue'
 
 const router = useRouter()
 const { currentUser, isAuthenticated, authToken } = useAuth()
 
-// 视图切换：月历 / 时间线 / 许愿池
+// 视图切换：月历 / 时间线（许愿池为独立页 /wishes/）
 const view = ref('calendar')
 const calendarActions = computed(() => ({
   isSignedUp,
@@ -46,7 +45,8 @@ const i18n = {
     involvesFinance: '涉及班费',
     tabCalendar: '📅 月历',
     tabTimeline: '📋 时间线',
-    tabWishes: '✦ 许愿池',
+    wishEntry: '许愿池',
+    wishEntrySub: '想玩什么？来许个愿',
   },
   en: {
     nextEvent: 'Next event',
@@ -67,7 +67,8 @@ const i18n = {
     involvesFinance: 'Class fund involved',
     tabCalendar: '📅 Calendar',
     tabTimeline: '📋 Timeline',
-    tabWishes: '✦ Wishes',
+    wishEntry: 'Wish Wall',
+    wishEntrySub: 'What do you want to do?',
   },
   th: {
     nextEvent: 'กิจกรรมถัดไป',
@@ -88,10 +89,13 @@ const i18n = {
     involvesFinance: 'เกี่ยวกองทุนชั้นเรียน',
     tabCalendar: '📅 ปฏิทิน',
     tabTimeline: '📋 ไทม์ไลน์',
-    tabWishes: '✦ คำขอ',
+    wishEntry: 'กระดานคำขอ',
+    wishEntrySub: 'อยากทำอะไร? มาขอพร้อมกัน',
   },
 }
 const { lang, t } = useLang(i18n)
+const langPrefix = computed(() => (lang.value === 'en' ? '/en' : lang.value === 'th' ? '/th' : ''))
+const wishesLink = computed(() => `${langPrefix.value}/wishes/`)
 
 /* ========== 活动数据：统一 selector（DB 优先、静态回退），相册/班费标记自动派生 ========== */
 const { activities } = useActivities({ withFinance: true })
@@ -320,7 +324,30 @@ const tr = (obj, key) => {
 
 <template>
   <div class="activities-page">
-    <!-- ===== Hero 巨幕倒计时 ===== -->
+    <!-- ===== 视图切换 + 许愿池独立页入口 ===== -->
+    <div class="view-tabs">
+      <div class="view-tab-group">
+        <button class="view-tab" :class="{ active: view === 'calendar' }" @click="view = 'calendar'">
+          {{ t.tabCalendar }}
+        </button>
+        <button class="view-tab" :class="{ active: view === 'timeline' }" @click="view = 'timeline'">
+          {{ t.tabTimeline }}
+        </button>
+      </div>
+      <a class="wish-entry" :href="wishesLink">
+        <span class="wish-entry-icon">✦</span>
+        <span class="wish-entry-text">
+          <strong>{{ t.wishEntry }}</strong>
+          <small>{{ t.wishEntrySub }}</small>
+        </span>
+        <span class="wish-entry-arrow">→</span>
+      </a>
+    </div>
+
+    <!-- ===== 主体：月历视图左 hero / 右月历；时间线视图上下排列 ===== -->
+    <div class="view-body" :class="`view-body--${view}`">
+
+    <!-- ===== Hero 下一场活动 ===== -->
     <section
       class="hero"
       :class="{ 'hero--cover': heroEvent && heroEvent.tags && heroEvent.tags.cover }"
@@ -399,34 +426,19 @@ const tr = (obj, key) => {
       </div>
 
       <!-- 无未来活动兜底 -->
-      <div v-else class="hero-body hero-body--empty">
+      <div v-if="!heroEvent" class="hero-body hero-body--empty">
         <p class="hero-empty-text">{{ t.noUpcoming }}</p>
       </div>
     </section>
 
-    <!-- ===== 视图切换 ===== -->
-    <div class="view-tabs">
-      <button class="view-tab" :class="{ active: view === 'calendar' }" @click="view = 'calendar'">
-        {{ t.tabCalendar }}
-      </button>
-      <button class="view-tab" :class="{ active: view === 'timeline' }" @click="view = 'timeline'">
-        {{ t.tabTimeline }}
-      </button>
-      <button class="view-tab" :class="{ active: view === 'wishes' }" @click="view = 'wishes'">
-        {{ t.tabWishes }}
-      </button>
-    </div>
-
-    <!-- ===== 月历视图 ===== -->
+    <!-- ===== 月历视图（右栏） ===== -->
     <ActivityCalendar
       v-if="view === 'calendar'"
+      class="pane-calendar"
       :activities="activities"
       :is-authenticated="isAuthenticated"
       :actions="calendarActions"
     />
-
-    <!-- ===== 许愿池视图 ===== -->
-    <Wishes v-if="view === 'wishes'" />
 
     <!-- ===== 垂直脊柱时间线 ===== -->
     <div class="timeline" v-if="view === 'timeline' && sortedEvents.length">
@@ -534,30 +546,35 @@ const tr = (obj, key) => {
       </svg>
       <p>{{ t.noActivities }}</p>
     </div>
+    </div><!-- /view-body -->
   </div>
 </template>
 
 <style scoped>
 .activities-page {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 0 24px 60px;
 }
 
-/* ================= 视图切换 Tab ================= */
+/* ================= 视图切换 Tab + 许愿池入口 ================= */
 .view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 22px;
+}
+.view-tab-group {
   display: flex;
   gap: 6px;
   background: var(--c-bg-secondary);
   border-radius: var(--radius-full);
   padding: 4px;
-  margin: 0 0 22px;
 }
 .view-tab {
-  flex: 1;
   border: none;
   background: transparent;
-  padding: 9px 12px;
+  padding: 9px 20px;
   font-size: 14px;
   font-weight: 500;
   color: var(--c-text-secondary);
@@ -572,6 +589,129 @@ const tr = (obj, key) => {
   color: var(--c-accent);
   box-shadow: var(--shadow-subtle);
   font-weight: 600;
+}
+
+/* 许愿池独立页入口（醒目渐变胶囊） */
+.wish-entry {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 8px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #ff9a62, #ff5e8a);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(255, 94, 138, 0.32);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.wish-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 22px rgba(255, 94, 138, 0.42);
+}
+.wish-entry-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.wish-entry-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  text-align: left;
+}
+.wish-entry-text strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.wish-entry-text small {
+  font-size: 11px;
+  opacity: 0.92;
+}
+.wish-entry-arrow {
+  font-size: 17px;
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+.wish-entry:hover .wish-entry-arrow { transform: translateX(3px); }
+
+/* ================= 主体布局：分块A(左hero/右月历) + 分块B(详情/待排期全宽) ================= */
+.view-body--calendar {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 22px;
+  align-items: stretch;
+}
+/* 让月历组件的两个分区直接参与外层网格：月历本体进右栏，详情/待排期跨满整行 */
+.view-body--calendar .pane-calendar {
+  display: contents;
+}
+.view-body--calendar :deep(.cal-grid-pane) {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+.view-body--calendar :deep(.cal-detail-pane) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+/* 月历视图：下一场活动 hero 收进左栏，信息竖排、与月历等高（窄而高） */
+.view-body--calendar .hero {
+  grid-column: 1;
+  grid-row: 1;
+  margin-bottom: 0;
+  min-height: 0;
+  flex-direction: column;
+  align-self: stretch;
+}
+.view-body--calendar .hero-body {
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  padding: 28px 24px 22px;
+}
+.view-body--calendar .hero-left { width: 100%; flex-shrink: 0; }
+.view-body--calendar .hero-main { width: 100%; flex: none; }
+.view-body--calendar .hero-meta { flex-direction: column; gap: 8px; }
+.view-body--calendar .hero-right {
+  position: static;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+}
+.view-body--calendar .hero-title { font-size: 21px; }
+.view-body--calendar .hero-cd-num { font-size: 40px; }
+.view-body--calendar .hero-signup-row {
+  margin-top: 0;
+  padding: 0 24px 24px;
+  justify-content: stretch;
+}
+.view-body--calendar .hero-signup-btn { width: 100%; min-width: 0; padding: 13px 20px; }
+
+/* 时间线视图：hero 顶部整宽、时间线在下 */
+.view-body--timeline { display: block; }
+
+/* 平板/手机：单列堆叠（hero→月历→详情/待排期）；
+   用 relative 而非 static，以便 hero-scrim 绝对定位裁剪在 hero 内 */
+@media (max-width: 980px) {
+  .view-body--calendar { grid-template-columns: 1fr; }
+  .view-body--calendar .hero { grid-column: 1; grid-row: auto; position: relative; }
+  .view-body--calendar :deep(.cal-grid-pane) { grid-column: 1; grid-row: auto; }
+  .view-body--calendar :deep(.cal-detail-pane) { grid-column: 1; grid-row: auto; }
+  .view-body--calendar .hero-body { justify-content: flex-start; }
 }
 
 /* ================= Hero 巨幕 ================= */
@@ -951,6 +1091,11 @@ html.dark .timeline-item.past .tl-month {
 /* ================= 响应式 ================= */
 @media (max-width: 640px) {
   .activities-page { padding: 0 16px 80px; }
+  .view-tabs { gap: 8px; }
+  .view-tab { padding: 8px 14px; font-size: 13px; }
+  .wish-entry { padding: 6px 12px 6px 7px; gap: 7px; }
+  .wish-entry-text small { display: none; }
+  .wish-entry-icon { width: 26px; height: 26px; font-size: 14px; }
   .hero { min-height: 0; }
   .hero-body {
     position: relative;

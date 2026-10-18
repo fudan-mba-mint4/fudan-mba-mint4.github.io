@@ -32,27 +32,50 @@ export async function onRequest(context) {
 async function handleList(request, env) {
   const sql = getSql(env)
   const me = await getAuthUser(request, sql)
-  const wishRows = await sql`
-    SELECT id, user_id, author, content, images, activity_id, status, created_at
-    FROM activity_wishes
-    ORDER BY created_at DESC
-  `
-  const likeRows = await sql`
-    SELECT wish_id, user_id, author
-    FROM activity_wish_likes
-    ORDER BY created_at ASC
-  `
-  const commentRows = await sql`
-    SELECT id, wish_id, user_id, author, content, created_at
-    FROM activity_wish_comments
-    ORDER BY created_at ASC
-  `
+
+  // 游标分页：按 created_at DESC, id DESC；before/beforeId 为上一页最后一条。
+  const url = new URL(request.url)
+  let limit = Number.parseInt(url.searchParams.get('limit') || '12', 10)
+  if (!Number.isFinite(limit) || limit < 1) limit = 12
+  if (limit > 30) limit = 30
+  const before = url.searchParams.get('before')
+  const beforeId = url.searchParams.get('beforeId')
+
+  const selectCols =
+    'SELECT id, user_id, author, content, images, activity_id, status, created_at FROM activity_wishes'
+  // limit 经 Number.parseInt 校验为整数，可安全拼接。
+  const orderLimit = ` ORDER BY created_at DESC, id DESC LIMIT ${limit + 1} `
+  const wishRows = before
+    ? await sql.unsafe(
+      `${selectCols} WHERE created_at < ? OR (created_at = ? AND id < ?)${orderLimit}`,
+      [before, before, beforeId || '']
+    )
+    : await sql.unsafe(`${selectCols}${orderLimit}`, [])
+
+  const hasMore = wishRows.length > limit
+  const pageRows = hasMore ? wishRows.slice(0, limit) : wishRows
+  const ids = pageRows.map(w => w.id)
+
+  // 聚合只查当前页涉及的愿望，避免全表扫描。
+  let likeRows = []
+  let commentRows = []
+  if (ids.length) {
+    const ph = ids.map(() => '?').join(',')
+    likeRows = await sql.unsafe(
+      `SELECT wish_id, user_id, author FROM activity_wish_likes WHERE wish_id IN (${ph}) ORDER BY created_at ASC`,
+      ids
+    )
+    commentRows = await sql.unsafe(
+      `SELECT id, wish_id, user_id, author, content, created_at FROM activity_wish_comments WHERE wish_id IN (${ph}) ORDER BY created_at ASC`,
+      ids
+    )
+  }
   const likesBy = {}
   for (const l of likeRows) (likesBy[l.wish_id] = likesBy[l.wish_id] || []).push(l)
   const commentsBy = {}
   for (const c of commentRows) (commentsBy[c.wish_id] = commentsBy[c.wish_id] || []).push(c)
 
-  const wishes = wishRows.map(w => {
+  const wishes = pageRows.map(w => {
     let images = []
     try { images = JSON.parse(w.images || '[]') } catch {}
     const likes = likesBy[w.id] || []
@@ -75,9 +98,18 @@ async function handleList(request, env) {
       })),
     }
   })
+
+  let nextCursor = null
+  if (hasMore) {
+    const last = pageRows[pageRows.length - 1]
+    nextCursor = { before: last.created_at, beforeId: last.id }
+  }
+
   return corsResponse({
     wishes,
     me: me ? { id: me.id, name: me.name, role: me.role } : null,
+    hasMore,
+    nextCursor,
   })
 }
 
