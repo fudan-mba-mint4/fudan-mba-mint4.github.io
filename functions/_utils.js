@@ -165,6 +165,40 @@ CREATE TABLE IF NOT EXISTS birthday_today (
   data TEXT,
   updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
+
+-- ===== 许愿池（朋友圈式活动需求收集） =====
+CREATE TABLE IF NOT EXISTS activity_wishes (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  author TEXT NOT NULL,
+  content TEXT NOT NULL,
+  images TEXT DEFAULT '[]',   -- JSON 数组，最多 3 张 R2 图片 URL
+  activity_id TEXT,           -- 班委定档后关联的活动 id
+  status TEXT DEFAULT 'open', -- open / scheduled / closed
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_wishes_created ON activity_wishes (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS activity_wish_likes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  wish_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  author TEXT NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE(wish_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_wish_likes_wish ON activity_wish_likes (wish_id);
+
+CREATE TABLE IF NOT EXISTS activity_wish_comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  wish_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  author TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_wish_comments_wish ON activity_wish_comments (wish_id);
 `
 
 // 初始化数据库表（幂等）。D1 的 exec 支持一次执行多语句。
@@ -323,6 +357,15 @@ export async function requireCommittee(request, env) {
   const user = await getAuthUser(request, sql)
   if (!user) return { ok: false, status: 401, error: '请先登录' }
   if (!user.role) return { ok: false, status: 403, error: '没有操作权限' }
+  return { ok: true, user }
+}
+
+// 仅要求“登录”（不要求班委）：许愿池发布/点赞/评论等面向全体同学的写操作。
+// 未登录 → 401；任何登录用户（含普通同学）均放行。
+export async function requireLogin(request, env) {
+  const sql = getSql(env)
+  const user = await getAuthUser(request, sql)
+  if (!user) return { ok: false, status: 401, error: '请先登录' }
   return { ok: true, user }
 }
 

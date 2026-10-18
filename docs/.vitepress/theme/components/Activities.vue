@@ -8,9 +8,22 @@ import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useActivities } from '../composables/useActivities.js'
 import { markRead } from '../composables/useUnread.js'
+import ActivityCalendar from './ActivityCalendar.vue'
+import Wishes from './Wishes.vue'
 
 const router = useRouter()
 const { currentUser, isAuthenticated, authToken } = useAuth()
+
+// 视图切换：月历 / 时间线 / 许愿池
+const view = ref('calendar')
+const calendarActions = computed(() => ({
+  isSignedUp,
+  getRegisteredCount,
+  isFull,
+  doSignup,
+  cancelSignup,
+  goToAuth,
+}))
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -31,6 +44,9 @@ const i18n = {
     people: '人',
     album: '相册',
     involvesFinance: '涉及班费',
+    tabCalendar: '📅 月历',
+    tabTimeline: '📋 时间线',
+    tabWishes: '✦ 许愿池',
   },
   en: {
     nextEvent: 'Next event',
@@ -49,6 +65,9 @@ const i18n = {
     people: 'people',
     album: 'Photo album',
     involvesFinance: 'Class fund involved',
+    tabCalendar: '📅 Calendar',
+    tabTimeline: '📋 Timeline',
+    tabWishes: '✦ Wishes',
   },
   th: {
     nextEvent: 'กิจกรรมถัดไป',
@@ -67,6 +86,9 @@ const i18n = {
     people: 'คน',
     album: 'อัลบั้มภาพ',
     involvesFinance: 'เกี่ยวกองทุนชั้นเรียน',
+    tabCalendar: '📅 ปฏิทิน',
+    tabTimeline: '📋 ไทม์ไลน์',
+    tabWishes: '✦ คำขอ',
   },
 }
 const { lang, t } = useLang(i18n)
@@ -116,7 +138,10 @@ function isSignedUp(actId) {
 
 // 活动实际报名人数
 function getRegisteredCount(act) {
-  return signupCounts.value[act.id] ?? (act.registered || 0)
+  const c = signupCounts.value[act.id]
+  if (typeof c === 'number') return c
+  if (Array.isArray(act.registered)) return act.registered.length
+  return act.registered || 0
 }
 
 // 活动是否已满
@@ -259,17 +284,20 @@ const ringOffset = computed(() => {
   return RING_C * (1 - p)
 })
 const heroFull = computed(
-  () => !!heroEvent.value && getRegisteredCount(heroEvent.value) >= (heroEvent.value.capacity || 0)
+  () => !!heroEvent.value && heroEvent.value.capacity > 0
+    && getRegisteredCount(heroEvent.value) >= heroEvent.value.capacity
 )
 
 /* ========== 方案4.1：垂直脊柱时间线（按日期倒序） ========== */
 const sortedEvents = computed(() =>
-  [...activities.value].sort((a, b) => parseDate(b.date) - parseDate(a.date))
+  [...activities.value]
+    .filter(a => a.date)
+    .sort((a, b) => parseDate(b.date) - parseDate(a.date))
 )
 
 const registrationProgress = (act) => {
   const cap = act.capacity || 1
-  return Math.min(100, Math.round((act.registered / cap) * 100))
+  return Math.min(100, Math.round((getRegisteredCount(act) / cap) * 100))
 }
 
 /* 是否为"今天"分割点：当前未来活动，且下一个已非未来活动 */
@@ -281,6 +309,13 @@ const isTodayDivider = (idx) => {
 
 // 按当前语言构造相册链接（避免从 en/th 页跳到中文 /gallery/）
 const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang.value}/gallery/`))
+
+// 安全读取多语言字段：字段缺失时回退到中文/英文，避免新数据字段不全导致渲染崩溃
+const tr = (obj, key) => {
+  if (!obj) return ''
+  if (typeof obj === 'string') return obj
+  return obj[key] || obj.zh || obj.en || obj.th || ''
+}
 </script>
 
 <template>
@@ -321,15 +356,15 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
 
         <!-- 中：标题与地点 -->
         <div class="hero-main">
-          <h2 class="hero-title">{{ heroEvent.title[lang] }}</h2>
+          <h2 class="hero-title">{{ tr(heroEvent.title, lang) }}</h2>
           <div class="hero-meta">
-            <span class="hero-meta-item">🕒 {{ heroEvent.time }}</span>
-            <span class="hero-meta-item">📍 {{ heroEvent.location[lang] }}</span>
+            <span class="hero-meta-item" v-if="heroEvent.time">🕒 {{ heroEvent.time }}</span>
+            <span class="hero-meta-item" v-if="tr(heroEvent.location, lang)">📍 {{ tr(heroEvent.location, lang) }}</span>
           </div>
         </div>
 
-        <!-- 右：剩余名额进度环 -->
-        <div class="hero-right">
+        <!-- 右：剩余名额进度环（仅需报名活动） -->
+        <div class="hero-right" v-if="heroEvent.capacity > 0">
           <div class="hero-ring-wrap">
             <svg class="hero-ring" viewBox="0 0 60 60" width="64" height="64">
               <circle cx="30" cy="30" :r="RING_R" fill="none" class="hero-ring-track"
@@ -369,8 +404,32 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
       </div>
     </section>
 
+    <!-- ===== 视图切换 ===== -->
+    <div class="view-tabs">
+      <button class="view-tab" :class="{ active: view === 'calendar' }" @click="view = 'calendar'">
+        {{ t.tabCalendar }}
+      </button>
+      <button class="view-tab" :class="{ active: view === 'timeline' }" @click="view = 'timeline'">
+        {{ t.tabTimeline }}
+      </button>
+      <button class="view-tab" :class="{ active: view === 'wishes' }" @click="view = 'wishes'">
+        {{ t.tabWishes }}
+      </button>
+    </div>
+
+    <!-- ===== 月历视图 ===== -->
+    <ActivityCalendar
+      v-if="view === 'calendar'"
+      :activities="activities"
+      :is-authenticated="isAuthenticated"
+      :actions="calendarActions"
+    />
+
+    <!-- ===== 许愿池视图 ===== -->
+    <Wishes v-if="view === 'wishes'" />
+
     <!-- ===== 垂直脊柱时间线 ===== -->
-    <div class="timeline" v-if="sortedEvents.length">
+    <div class="timeline" v-if="view === 'timeline' && sortedEvents.length">
       <template v-for="(act, idx) in sortedEvents" :key="act.id">
         <div class="timeline-item" :class="{ future: isUpcoming(act), past: !isUpcoming(act) }">
           <article class="tl-card">
@@ -383,7 +442,7 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
 
               <div class="tl-main">
                 <div class="tl-title-row">
-                  <h3 class="tl-title">{{ act.title[lang] }}</h3>
+                  <h3 class="tl-title">{{ tr(act.title, lang) }}</h3>
                   <!-- 活动关联链接：相册/班费，放在标题右边 -->
                   <div class="tl-title-links">
                     <a
@@ -412,16 +471,16 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
                 </div>
 
                 <div class="tl-meta">
-                  <span class="tl-meta-item">🕒 {{ act.time }}</span>
-                  <span class="tl-meta-item">📍 {{ act.location[lang] }}</span>
-                  <span class="tl-meta-item">👤 {{ act.organizer[lang] }}</span>
+                  <span class="tl-meta-item" v-if="act.time">🕒 {{ act.time }}</span>
+                  <span class="tl-meta-item" v-if="tr(act.location, lang)">📍 {{ tr(act.location, lang) }}</span>
+                  <span class="tl-meta-item" v-if="tr(act.organizer, lang)">👤 {{ tr(act.organizer, lang) }}</span>
                 </div>
 
-                <p class="tl-desc">{{ act.description[lang] }}</p>
+                <p class="tl-desc" v-if="tr(act.description, lang)">{{ tr(act.description, lang) }}</p>
                 <p v-if="act.created_by" class="tl-publisher">由 {{ act.created_by }} 发布</p>
 
                 <!-- 报名进度（未来活动） -->
-                <div class="tl-progress" v-if="isUpcoming(act)">
+                <div class="tl-progress" v-if="isUpcoming(act) && act.capacity > 0">
                   <div class="progress-bar">
                     <div class="progress-fill" :style="{ width: registrationProgress(act) + '%' }"></div>
                   </div>
@@ -469,7 +528,7 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
     </div>
 
     <!-- 无任何活动空态 -->
-    <div v-else class="empty-state">
+    <div v-if="view === 'timeline' && !sortedEvents.length" class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
       </svg>
@@ -483,6 +542,36 @@ const galleryLink = computed(() => (lang.value === 'zh' ? '/gallery/' : `/${lang
   max-width: 960px;
   margin: 0 auto;
   padding: 0 24px 60px;
+}
+
+/* ================= 视图切换 Tab ================= */
+.view-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--c-bg-secondary);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  margin: 0 0 22px;
+}
+.view-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-text-secondary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.view-tab:hover { color: var(--c-text-primary); }
+.view-tab.active {
+  background: var(--c-bg-card);
+  color: var(--c-accent);
+  box-shadow: var(--shadow-subtle);
+  font-weight: 600;
 }
 
 /* ================= Hero 巨幕 ================= */

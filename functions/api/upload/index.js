@@ -1,0 +1,43 @@
+// 许愿池图片上传 - POST /api/upload（登录即可，面向全体同学）
+// 与班委专用 /api/admin/upload 隔离：仅接受图片（image/*），且 key 必须在
+// wishes/ 前缀下，防止越权写入其他路径或上传非图片文件。
+// body: { key, contentType, dataBase64 }
+import {
+  corsResponse, optionsResponse, parseBody, requireLogin,
+} from '../../_utils.js'
+
+export async function onRequest(context) {
+  const { request, env } = context
+  if (request.method === 'OPTIONS') return optionsResponse()
+  const auth = await requireLogin(request, env)
+  if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
+  if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
+
+  try {
+    const { key, contentType, dataBase64 } = await parseBody(request)
+    if (!key || !dataBase64) return corsResponse({ error: '缺少 key 或 dataBase64' }, 400)
+    if (!/^wishes\/[^/][^.]*\.(jpe?g|png|webp|gif|heic)$/i.test(key || ''))
+      return corsResponse({ error: '非法的存储路径或文件类型' }, 400)
+    if (!/^image\//.test(contentType || ''))
+      return corsResponse({ error: '许愿池只能上传图片' }, 400)
+    // 大小上限：base64 约 14M 字符 ≈ 10MB 二进制（前端已压缩到 1600px，通常 <1MB）
+    if (typeof dataBase64 !== 'string' || dataBase64.length > 14 * 1024 * 1024)
+      return corsResponse({ error: '图片过大（单张不超过 10MB）' }, 400)
+    if (!env.R2) return corsResponse({ error: 'R2 binding 未配置' }, 500)
+
+    // base64 -> 二进制（for 循环逐字节，避免大文件逐元素回调开销）
+    const binaryStr = atob(dataBase64)
+    const bodyBytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) bodyBytes[i] = binaryStr.charCodeAt(i)
+
+    await env.R2.put(key, bodyBytes, { httpMetadata: { contentType } })
+    return corsResponse({
+      message: '上传成功',
+      url: `https://${env.R2_PUBLIC_DOMAIN || 'files.mint4.cn'}/${key}`,
+      key,
+    })
+  } catch (err) {
+    console.error('wishes upload 错误:', err)
+    return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
+  }
+}
