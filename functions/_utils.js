@@ -300,14 +300,14 @@ export const COMMITTEE_ROLES = {
   雷振宇: 'deputy',
   // 体验运营官
   程芳芳: 'experience', 王炜泽: 'experience', 彭泽云: 'experience',
-  施纯: 'experience', 潘芸怡: 'experience',
+  施纯: 'experience', 潘芸怡: 'experience', 王雨露: 'experience',
   // 财务激励官
   高晓梅: 'finance', 叶宏颖: 'finance', 李浩鹏: 'finance', 程枭: 'finance',
   // 智库研究员
-  孟维翰: 'thinktank', 邹智宇: 'thinktank',
+  孟维翰: 'thinktank', 邹智宇: 'thinktank', 刘瑞霖: 'thinktank',
   // 记忆主理人
   杨旻: 'memory', 陈飘逸: 'memory', 徐哲明: 'memory',
-  李甜: 'memory', 徐珮莹: 'memory',
+  李甜: 'memory', 徐珮莹: 'memory', 夏叶: 'memory',
   // 独立董事会（监督，与主理人/副主理人同权）
   周楠骐: 'supervisor', 李浩: 'supervisor',
   王星然: 'supervisor', 王胜: 'supervisor',
