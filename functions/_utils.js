@@ -329,7 +329,7 @@ export async function initDatabase(env) {
   // 拆分后每条独立执行更稳；CREATE ... IF NOT EXISTS 本身幂等。
   const stmts = SCHEMA.split(';').map(s => s.trim()).filter(s => s && !s.startsWith('--'))
   for (const s of stmts) {
-    try { await env.DB.exec(s) }
+    try { await env.DB.exec(s + ';') }
     catch (e) {
       if (/already exists/i.test(String((e && e.message) || e || ''))) continue
       throw e
