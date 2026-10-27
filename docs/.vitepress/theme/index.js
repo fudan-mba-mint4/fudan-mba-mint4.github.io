@@ -16,7 +16,10 @@ import HomeDashboard from './components/HomeDashboard.vue'
 import CourseMaterials from './components/CourseMaterials.vue'
 import PageHeader from './components/PageHeader.vue'
 import Announcements from './components/Announcements.vue'
-import ClassFinance from './components/ClassFinance.vue'
+import ClassFinanceLedger from './components/ClassFinanceLedger.vue'
+import ClassFinanceBudgets from './components/ClassFinanceBudgets.vue'
+import ClassFinanceReimb from './components/ClassFinanceReimb.vue'
+import ClassFinanceWorkbench from './components/ClassFinanceWorkbench.vue'
 import KnowledgeBase from './components/KnowledgeBase.vue'
 import Activities from './components/Activities.vue'
 import ClassCulture from './components/ClassCulture.vue'
@@ -52,7 +55,10 @@ export default {
     app.component('CourseMaterials', CourseMaterials)
     app.component('PageHeader', PageHeader)
     app.component('Announcements', Announcements)
-    app.component('ClassFinance', ClassFinance)
+    app.component('ClassFinanceLedger', ClassFinanceLedger)
+    app.component('ClassFinanceBudgets', ClassFinanceBudgets)
+    app.component('ClassFinanceReimb', ClassFinanceReimb)
+    app.component('ClassFinanceWorkbench', ClassFinanceWorkbench)
     app.component('KnowledgeBase', KnowledgeBase)
     app.component('Activities', Activities)
     app.component('ClassCulture', ClassCulture)

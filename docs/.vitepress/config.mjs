@@ -31,7 +31,15 @@ const zhNav = [
       { text: '职业发展', link: '/career/' },
     ],
   },
-  { text: '财务激励', link: '/finance/' },
+  {
+    text: '财务激励',
+    items: [
+      { text: '班费账页', link: '/finance/' },
+      { text: '预算公示', link: '/finance/budgets/' },
+      { text: '我的报销', link: '/finance/reimb/' },
+      { text: '财务工作台', link: '/finance/workbench/' },
+    ],
+  },
   {
     text: '记忆主理',
     items: [
@@ -105,7 +113,15 @@ const enNav = [
       { text: 'Career', link: '/en/career/' },
     ],
   },
-  { text: 'Finance', link: '/en/finance/' },
+  {
+    text: 'Finance',
+    items: [
+      { text: 'Ledger', link: '/en/finance/' },
+      { text: 'Budgets', link: '/en/finance/budgets/' },
+      { text: 'Reimbursement', link: '/en/finance/reimb/' },
+      { text: 'Workbench', link: '/en/finance/workbench/' },
+    ],
+  },
   {
     text: 'Memories',
     items: [
@@ -179,7 +195,15 @@ const thNav = [
       { text: 'อาชีพ', link: '/th/career/' },
     ],
   },
-  { text: 'การเงิน', link: '/th/finance/' },
+  {
+    text: 'การเงิน',
+    items: [
+      { text: 'บัญชี', link: '/th/finance/' },
+      { text: 'งบประมาณ', link: '/th/finance/budgets/' },
+      { text: 'เบิกจ่าย', link: '/th/finance/reimb/' },
+      { text: 'แผงงาน', link: '/th/finance/workbench/' },
+    ],
+  },
   {
     text: 'ความทรงจำ',
     items: [

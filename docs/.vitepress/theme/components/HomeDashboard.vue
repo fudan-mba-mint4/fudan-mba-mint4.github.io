@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useLang } from '../composables/useLang.js'
+import { useAuth } from '../composables/useAuth.js'
 import { useData } from '../composables/useData.js'
 import { getSeen, isInitialized, itemKey, markRead, readState } from '../composables/useUnread.js'
 import { deriveActivity } from '../composables/useActivities.js'
@@ -73,6 +74,7 @@ const i18n = {
     expense: '本学期支出',
     incomeDetail: '班费缴纳 ¥21,702.30',
     expenseDetail: '见面会 ¥11,761.40 + 团建聚餐 ¥9,940.90',
+    auditBadge: '待审 {n}', payBadge: '待付 {n}',
     // 空状态
     scheduleEmpty: '本学期课程已结束',
     noUpcoming: '暂无即将开始的课程',
@@ -130,6 +132,7 @@ const i18n = {
     expense: 'Expense',
     incomeDetail: 'Class dues ¥21,702.30',
     expenseDetail: 'Welcome dinner ¥11,761.40 + Teambuilding ¥9,940.90',
+    auditBadge: 'Review {n}', payBadge: 'Pay {n}',
     scheduleEmpty: 'Semester classes ended',
     noUpcoming: 'No upcoming classes',
     loadingSchedule: 'Loading schedule',
@@ -186,6 +189,7 @@ const i18n = {
     expense: 'รายจ่าย',
     incomeDetail: 'ค่าชั้นเรียน ¥21,702.30',
     expenseDetail: 'งานต้อนรับ ¥11,761.40 + กิจกรรมสร้างทีม ¥9,940.90',
+    auditBadge: 'ตรวจ {n}', payBadge: 'โอน {n}',
     scheduleEmpty: 'คาบเรียนเทมนี้จบแล้ว',
     noUpcoming: 'ไม่มีคาบเรียนที่กำลังจะมา',
     loadingSchedule: 'กำลังโหลดตารางเรียน',
@@ -230,7 +234,7 @@ const homeworkData = computed(() => {
 })
 
 /* ========== 班费数据（从finance.json读取） ========== */
-const { data: financeRaw, loading: financeLoading } = useData('/data/finance.json', { dbUrl: '/api/finance-db' })
+const { data: financeRaw, loading: financeLoading } = useData('/data/finance.json', { dbUrl: '/api/finance-v2' })
 const financeData = computed(() => {
   const txs = financeRaw.value?.transactions || []
   const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
@@ -603,6 +607,29 @@ const quickLinks = computed(() => [
   { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
 ])
 
+/* ===== 财务待办角标（登录后按财务角色显示：待审核/待付款） ===== */
+const { isAuthenticated, getToken } = useAuth()
+const financeTodo = ref(null)
+async function loadFinanceTodo() {
+  if (!isAuthenticated.value) { financeTodo.value = null; return }
+  try {
+    const res = await fetchWithRetry('/api/finance-v2', { headers: { Authorization: `Bearer ${getToken()}` } })
+    if (!res.ok) { financeTodo.value = null; return }
+    const j = await res.json()
+    const wb = j.workbench || {}
+    financeTodo.value = wb.isFinanceStaff ? { audit: wb.pendingAudit || 0, pay: wb.pendingPay || 0 } : null
+  } catch { financeTodo.value = null }
+}
+watch(isAuthenticated, (v) => { if (v) loadFinanceTodo() }, { immediate: true })
+const financeTodoText = computed(() => {
+  const td = financeTodo.value
+  if (!td || (!td.audit && !td.pay)) return ''
+  const parts = []
+  if (td.audit) parts.push(t.value.auditBadge.replace('{n}', td.audit))
+  if (td.pay) parts.push(t.value.payBadge.replace('{n}', td.pay))
+  return parts.join(' · ')
+})
+
 /* ========== 传承人列表（全部13人） ========== */
 const mentorList = computed(() => {
   const leader = activeMembers.value.find(m => m.role === 'mentorLeader')
@@ -968,6 +995,7 @@ onUnmounted(() => {
             :aria-label="link.label"
           >
             <span v-if="unreadCounts[link.key] > 0" class="unread-badge" :aria-label="unreadCounts[link.key] + ' 条未读'">{{ unreadCounts[link.key] }}</span>
+            <span v-if="link.key === 'finance' && financeTodoText" class="todo-badge" :aria-label="financeTodoText">{{ financeTodoText }}</span>
             <svg class="quicklink-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
               <template v-if="link.icon === 'calendar'">
                 <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
@@ -2165,13 +2193,26 @@ onUnmounted(() => {
   padding: 0 4px;
   border-radius: 8px;
   background: #ff3b30;
-  color: #fff;
-  font-size: 10px;
+  color: #fff;  font-size: 10px;
   font-weight: 700;
   line-height: 16px;
   text-align: center;
   box-shadow: 0 0 0 2px var(--c-bg-card);
   pointer-events: none;
+}
+.todo-badge {
+  position: absolute;
+  top: 22px;
+  right: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--c-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* ========== 4. 班级统计 ========== */

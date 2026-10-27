@@ -125,3 +125,72 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (created_at DESC);
+
+-- ===== 班费线上化（预算公示异议 / 报销审批 / 结构化流水） =====
+CREATE TABLE IF NOT EXISTS finance_tx (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  type TEXT NOT NULL,
+  category TEXT NOT NULL,
+  amount REAL NOT NULL,
+  description TEXT NOT NULL,
+  activity_id TEXT,
+  proposal_id TEXT,
+  reimbursement_id TEXT,
+  vouchers TEXT DEFAULT '[]',
+  handler TEXT,
+  checker TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_finance_tx_date ON finance_tx (date DESC);
+CREATE INDEX IF NOT EXISTS idx_finance_tx_activity ON finance_tx (activity_id);
+
+CREATE TABLE IF NOT EXISTS budget_proposals (
+  id TEXT PRIMARY KEY,
+  activity_id TEXT,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  detail_items TEXT DEFAULT '[]',
+  amount REAL NOT NULL,
+  proposer TEXT DEFAULT '',
+  proposer_id INTEGER,
+  status TEXT DEFAULT 'open',
+  expose_start TEXT,
+  expose_end TEXT,
+  created_by TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_budget_proposals_status ON budget_proposals (status);
+
+CREATE TABLE IF NOT EXISTS budget_objections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  proposal_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  reason TEXT DEFAULT '',
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE(proposal_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_budget_objections_proposal ON budget_objections (proposal_id);
+
+CREATE TABLE IF NOT EXISTS reimbursements (
+  id TEXT PRIMARY KEY,
+  proposal_id TEXT,
+  activity_id TEXT,
+  applicant TEXT NOT NULL,
+  applicant_id INTEGER NOT NULL,
+  expense_date TEXT,
+  amount REAL NOT NULL,
+  category TEXT,
+  description TEXT DEFAULT '',
+  vouchers TEXT DEFAULT '[]',
+  status TEXT DEFAULT 'submitted',
+  audit_by TEXT,
+  audit_at TEXT,
+  audit_note TEXT,
+  paid_by TEXT,
+  paid_at TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_reimbursements_applicant ON reimbursements (applicant_id);
+CREATE INDEX IF NOT EXISTS idx_reimbursements_status ON reimbursements (status);

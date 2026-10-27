@@ -140,6 +140,13 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications (created_at DESC);
 
+CREATE TABLE IF NOT EXISTS finance_reminders (
+  key TEXT PRIMARY KEY,
+  type TEXT,
+  ref_id TEXT,
+  sent_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 CREATE TABLE IF NOT EXISTS classmates_birthday (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
@@ -199,6 +206,119 @@ CREATE TABLE IF NOT EXISTS activity_wish_comments (
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_wish_comments_wish ON activity_wish_comments (wish_id);
+
+-- ===== 班费线上化（预算事前投票 / 报销审批 / 结构化流水） v2 =====
+CREATE TABLE IF NOT EXISTS finance_tx (
+  id TEXT PRIMARY KEY,
+  voucher_no TEXT,             -- 凭证编号，如 FT-2026-001（可读、连续）
+  date TEXT NOT NULL,
+  type TEXT NOT NULL,          -- income / expense
+  category TEXT NOT NULL,      -- 支出性质大类 key（FINANCE_CATEGORIES）
+  amount REAL NOT NULL,
+  description TEXT NOT NULL,
+  items TEXT DEFAULT '[]',     -- JSON 数组 [{category,amount,description}] 多行明细（分类-金额），空=单笔
+  activity_id TEXT,
+  proposal_id TEXT,
+  reimbursement_id TEXT,
+  vouchers TEXT DEFAULT '[]',  -- JSON 数组 [{type,url,name}]
+  handler TEXT,                -- 经手人
+  checker TEXT,                -- 复核人（财务）
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_finance_tx_date ON finance_tx (date DESC);
+CREATE INDEX IF NOT EXISTS idx_finance_tx_activity ON finance_tx (activity_id);
+
+CREATE TABLE IF NOT EXISTS budget_proposals (
+  id TEXT PRIMARY KEY,
+  activity_id TEXT,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  detail_items TEXT DEFAULT '[]',  -- 预算明细 JSON [{item, amount}]
+  amount REAL NOT NULL,            -- 预算上限
+  proposer TEXT DEFAULT '',        -- 申请人真名
+  proposer_id INTEGER,
+  expose_type TEXT DEFAULT 'normal', -- normal / emergency（紧急·事后补公示）
+  status TEXT DEFAULT 'open',      -- open / passed / rejected / spent / cancelled
+  expose_start TEXT,
+  expose_end TEXT,
+  created_by TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  settled_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_budget_proposals_status ON budget_proposals (status);
+
+-- v2 预算投票：赞成/反对一人一票、不可撤回；反对理由匿名公开（票向仅监督人可见）
+CREATE TABLE IF NOT EXISTS budget_votes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  proposal_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  choice TEXT NOT NULL,           -- for / against
+  reason TEXT DEFAULT '',         -- 反对理由（against 时可填，匿名公开）
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE(proposal_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_budget_votes_proposal ON budget_votes (proposal_id);
+
+-- 旧版异议表（仅反对、可覆盖）：v2 起不再读写，仅保留定义兼容历史数据
+CREATE TABLE IF NOT EXISTS budget_objections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  proposal_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  reason TEXT DEFAULT '',
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE(proposal_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_budget_objections_proposal ON budget_objections (proposal_id);
+
+CREATE TABLE IF NOT EXISTS reimbursements (
+  id TEXT PRIMARY KEY,
+  proposal_id TEXT,
+  activity_id TEXT,
+  applicant TEXT NOT NULL,         -- 申请人真名
+  applicant_id INTEGER NOT NULL,
+  expense_date TEXT,
+  amount REAL NOT NULL,
+  category TEXT,
+  description TEXT DEFAULT '',
+  vouchers TEXT DEFAULT '[]',      -- JSON [{type,url,name}]
+  endorsement TEXT DEFAULT '',     -- 签字背书 JSON {committee:{name,at}}（≥500 无发票场景）
+  status TEXT DEFAULT 'submitted', -- submitted / need_revision / approved / paid / rejected
+  audit_by TEXT,
+  audit_at TEXT,
+  audit_note TEXT,
+  paid_by TEXT,
+  paid_at TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_reimbursements_applicant ON reimbursements (applicant_id);
+CREATE INDEX IF NOT EXISTS idx_reimbursements_status ON reimbursements (status);
+
+-- v2 财务全局参数（后台可配置；无值用代码内默认）
+CREATE TABLE IF NOT EXISTS finance_config (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+
+-- v2 财务细分角色（按真名配置，支持后台调整；注册后自动关联 user_id）
+CREATE TABLE IF NOT EXISTS finance_roles (
+  name TEXT PRIMARY KEY,
+  f_role TEXT NOT NULL,            -- accountant / cashier / supervisor / treasury_staff
+  user_id INTEGER,
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+-- v2 小荷包对账记录（出纳登记；可关联预算公示/报销单）
+CREATE TABLE IF NOT EXISTS reconcilations (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  actual_balance REAL NOT NULL,    -- 小荷包实际余额
+  note TEXT DEFAULT '',
+  proposal_id TEXT,                -- 关联预算公示（可空）
+  reimbursement_id TEXT,           -- 关联报销单（可空）
+  created_by TEXT NOT NULL,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_reconcilations_date ON reconcilations (date DESC);
 `
 
 // 初始化数据库表（幂等）。D1 的 exec 支持一次执行多语句。

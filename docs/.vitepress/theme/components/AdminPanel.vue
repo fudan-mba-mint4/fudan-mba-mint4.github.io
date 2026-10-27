@@ -101,31 +101,138 @@
         </form>
       </div>
 
-      <!-- ===== 活动表单 ===== -->
+      <!-- ===== 活动表单（对应新版日历全部字段） ===== -->
       <div v-if="currentType === 'activities'" class="form-section">
-        <h3>🎉 添加活动</h3>
+        <h3>{{ actForm.id ? '✏️ 编辑活动' : '🎉 添加活动' }}</h3>
         <form @submit.prevent="submitActivity" class="data-form">
           <div class="form-row">
-            <div class="form-group"><label>活动标题 <span class="required">*</span></label><input v-model="actForm.titleZh" required /></div>
-            <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="actForm.date" required /></div>
+            <div class="form-group" style="flex:1.6"><label>活动标题 <span class="required">*</span></label><input v-model="actForm.titleZh" required placeholder="如：11月班级团建" /></div>
+            <div class="form-group">
+              <label>类型 <span class="required">*</span></label>
+              <select v-model="actForm.stage" @change="resetActForm(true)">
+                <option v-for="s in ACT_STAGE_OPTIONS" :key="s.key" :value="s.key">{{ s.label }}</option>
+              </select>
+            </div>
           </div>
-          <div class="form-row">
-            <div class="form-group"><label>开始时间 <span class="required">*</span></label><input type="time" v-model="actForm.startTime" required /></div>
-            <div class="form-group"><label>结束时间 <span class="required">*</span></label><input type="time" v-model="actForm.endTime" required /></div>
+          <div class="form-row" v-if="actForm.stage !== 'reminder'">
+            <div class="form-group">
+              <label>分类</label>
+              <select v-model="actForm.category">
+                <option v-for="c in ACT_CATEGORY_OPTIONS" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+            <div class="form-group" v-if="actForm.stage === 'planning'">
+              <label>规模</label>
+              <select v-model="actForm.scale">
+                <option value="">请选择</option>
+                <option v-for="s in ACT_SCALE_OPTIONS" :key="s" :value="s">{{ s }}</option>
+              </select>
+            </div>
           </div>
-          <div class="form-row">
-            <div class="form-group"><label>地点 <span class="required">*</span></label><input v-model="actForm.locationZh" required placeholder="政立院区 B403" /></div>
-            <div class="form-group"><label>组织者 <span class="required">*</span></label><input v-model="actForm.organizerZh" required placeholder="班级筹备组" /></div>
+
+          <!-- 已定活动 -->
+          <template v-if="actForm.stage === 'dated'">
+            <div class="form-row">
+              <div class="form-group"><label>开始日期 <span class="required">*</span></label><input type="date" v-model="actForm.date" required /></div>
+              <div class="form-group"><label>结束日期（可选，跨天用）</label><input type="date" v-model="actForm.endDate" /></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>时间（可选）</label><input v-model="actForm.time" placeholder="如：14:00 - 17:00" /></div>
+              <div class="form-group"><label>规模（可选）</label>
+                <select v-model="actForm.scale">
+                  <option value="">不填</option>
+                  <option v-for="s in ACT_SCALE_OPTIONS" :key="s" :value="s">{{ s }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>地点</label><input v-model="actForm.locationZh" placeholder="如：政立院区 B403" /></div>
+              <div class="form-group"><label>组织者</label><input v-model="actForm.organizerZh" placeholder="如：班级筹备组" /></div>
+            </div>
+            <div class="form-group"><label>活动描述</label><textarea v-model="actForm.descriptionZh" rows="2"></textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label>报名人数上限（0 或留空=不开放报名）</label><input type="number" min="0" v-model.number="actForm.capacity" placeholder="0" /></div>
+              <div class="form-group"><label>已报名人数</label><input type="number" min="0" v-model.number="actForm.registered" placeholder="0" /></div>
+            </div>
+          </template>
+
+          <!-- 待排期 -->
+          <template v-if="actForm.stage === 'planning'">
+            <div class="form-group"><label>备注说明（可选）</label><textarea v-model="actForm.descriptionZh" rows="2" placeholder="想办什么、预计时间等，欢迎同学在许愿池提议"></textarea></div>
+          </template>
+
+          <!-- 固定每周 -->
+          <template v-if="actForm.stage === 'recurring'">
+            <div class="form-group">
+              <label>每周几 <span class="required">*</span></label>
+              <div class="week-chips">
+                <button v-for="w in WEEK_OPTIONS" :key="w.key" type="button" class="week-chip" :class="{ on: actForm.recurDays.includes(w.key) }" @click="toggleRecurDay(w.key)">{{ w.label }}</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>固定时间（可选）</label><input v-model="actForm.recurTime" placeholder="如：19:00 / 下午" /></div>
+              <div class="form-group"><label>地点</label><input v-model="actForm.locationZh" placeholder="如：南操 / 佘山" /></div>
+            </div>
+            <div class="form-group"><label>活动描述</label><textarea v-model="actForm.descriptionZh" rows="2"></textarea></div>
+          </template>
+
+          <!-- 节日提醒 -->
+          <template v-if="actForm.stage === 'reminder'">
+            <div class="form-group">
+              <label>节日类型</label>
+              <select v-model="actForm.holidayType">
+                <option v-for="h in ACT_HOLIDAY_TYPES" :key="h.key" :value="h.key">{{ h.label }}</option>
+              </select>
+            </div>
+            <div class="form-row" v-if="actForm.holidayType === 'annual'">
+              <div class="form-group"><label>月份 <span class="required">*</span></label><input type="number" min="1" max="12" v-model.number="actForm.annualMonth" placeholder="10" /></div>
+              <div class="form-group"><label>日期 <span class="required">*</span></label><input type="number" min="1" max="31" v-model.number="actForm.annualDay" placeholder="1" /></div>
+            </div>
+            <div class="form-row" v-if="actForm.holidayType === 'floating'">
+              <div class="form-group"><label>月份 <span class="required">*</span></label><input type="number" min="1" max="12" v-model.number="actForm.floatingMonth" placeholder="5" /></div>
+              <div class="form-group"><label>第几个 <span class="required">*</span></label><input type="number" min="1" max="5" v-model.number="actForm.floatingOrdinal" placeholder="2" /></div>
+              <div class="form-group">
+                <label>星期几 <span class="required">*</span></label>
+                <select v-model.number="actForm.floatingWeekday">
+                  <option value="">选择</option>
+                  <option v-for="w in WEEK_OPTIONS" :key="w.key" :value="w.key">星期{{ w.label }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row" v-if="actForm.holidayType === 'lunar'">
+              <div class="form-group"><label>农历月 <span class="required">*</span></label><input type="number" min="1" max="12" v-model.number="actForm.lunarMonth" placeholder="8" /></div>
+              <div class="form-group"><label>农历日 <span class="required">*</span></label><input type="number" min="1" max="30" v-model.number="actForm.lunarDay" placeholder="15" /></div>
+            </div>
+            <p v-if="actForm.holidayType === 'lunarEve' || actForm.holidayType === 'calculated'" class="mgr-hint">无需额外参数，将按{{ actForm.holidayType === 'lunarEve' ? '农历年末自动计算除夕' : '节气算法自动计算清明' }}。</p>
+            <div class="form-group"><label>说明（可选）</label><textarea v-model="actForm.descriptionZh" rows="2" placeholder="节日祝福文案等"></textarea></div>
+          </template>
+
+          <div class="form-actions">
+            <button type="submit" class="submit-btn" :disabled="submitting || !actCanSubmit">
+              {{ submitting ? '提交中...' : (actForm.id ? '保存修改' : '发布') }}
+            </button>
+            <button v-if="actForm.id" type="button" class="existing-del" @click="cancelEditActivity">取消编辑</button>
           </div>
-          <div class="form-group"><label>活动描述 <span class="required">*</span></label><textarea v-model="actForm.descriptionZh" rows="3" required></textarea></div>
-          <div class="form-row">
-            <div class="form-group"><label>报名人数上限 <span class="required">*</span></label><input type="number" v-model.number="actForm.capacity" required placeholder="84" /></div>
-            <div class="form-group"><label>已报名人数 <span class="required">*</span></label><input type="number" v-model.number="actForm.registered" required placeholder="0" /></div>
-          </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !actCanSubmit">
-            {{ submitting ? '提交中...' : '提交并发布' }}
-          </button>
         </form>
+
+        <!-- 活动列表（编辑/删除） -->
+        <div class="existing-list">
+          <h4>当前活动（{{ actList.length }}）</h4>
+          <p v-if="!actList.length" class="empty-hint">暂无活动</p>
+          <div v-for="a in actList.slice(0, 30)" :key="a.id" class="existing-item">
+            <div class="existing-info">
+              <span class="existing-title">
+                <span :class="'act-stage act-' + (a.stage || 'dated')">{{ actStageLabel(a.stage) }}</span>
+                {{ actTitle(a) }}
+              </span>
+              <span class="existing-meta">{{ actDateRange(a) }}{{ a.category ? ' · ' + a.category : '' }}{{ a.scale ? ' · ' + a.scale : '' }}</span>
+            </div>
+            <div class="reimb-actions">
+              <button type="button" class="existing-del ok" @click="editActivity(a)">编辑</button>
+              <button type="button" class="existing-del" @click="deleteActivity(a)">删除</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ===== 投票表单 ===== -->
@@ -353,8 +460,15 @@
         </div>
       </div>
 
-      <!-- ===== 班费表单 ===== -->
+      <!-- ===== 班费（子 Tab 管理） ===== -->
       <div v-if="currentType === 'finance'" class="form-section">
+        <div class="fin-subtabs">
+          <button v-for="ft in finTabs" :key="ft.key" type="button" class="type-tab"
+            :class="{ active: finTab === ft.key }" @click="finTab = ft.key"
+            v-show="ft.key !== 'supervision' || isSupervisorLzy">{{ ft.icon }} {{ ft.name }}</button>
+        </div>
+
+        <div v-show="finTab === 'ledger'">
         <h3>💰 添加班费收支</h3>
         <form @submit.prevent="submitFinance" class="data-form">
           <div class="form-row">
@@ -367,23 +481,34 @@
             </div>
             <div class="form-group"><label>日期 <span class="required">*</span></label><input type="date" v-model="finForm.date" required /></div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>分类 <span class="required">*</span></label>
-              <select v-model="finForm.category">
-                <option value="tuition">班费缴纳</option>
-                <option value="activity">活动支出</option>
-                <option value="material">物资采购</option>
-                <option value="other">其他</option>
-              </select>
+          <div class="form-group"><label>收支明细（分类-金额，可多行）<span class="required">*</span></label>
+            <div class="fin-items-editor">
+              <div v-for="(it, idx) in finForm.items" :key="idx" class="fin-item-row">
+                <select v-model="it.category" class="fin-item-cat">
+                  <option v-for="c in finCatOptions" :key="c.key" :value="c.key">{{ c.label }}</option>
+                </select>
+                <input v-model.number="it.amount" type="number" step="0.01" min="0.01" placeholder="金额" class="fin-item-amt" />
+                <input v-model="it.description" placeholder="描述（可选）" class="fin-item-desc" />
+                <button type="button" class="fin-item-del" @click="finItemsRemove(idx)" :disabled="finForm.items.length <= 1" title="删除该行">删除</button>
+              </div>
+              <div class="fin-items-foot">
+                <button type="button" class="fin-item-add" @click="finItemsAdd">＋ 添加一行</button>
+                <span class="fin-items-total">合计 ¥{{ finItemsTotal }}</span>
+              </div>
             </div>
-            <div class="form-group"><label>金额（元）<span class="required">*</span></label><input type="number" step="0.01" v-model.number="finForm.amount" required placeholder="0.00" /></div>
           </div>
           <div class="form-group"><label>描述 <span class="required">*</span></label><input v-model="finForm.description" required placeholder="如：8月1日班级见面会晚宴" /></div>
+          <div class="form-group"><label>经手人（可选，默认当前操作人）</label><input v-model="finForm.handler" placeholder="实际经办/垫付的同学姓名" /></div>
           <div class="form-group"><label>关联活动（可选）</label>
             <select v-model="finForm.activityId">
               <option value="">不关联任何活动</option>
               <option v-for="act in activitiesList" :key="act.id" :value="act.id">{{ act.date }} · {{ act.title.zh || act.title }}</option>
+            </select>
+          </div>
+          <div class="form-group"><label>关联公示 <span v-if="finForm.type === 'expense'" class="required">*</span>（支出必选）</label>
+            <select v-model="finForm.proposalId">
+              <option value="">{{ finForm.type === 'expense' ? '请选择本次支出的预算公示' : '不关联公示（如班费缴纳/期初入账）' }}</option>
+              <option v-for="b in finBudgets" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ b.amount }}<template v-if="b.status !== 'passed'">（{{ b.status }}）</template></option>
             </select>
           </div>
           <button type="submit" class="submit-btn" :disabled="submitting || !finCanSubmit">
@@ -400,10 +525,175 @@
                 <span :class="tx.type==='income' ? 'tx-income' : 'tx-expense'">{{ tx.type==='income' ? '收入' : '支出' }}</span>
                 ¥{{ tx.amount }} · {{ tx.description }}
               </span>
-              <span class="existing-meta">{{ tx.date }}</span>
+              <span class="existing-meta">{{ tx.date }} · {{ tx.category }}{{ tx.activityId ? ' · 活动: ' + tx.activityId : '' }}{{ tx.proposalId ? ' · 公示: ' + finBudgetTitle(tx.proposalId) : '' }}</span>
             </div>
             <button type="button" class="existing-del" @click="deleteFinanceTx(tx)">删除</button>
           </div>
+        </div>
+
+        </div>
+
+        <div v-show="finTab === 'budgets'">
+        <!-- 预算公示（支出前） -->
+        <h3 style="margin-top:30px">📋 发布预算公示（支出前，公示 3 天征集反对）</h3>
+        <form @submit.prevent="publishBudget" class="data-form">
+          <div class="form-row">
+            <div class="form-group"><label>公示标题（事项）<span class="required">*</span></label><input v-model="budgetForm.title" required placeholder="如：9月班级聚餐预算" /></div>
+            <div class="form-group"><label>申请方</label><input v-model="budgetForm.proposer" placeholder="活动组 / 申请人" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>公示类型</label>
+              <select v-model="budgetForm.exposeType">
+                <option value="normal">普通（支出前公示 3 天）</option>
+                <option value="emergency">紧急（事后补公示，需批准备注）</option>
+              </select>
+            </div>
+            <div class="form-group"><label>关联活动（可选）</label>
+              <select v-model="budgetForm.activityId">
+                <option value="">不关联</option>
+                <option v-for="act in activitiesList" :key="act.id" :value="act.id">{{ act.date }} · {{ act.title.zh || act.title }}</option>
+              </select>
+            </div>
+            <div class="form-group"><label>预算上限（元）<span class="required">*</span></label><input type="number" step="0.01" v-model.number="budgetForm.amount" required placeholder="0.00" /></div>
+          </div>
+          <div v-if="budgetForm.exposeType === 'emergency'" class="form-group"><label>紧急批准备注 <span class="required">*</span></label><input v-model="budgetForm.approvalNote" required placeholder="如：班委会 8/12 同意，事后补公示" /></div>
+          <div class="form-group"><label>活动说明</label><textarea v-model="budgetForm.description" rows="2" class="input-textarea" placeholder="预计组织什么活动、多少人参加等"></textarea></div>
+          <div class="form-group">
+            <label>预算明细</label>
+            <div v-for="(it, i) in budgetForm.detailItems" :key="i" class="budget-item-row">
+              <input v-model="it.item" class="input-inline" placeholder="项目（如：餐费）" />
+              <input type="number" step="0.01" v-model.number="it.amount" class="input-inline" placeholder="金额" />
+              <button type="button" class="existing-del" @click="removeBudgetItem(i)">×</button>
+            </div>
+            <button type="button" class="mini-add" @click="addBudgetItem">+ 添加明细项</button>
+          </div>
+          <button type="submit" class="submit-btn" :disabled="submitting || !budgetCanSubmit">
+            {{ submitting ? '提交中...' : '发布公示（3 天异议期）' }}
+          </button>
+        </form>
+
+        <div class="existing-list">
+          <h4>公示记录（{{ finBudgets.length }}）</h4>
+          <p v-if="!finBudgets.length" class="empty-hint">暂无公示</p>
+          <div v-for="b in finBudgets" :key="b.id" class="existing-item">
+            <div class="existing-info">
+              <span class="existing-title">
+                <span :class="'bc-' + b.status">[{{ b.status }}]</span> {{ b.title }} · ¥{{ b.amount }}
+                <span v-if="b.exposeType === 'emergency'" class="emergency-tag">紧急·事后补公示</span>
+              </span>
+              <span class="existing-meta">
+                赞成 {{ b.forCount ?? 0 }} · 反对 {{ b.againstCount ?? 0 }} · 未表态 {{ b.uncommitted ?? 0 }} · 否决线 {{ b.vetoCount ?? '—' }} · 公示至 {{ (b.exposeEnd || '').slice(0, 10) }}
+              </span>
+              <details v-if="b.reasons && b.reasons.length" class="budget-objections">
+                <summary>查看反对留言（匿名 {{ b.reasons.length }} 条）</summary>
+                <div v-for="(o, i) in b.reasons" :key="i" class="obj-row">💬 {{ o.reason || '（无理由）' }}</div>
+              </details>
+            </div>
+            <div class="reimb-actions">
+              <button v-if="b.status === 'open'" type="button" class="existing-del ok" @click="settleBudget(b)">结算</button>
+              <button v-if="b.status === 'open'" type="button" class="existing-del" @click="cancelBudget(b)">取消</button>
+            </div>
+          </div>
+        </div>
+
+        </div>
+
+        <div v-show="finTab === 'reimb'">
+        <!-- 报销审批（支出后） -->
+        <h3 style="margin-top:30px">🧾 报销审批（提交 → 审批 → 线下打款 → 入账公示）</h3>
+        <div class="existing-list">
+          <p v-if="!finReimbursements.length" class="empty-hint">暂无报销单</p>
+          <div v-for="r in finReimbursements" :key="r.id" class="existing-item">
+            <div class="existing-info">
+              <span class="existing-title">
+                <span :class="'bc-' + r.status">[{{ r.status }}]</span> {{ r.applicant }} · {{ r.description }} · ¥{{ r.amount }}
+              </span>
+              <span class="existing-meta">
+                消费 {{ (r.expenseDate || '').slice(0, 10) }} · 提交 {{ (r.createdAt || '').slice(0, 10) }}{{ r.auditNote ? ' · 审批意见: ' + r.auditNote : '' }}
+              </span>
+              <details v-if="r.vouchers && r.vouchers.length" class="budget-objections">
+                <summary>查看凭证（{{ r.vouchers.length }}）</summary>
+                <div v-for="(v, i) in r.vouchers" :key="i" class="obj-row"><a :href="v.url" target="_blank" rel="noopener">{{ v.type }} · {{ v.name }}</a></div>
+              </details>
+            </div>
+            <div class="reimb-actions">
+              <button v-if="r.status === 'submitted'" type="button" class="existing-del ok" @click="auditReimb(r, 'approve')">通过</button>
+              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="auditReimb(r, 'revision')">退回补正</button>
+              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="auditReimb(r, 'reject')">驳回</button>
+              <button v-if="r.status === 'approved'" type="button" class="existing-del ok" @click="auditReimb(r, 'pay')">确认打款</button>
+            </div>
+          </div>
+        </div>
+
+        </div>
+
+        <div v-show="finTab === 'config'">
+        <!-- 财务参数配置（班委可见；主理人/副主理人/监督人可修改） -->
+        <div class="form-section" style="margin-top:26px">
+          <h3>⚙️ 财务参数配置</h3>
+          <div v-if="finConfig" class="fin-config-grid">
+            <div class="form-group"><label>班级人数（投票分母）</label><input type="number" :value="69" disabled title="财务制度写死：69 人，不可修改" /></div>
+            <div class="form-group"><label>否决线（反对票数）</label><input type="number" :value="23" disabled title="财务制度写死：23 票（69 的 1/3），不可修改" /></div>
+            <div class="form-group"><label>公示天数</label><input type="number" :value="3" disabled title="财务制度写死：公示 3 天，不可修改" /></div>
+            <div class="form-group"><label>大额阈值（元）</label><input type="number" v-model.number="finConfig.largeAmount" /></div>
+            <div class="form-group"><label>余额预警线（元）</label><input type="number" v-model.number="finConfig.warnLine" /></div>
+            <div class="form-group"><label>期初班费（元）</label><input type="number" v-model.number="finConfig.initialBalance" /></div>
+            <div class="form-group"><label>报销时限（工作日）</label><input type="number" v-model.number="finConfig.reimbDays" /></div>
+            <div class="form-group"><label>审核时限（工作日）</label><input type="number" v-model.number="finConfig.auditDays" /></div>
+            <div class="form-group"><label>付款时限（工作日）</label><input type="number" v-model.number="finConfig.payDays" /></div>
+          </div>
+          <h4 style="margin:16px 0 8px">财务角色（按真名，注册后自动关联）</h4>
+          <div v-if="finRoles.length" class="fin-roles-list">
+            <div v-for="(r, i) in finRoles" :key="i" class="fin-role-row">
+              <span class="fin-role-name">{{ r.name }}</span>
+              <span class="fin-role-f">{{ r.f_role }}</span>
+              <span v-if="r.user_id" class="fin-role-linked">已关联 ✓</span>
+              <span v-else class="fin-role-unlinked">未注册</span>
+              <button type="button" class="existing-del" @click="removeFinanceRole(i)">×</button>
+            </div>
+          </div>
+          <div class="fin-role-add">
+            <input v-model="roleNameInput" class="token-input" style="flex:1" placeholder="同学真名" />
+            <select v-model="roleSelect" class="token-input" style="flex:0 0 auto; width:auto">
+              <option value="accountant">会计</option>
+              <option value="cashier">出纳</option>
+              <option value="supervisor">监督人</option>
+              <option value="treasury_staff">财务组</option>
+            </select>
+            <button type="button" class="token-btn" @click="addFinanceRole">添加</button>
+          </div>
+          <div class="fin-config-actions">
+            <span v-if="finConfigMsg" class="oppose-msg">{{ finConfigMsg }}</span>
+            <button class="submit-btn" @click="saveFinanceConfig" :disabled="submitting">保存财务配置</button>
+          </div>
+        </div>
+
+        </div>
+
+        <div v-show="finTab === 'supervision'">
+        <!-- 监督视图（仅雷振宇可见；票向实名明细） -->
+        <div v-if="isSupervisorLzy" class="form-section" style="margin-top:26px">
+          <h3>🔍 监督视图（仅主理人可见）</h3>
+          <p class="empty-hint">票向实名明细：显示每条公示的赞成/反对名单与留言人身份，仅监督人可查看。</p>
+          <div v-if="supervisionMsg" class="empty-hint">{{ supervisionMsg }}</div>
+          <div v-else-if="!finSupervision" class="empty-hint">加载中…</div>
+          <template v-else>
+            <div v-if="finSupervision.supervision && finSupervision.supervision.length" class="existing-list">
+              <div v-for="b in finSupervision.supervision" :key="b.id" class="existing-item supervision-item">
+                <div class="existing-info">
+                  <span class="existing-title">{{ b.title }} · ¥{{ b.amount }}</span>
+                  <span class="existing-meta">状态 {{ b.status }} · 公示至 {{ (b.exposeEnd || '').slice(0, 10) }}</span>
+                  <div v-if="b.forVotes && b.forVotes.length" class="obj-row ok">✅ 赞成（{{ b.forVotes.length }}）：<span v-for="(v, i) in b.forVotes" :key="i">{{ i > 0 ? '、' : '' }}{{ v.name }}</span></div>
+                  <div v-if="b.againstVotes && b.againstVotes.length" class="obj-row">
+                    <span>⛔ 反对（{{ b.againstVotes.length }}）：</span>
+                    <div v-for="(a, i) in b.againstVotes" :key="i" class="obj-reason">· {{ a.name }}{{ a.reason ? '：' + a.reason : '（无理由）' }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-hint">暂无公示记录</div>
+          </template>
+        </div>
         </div>
       </div>
 
@@ -616,6 +906,16 @@ const dataTypes = [
 ]
 const currentType = ref('announcements')
 
+// 班费模块内部子 Tab（选"班费"后按模块分开管理）
+const finTab = ref('ledger')
+const finTabs = [
+  { key: 'ledger', name: '流水管理', icon: '💸' },
+  { key: 'budgets', name: '预算公示', icon: '📋' },
+  { key: 'reimb', name: '报销审批', icon: '🧾' },
+  { key: 'config', name: '参数配置', icon: '⚙️' },
+  { key: 'supervision', name: '监督视图', icon: '🔍' },
+]
+
 // 各模块允许的角色（与 functions/_utils.js 的 MODULE_ROLES 保持一致，改动需同步）
 // leader/deputy/supervisor 可见并可写全部模块；其余角色只看到本职能模块。
 const MODULE_ROLE_MAP = {
@@ -654,7 +954,38 @@ const submitting = ref(false)
 // ===== 表单数据 =====
 const today = new Date().toISOString().split('T')[0]
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
+// ===== 活动表单（对应新版日历字段：stage/category/date/endDate/time/location/scale/capacity + recurrence/节日规则）=====
+const ACT_STAGE_OPTIONS = [
+  { key: 'dated', label: '已定活动' },
+  { key: 'planning', label: '待排期' },
+  { key: 'recurring', label: '固定每周' },
+  { key: 'reminder', label: '节日提醒' },
+]
+const ACT_CATEGORY_OPTIONS = ['运动', '社交', '分享', '综合', '节日']
+const ACT_SCALE_OPTIONS = ['小活动', '机动活动', '重点活动']
+const WEEK_OPTIONS = [
+  { key: 1, label: '一' }, { key: 2, label: '二' }, { key: 3, label: '三' }, { key: 4, label: '四' },
+  { key: 5, label: '五' }, { key: 6, label: '六' }, { key: 0, label: '日' },
+]
+const ACT_HOLIDAY_TYPES = [
+  { key: 'annual', label: '公历固定（如国庆 10.1）' },
+  { key: 'floating', label: '浮动（如母亲节）' },
+  { key: 'lunar', label: '农历（如春节）' },
+  { key: 'lunarEve', label: '除夕（农历年末最后一天）' },
+  { key: 'calculated', label: '清明（节气计算）' },
+]
+function resetActForm(keepTitle = false) {
+  const t = actForm.value?.titleZh || ''
+  actForm.value = {
+    id: null, titleZh: t, stage: 'dated', category: '社交', status: 'upcoming', tags: null,
+    date: today, endDate: '', time: '', locationZh: '', organizerZh: '', descriptionZh: '',
+    scale: '', capacity: null, registered: 0, recurDays: [], recurTime: '',
+    holidayType: 'annual', annualMonth: '', annualDay: '', floatingMonth: '', floatingWeekday: '', floatingOrdinal: '',
+    lunarMonth: '', lunarDay: '',
+  }
+}
 const actForm = ref({ titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0 })
+resetActForm()
 const cmForm = ref({
   courseId: 'dmd',
   target: 'existing',         // existing | new
@@ -698,17 +1029,72 @@ function resetCmForm() {
 const kbForm = ref({ courseId:'general', type:'note', date:today, title:'', author:'', file:null })
 const kbDocuments = ref([])
 const kbCourses = ref([])
-const finForm = ref({ type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' })
+const finForm = ref({ type:'expense', date:today, category:'dining', amount:null, description:'', activityId:'', proposalId:'', handler:'', items:[{ category:'dining', amount:null, description:'' }] })
+const finItemsAdd = () => { finForm.value.items.push({ category: finForm.value.type === 'income' ? 'tuition' : 'dining', amount: null, description: '' }) }
+const finItemsRemove = (i) => { if (finForm.value.items.length > 1) finForm.value.items.splice(i, 1) }
+const finItemsTotal = computed(() => Number(finForm.value.items.reduce((s, it) => s + (Number(it.amount) || 0), 0).toFixed(2)))
 const finTransactions = ref([])
 const activitiesList = ref([])
-async function loadActivitiesForSelect() {
+const actList = ref([])
+const actStageLabel = (s) => ({ dated: '已定', planning: '待排期', recurring: '固定每周', reminder: '节日' }[s] || '其他')
+const actTitle = (a) => typeof a.title === 'string' ? a.title : (a.title?.zh || a.title?.en || a.id)
+const actDateRange = (a) => a.endDate ? `${a.date || '?'} ~ ${a.endDate}` : (a.date || (a.stage === 'recurring' ? '每周固定' : '—'))
+async function loadActivityList() {
   try {
-    const res = await fetchWithRetry('/data/activities.json')
+    const res = await fetchWithRetry(`${API_PREFIX}/api/activities-db`)
     if (res.ok) {
-      const data = await res.json()
-      activitiesList.value = (data.activities || []).slice().sort((a, b) => b.date.localeCompare(a.date))
+      const j = await res.json()
+      const list = Array.isArray(j) ? j : (j.activities || [])
+      actList.value = list.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      activitiesList.value = actList.value
     }
   } catch (e) { console.warn('加载活动列表失败:', e) }
+}
+function editActivity(a) {
+  const f = actForm.value
+  f.id = a.id
+  f.titleZh = typeof a.title === 'string' ? a.title : (a.title?.zh || '')
+  f.stage = a.stage || 'dated'
+  f.category = a.category || '社交'
+  f.status = a.status || 'upcoming'
+  f.tags = a.tags || null
+  f.date = a.date || today
+  f.endDate = a.endDate || ''
+  f.time = a.time || ''
+  f.locationZh = typeof a.location === 'string' ? a.location : (a.location?.zh || '')
+  f.organizerZh = typeof a.organizer === 'string' ? a.organizer : (a.organizer?.zh || '')
+  f.descriptionZh = typeof a.description === 'string' ? a.description : (a.description?.zh || '')
+  f.scale = a.scale || ''
+  f.capacity = a.capacity ?? null
+  f.registered = a.registered ?? 0
+  f.recurDays = Array.isArray(a.recurrence?.days) ? [...a.recurrence.days] : []
+  f.recurTime = a.recurrence?.time || ''
+  if (a.annual) { f.holidayType = 'annual'; f.annualMonth = a.annual.month; f.annualDay = a.annual.day }
+  else if (a.floating) { f.holidayType = 'floating'; f.floatingMonth = a.floating.month; f.floatingWeekday = a.floating.weekday; f.floatingOrdinal = a.floating.ordinal }
+  else if (a.lunar) { f.holidayType = 'lunar'; f.lunarMonth = a.lunar.month; f.lunarDay = a.lunar.day }
+  else if (a.lunarEve) f.holidayType = 'lunarEve'
+  else if (a.calculated) f.holidayType = 'calculated'
+  else f.holidayType = 'annual'
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+function cancelEditActivity() { resetActForm() }
+function toggleRecurDay(d) {
+  const arr = actForm.value.recurDays
+  const i = arr.indexOf(d)
+  if (i >= 0) arr.splice(i, 1)
+  else arr.push(d)
+}
+async function deleteActivity(a) {
+  if (!confirm(`确定删除活动「${actTitle(a)}」吗？\n将记录操作人。`)) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/activities`, {
+      method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ id: a.id }),
+    })
+    await throwIfNotOk(res, '删除活动')
+    invalidateResource('/api/activities-db')
+    await loadActivityList()
+    if (actForm.value.id === a.id) resetActForm()
+  } catch (e) { alert('删除失败: ' + e.message) }
 }
 const albForm = ref({ title:'', date:today, url:'', albumType:'live', coverFile:null, localPhotos:[], description:'' })
 
@@ -734,7 +1120,14 @@ const annCanSubmit = computed(() => {
 })
 const actCanSubmit = computed(() => {
   const f = actForm.value
-  return !!(f.titleZh.trim() && f.date && f.startTime && f.endTime && f.locationZh.trim() && f.organizerZh.trim() && f.descriptionZh.trim() && typeof f.capacity === 'number' && f.capacity > 0)
+  if (!f.titleZh.trim()) return false
+  if (f.stage === 'dated') return !!f.date
+  if (f.stage === 'planning') return true
+  if (f.stage === 'recurring') return f.recurDays.length > 0
+  if (f.holidayType === 'annual') return !!(f.annualMonth && f.annualDay)
+  if (f.holidayType === 'floating') return !!(f.floatingMonth && f.floatingWeekday !== '' && f.floatingOrdinal)
+  if (f.holidayType === 'lunar') return !!(f.lunarMonth && f.lunarDay)
+  return true // lunarEve / calculated
 })
 const pollCanSubmit = computed(() => {
   const f = pollForm.value
@@ -742,8 +1135,18 @@ const pollCanSubmit = computed(() => {
 })
 const finCanSubmit = computed(() => {
   const f = finForm.value
-  return !!(f.date && typeof f.amount === 'number' && f.amount > 0 && f.description.trim())
+  if (!(f.date && f.description.trim())) return false
+  if (!f.items || !f.items.length) return false
+  for (const it of f.items) { const a = Number(it.amount); if (!a || a <= 0) return false }
+  // 财务制度：支出必须关联预算公示（事前公示）
+  if (f.type === 'expense' && !f.proposalId) return false
+  return true
 })
+const finBudgetTitle = (id) => {
+  if (!id) return ''
+  const b = finBudgets.value.find(x => x.id === id)
+  return b ? `${b.title} · ¥${b.amount}` : String(id)
+}
 
 function onSlideFile(e) { cmForm.value.slideFile = e.target.files[0] }
 function onHomeworkFile(e) { cmForm.value.homeworkFile = e.target.files[0] }
@@ -1179,36 +1582,65 @@ async function submitAnnouncement() {
   await saveRecord(rec)
 }
 
-// ===== 提交活动（直连 Cloudflare：POST /api/admin/activities，body 为完整活动对象含 id）=====
+// ===== 提交/编辑活动（POST/PUT /api/admin/activities；按 stage 组装新版日历字段）=====
+function buildActPayload() {
+  const f = actForm.value
+  const base = { id: f.id || 'act-' + Date.now(), stage: f.stage, category: f.stage === 'reminder' ? '节日' : f.category, status: f.status || 'upcoming' }
+  if (f.tags) base.tags = f.tags
+  if (f.stage === 'dated') {
+    base.date = f.date
+    if (f.endDate) base.endDate = f.endDate
+    if (f.time) base.time = f.time
+    if (f.locationZh) base.location = { zh: f.locationZh }
+    if (f.organizerZh) base.organizer = { zh: f.organizerZh }
+    if (f.descriptionZh) base.description = { zh: f.descriptionZh }
+    if (f.scale) base.scale = f.scale
+    if (typeof f.capacity === 'number' && f.capacity > 0) base.capacity = f.capacity
+    if (typeof f.registered === 'number' && f.registered > 0) base.registered = f.registered
+  } else if (f.stage === 'planning') {
+    base.scale = f.scale || '小活动'
+    if (f.descriptionZh) base.description = { zh: f.descriptionZh }
+  } else if (f.stage === 'recurring') {
+    base.recurrence = { days: [...f.recurDays].sort(), time: f.recurTime || '' }
+    if (f.locationZh) base.location = { zh: f.locationZh }
+    if (f.descriptionZh) base.description = { zh: f.descriptionZh }
+  } else { // reminder 节日提醒
+    if (f.holidayType === 'annual') { base.annual = { month: Number(f.annualMonth), day: Number(f.annualDay) }; base.cadence = `每年 ${f.annualMonth} 月 ${f.annualDay} 日` }
+    else if (f.holidayType === 'floating') { base.floating = { month: Number(f.floatingMonth), weekday: Number(f.floatingWeekday), ordinal: Number(f.floatingOrdinal) }; base.cadence = `每年 ${f.floatingMonth} 月第 ${f.floatingOrdinal} 个星期${'日一二三四五六'[Number(f.floatingWeekday)]}` }
+    else if (f.holidayType === 'lunar') { base.lunar = { month: Number(f.lunarMonth), day: Number(f.lunarDay) }; base.cadence = `农历 ${f.lunarMonth} 月 ${f.lunarDay} 日` }
+    else if (f.holidayType === 'lunarEve') { base.lunarEve = true; base.cadence = '农历年末最后一天' }
+    else { base.calculated = 'qingming'; base.cadence = '每年清明节气' }
+    if (f.descriptionZh) base.description = { zh: f.descriptionZh }
+  }
+  return base
+}
 async function submitActivity() {
   submitting.value = true
-  const rec = createRecord('activities', `添加活动: ${actForm.value.titleZh}`)
+  const isEdit = !!actForm.value.id
+  const rec = createRecord('activities', `${isEdit ? '编辑活动' : '添加活动'}: ${actForm.value.titleZh}`)
   try {
-    // 自动翻译
+    const base = buildActPayload()
+    const zhTitle = actForm.value.titleZh
+    // 自动翻译（标题/地点/描述）
     const [titleT, locT, descT] = await Promise.all([
-      translateBoth(actForm.value.titleZh),
-      translateBoth(actForm.value.locationZh || '待定'),
-      translateBoth(actForm.value.descriptionZh || ''),
+      translateBoth(zhTitle),
+      translateBoth(base.location?.zh || '待定'),
+      translateBoth(base.description?.zh || ''),
     ])
-    const act = {
-      id: 'act-' + Date.now(), date: actForm.value.date, time: (actForm.value.startTime && actForm.value.endTime) ? `${actForm.value.startTime} - ${actForm.value.endTime}` : '待定',
-      title: { zh: actForm.value.titleZh, en: titleT.en, th: titleT.th },
-      location: { zh: actForm.value.locationZh || '待定', en: locT.en, th: locT.th },
-      organizer: { zh: actForm.value.organizerZh || '班级筹备组', en: 'Class Committee', th: 'คณะกรรมการชั้นเรียน' },
-      description: { zh: actForm.value.descriptionZh || '', en: descT.en, th: descT.th },
-      tags: { cover: '', mediaUrl: '' },
-      capacity: actForm.value.capacity || 84, registered: actForm.value.registered || 0, status: 'upcoming',
-    }
+    base.title = { zh: zhTitle, en: titleT.en, th: titleT.th }
+    if (base.location) { base.location.en = locT.en; base.location.th = locT.th }
+    if (base.description) { base.description.en = descT.en; base.description.th = descT.th }
     const res = await fetchWithRetry(`${API_PREFIX}/api/admin/activities`, {
-      method: 'POST',
+      method: isEdit ? 'PUT' : 'POST',
       headers: adminHeaders(),
-      body: JSON.stringify(act),
+      body: JSON.stringify(base),
     })
-    await throwIfNotOk(res, '添加活动')
-    rec.ref_id = act.id
+    await throwIfNotOk(res, isEdit ? '编辑活动' : '添加活动')
+    rec.ref_id = base.id
     rec.status = 'success'
     invalidateResource('/api/activities-db')
-    actForm.value = { titleZh:'', date:today, startTime:'', endTime:'', locationZh:'', organizerZh:'', descriptionZh:'', capacity:null, registered:0 }
+    resetActForm()
+    await loadActivityList()
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
   await saveRecord(rec)
@@ -1348,38 +1780,27 @@ async function submitKnowledge() {
   await saveRecord(rec)
 }
 
-// ===== 提交班费（直连 Cloudflare：整包 PUT /api/admin/finance，body {transactions, activityFinances}）=====
-// 先读当前班费包（DB 优先，失败回退静态 JSON），追加新流水后整包写回。
-async function getCurrentFinancePack() {
-  try {
-    const res = await fetchWithRetry(`${API_PREFIX}/api/finance-db`)
-    if (res.ok) {
-      const j = await res.json()
-      if (Array.isArray(j?.transactions)) {
-        return { transactions: j.transactions, activityFinances: Array.isArray(j.activityFinances) ? j.activityFinances : [] }
-      }
-    }
-  } catch (e) { /* 回退静态 */ }
-  const res = await fetchWithRetry('/data/finance.json')
-  const j = await res.json()
-  return { transactions: j.transactions || [], activityFinances: j.activityFinances || [] }
-}
+// ===== 提交班费（结构化流水 POST /api/admin/finance/transactions）=====
 async function submitFinance() {
   submitting.value = true
   const rec = createRecord('finance', `添加班费${finForm.value.type==='income'?'收入':'支出'}: ${finForm.value.description}`)
   try {
-    const pack = await getCurrentFinancePack()
-    const tx = { id: 'tx-' + Date.now(), date: finForm.value.date, type: finForm.value.type, category: finForm.value.category, amount: finForm.value.amount, description: finForm.value.description, activityId: finForm.value.activityId || null }
-    pack.transactions.push(tx)
-    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance`, {
-      method: 'PUT',
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/transactions`, {
+      method: 'POST',
       headers: adminHeaders(),
-      body: JSON.stringify({ transactions: pack.transactions, activityFinances: pack.activityFinances }),
+      body: JSON.stringify({
+        date: finForm.value.date, type: finForm.value.type, category: finForm.value.category,
+        amount: finItemsTotal.value, description: finForm.value.description,
+        items: finForm.value.items.map(it => ({ category: it.category, amount: Number(it.amount), description: it.description || '' })),
+        activityId: finForm.value.activityId || null,
+        proposalId: finForm.value.proposalId || null,
+        handler: finForm.value.handler || null,
+      }),
     })
     await throwIfNotOk(res, '添加班费记录')
     rec.status = 'success'
-    invalidateResource('/api/finance-db')
-    finForm.value = { type:'expense', date:today, category:'activity', amount:null, description:'', activityId:'' }
+    invalidateResource('/api/finance-v2')
+    finForm.value = { type:'expense', date:today, category:'dining', amount:null, description:'', activityId:'', proposalId:'', handler:'', items:[{ category:'dining', amount:null, description:'' }] }
     await loadFinanceTransactions()
   } catch(e) { rec.status='failed'; rec.error=e.message }
   submitting.value = false
@@ -1491,20 +1912,184 @@ async function deleteSession(course, sx) {
 }
 
 async function loadFinanceTransactions() {
-  try { const pack = await getCurrentFinancePack(); finTransactions.value = pack.transactions || [] }
-  catch (e) { console.warn('加载流水列表失败:', e.message) }
+  try {
+    const [pubRes, adminRes] = await Promise.all([
+      fetchWithRetry(`${API_PREFIX}/api/finance-v2`, { headers: adminHeaders() }),
+      fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets`, { headers: adminHeaders() }),
+    ])
+    if (pubRes.ok) {
+      const j = await pubRes.json()
+      finTransactions.value = j.transactions || []
+      finReimbursements.value = j.reimbursements || []
+    }
+    if (adminRes.ok) {
+      const j = await adminRes.json()
+      finBudgets.value = j.budgets || []
+    }
+  } catch (e) { console.warn('加载班费数据失败:', e.message) }
 }
 async function deleteFinanceTx(tx) {
   if (!confirm(`确定删除这条${tx.type==='income'?'收入':'支出'}流水吗？\n将记录操作人。`)) return
   try {
-    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance`, {
-      method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ txId: tx.id }),
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/transactions`, {
+      method: 'DELETE', headers: adminHeaders(), body: JSON.stringify({ id: tx.id }),
     })
     await throwIfNotOk(res, '删除流水')
-    invalidateResource('/api/finance-db')
+    invalidateResource('/api/finance-v2')
     finTransactions.value = finTransactions.value.filter(t => String(t.id) !== String(tx.id))
   } catch (e) { alert('删除失败: ' + e.message) }
 }
+
+// ===== 预算公示 / 报销审批（班费线上化）=====
+const finBudgets = ref([])
+const finReimbursements = ref([])
+const budgetForm = ref({ activityId:'', title:'', description:'', detailItems:[{item:'',amount:null}], amount:null, proposer:'', exposeType:'normal', approvalNote:'' })
+function addBudgetItem() { budgetForm.value.detailItems.push({ item:'', amount:null }) }
+function removeBudgetItem(i) { if (budgetForm.value.detailItems.length > 1) budgetForm.value.detailItems.splice(i, 1) }
+const budgetCanSubmit = computed(() => {
+  const f = budgetForm.value
+  return !!(f.title.trim() && Number(f.amount) > 0)
+})
+const finCatOptions = computed(() => {
+  const expenseCats = ['dining','marketing','transport','venue','speaker','lodging','ticket','prize','insurance','supplies','other']
+  const incomeCats = ['tuition','sponsor','interest','other']
+  const labels = {
+    dining:'餐饮费', marketing:'宣传物料', transport:'交通费', venue:'场地设备', speaker:'讲师嘉宾',
+    lodging:'住宿', ticket:'门票', prize:'奖品纪念品', insurance:'保险', supplies:'物资文具', other:'其他',
+    tuition:'班费缴纳', sponsor:'赞助/奖金收入', interest:'利息收入',
+  }
+  const src = finForm.value.type === 'income' ? incomeCats : expenseCats
+  return src.map(c => ({ key: c, label: labels[c] || c }))
+})
+watch(() => finForm.value.type, (v) => { finForm.value.category = v === 'income' ? 'tuition' : 'dining' })
+async function publishBudget() {
+  submitting.value = true
+  const rec = createRecord('finance', `发布预算公示: ${budgetForm.value.title}`)
+  try {
+    const items = budgetForm.value.detailItems.filter(i => i.item && String(i.item).trim()).map(i => ({ item: String(i.item).trim(), amount: Number(i.amount) || 0 }))
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets`, {
+      method: 'POST', headers: adminHeaders(),
+      body: JSON.stringify({
+        activityId: budgetForm.value.activityId || null, title: budgetForm.value.title,
+        description: budgetForm.value.description, detailItems: items,
+        amount: Number(budgetForm.value.amount), proposer: budgetForm.value.proposer,
+        exposeType: budgetForm.value.exposeType,
+        approvalNote: budgetForm.value.exposeType === 'emergency' ? budgetForm.value.approvalNote : '',
+      }),
+    })
+    await throwIfNotOk(res, '发布预算公示')
+    rec.status = 'success'
+    invalidateResource('/api/finance-v2')
+    budgetForm.value = { activityId:'', title:'', description:'', detailItems:[{item:'',amount:null}], amount:null, proposer:'', exposeType:'normal', approvalNote:'' }
+    await loadFinanceTransactions()
+  } catch(e) { rec.status='failed'; rec.error=e.message }
+  submitting.value = false
+  await saveRecord(rec)
+}
+async function settleBudget(b) {
+  if (!confirm(`结算「${b.title}」？\n当前反对 ${b.objectionCount} 人，将按反对 ≥ 1/3 自动判定。`)) return
+  submitting.value = true
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets/${b.id}/settle`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action: 'settle' }),
+    })
+    await throwIfNotOk(res, '结算预算')
+    invalidateResource('/api/finance-v2')
+    await loadFinanceTransactions()
+  } catch (e) { alert('结算失败: ' + e.message) }
+  submitting.value = false
+}
+async function cancelBudget(b) {
+  if (!confirm(`取消「${b.title}」的公示？`)) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets/${b.id}/settle`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action: 'cancel' }),
+    })
+    await throwIfNotOk(res, '取消预算')
+    invalidateResource('/api/finance-v2')
+    await loadFinanceTransactions()
+  } catch (e) { alert('取消失败: ' + e.message) }
+}
+async function auditReimb(r, action) {
+  let note = ''
+  if (action === 'reject') {
+    note = prompt('驳回原因：')
+    if (note === null) return
+  }
+  if (action === 'revision') {
+    note = prompt('退回补正意见（请说明需要修改的内容）：')
+    if (note === null) return
+  }
+  const verb = action === 'approve' ? '通过' : action === 'reject' ? '驳回' : action === 'revision' ? '退回补正' : '确认已打款'
+  if (!confirm(`${verb}报销「${r.description}」（¥${r.amount}）？`)) return
+  submitting.value = true
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/reimbursements/${r.id}/audit`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action, note }),
+    })
+    await throwIfNotOk(res, '报销处理')
+    invalidateResource('/api/finance-v2')
+    await loadFinanceTransactions()
+  } catch (e) { alert('操作失败: ' + e.message) }
+  submitting.value = false
+}
+
+// ===== 财务参数配置（班委可见；leader/deputy/监督人可改）=====
+const finConfig = ref(null)
+const finConfigMsg = ref('')
+const finRoles = ref([])
+const roleNameInput = ref('')
+const roleSelect = ref('accountant')
+async function loadFinanceConfig() {
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/config`, { headers: adminHeaders() })
+    if (!res.ok) return
+    const j = await res.json()
+    finConfig.value = { ...(j.config || {}) }
+    finRoles.value = j.roles || []
+  } catch (e) { console.warn('加载财务配置失败:', e.message) }
+}
+async function saveFinanceConfig() {
+  finConfigMsg.value = ''
+  try {
+    // 制度写死三项（69 人 / 23 票 / 公示 3 天）不随配置保存，后端同样忽略
+    const cfg = { ...(finConfig.value || {}) }
+    delete cfg.classSize
+    delete cfg.vetoCount
+    delete cfg.exposeDays
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/config`, {
+      method: 'POST', headers: adminHeaders(),
+      body: JSON.stringify({ config: cfg, roles: finRoles.value.map(r => ({ name: r.name, f_role: r.f_role })) }),
+    })
+    await throwIfNotOk(res, '保存财务配置')
+    finConfigMsg.value = '已保存'
+    await loadFinanceConfig()
+    invalidateResource('/api/finance-v2')
+    setTimeout(() => { finConfigMsg.value = '' }, 2500)
+  } catch (e) { alert('保存失败: ' + e.message) }
+}
+async function addFinanceRole() {
+  const name = String(roleNameInput.value || '').trim()
+  if (!name) return
+  if (finRoles.value.some(r => r.name === name && r.f_role === roleSelect.value)) { roleNameInput.value = ''; return }
+  finRoles.value.push({ name, f_role: roleSelect.value, user_id: null })
+  roleNameInput.value = ''
+}
+function removeFinanceRole(i) { finRoles.value.splice(i, 1) }
+
+// ===== 监督视图（仅雷振宇可见；票向实名明细 + 对账 + 全局流水）=====
+const isSupervisorLzy = computed(() => (currentUser.value?.name || '') === '雷振宇')
+const finSupervision = ref(null)
+const supervisionMsg = ref('')
+async function loadFinanceSupervision() {
+  if (!isSupervisorLzy.value) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/supervision`, { headers: adminHeaders() })
+    if (!res.ok) { supervisionMsg.value = '监督视图加载失败（可能无权限）'; return }
+    finSupervision.value = await res.json()
+  } catch (e) { supervisionMsg.value = '监督视图加载失败' }
+}
+watch(isSupervisorLzy, v => { if (v) loadFinanceSupervision() }, { immediate: true })
 
 // ===== 提交相册（封面/照片存 R2，媒体信息挂到对应活动的 tags 上）=====
 async function getCurrentActivities() {
@@ -1680,7 +2265,8 @@ onMounted(() => {
 watch(isAuthenticated, (v) => { if (v) loadHistory() })
 watch(currentType, (val) => {
   if (val === 'courseMaterials') loadCourseFiles()
-  if (val === 'finance') { loadFinanceTransactions(); if (activitiesList.value.length === 0) loadActivitiesForSelect() }
+  if (val === 'finance') { loadFinanceTransactions(); loadFinanceConfig(); if (isSupervisorLzy.value) loadFinanceSupervision(); if (activitiesList.value.length === 0) loadActivityList() }
+  if (val === 'activities' && actList.value.length === 0) loadActivityList()
   if (val === 'treehole' && treeholeMessages.value.length === 0) loadTreeholeMessages()
   if (val === 'knowledge' && kbCourses.value.length === 0) loadKbCourses()
 })
@@ -1716,6 +2302,8 @@ watch(currentType, (val) => {
 .type-tab { padding: 10px 18px; background: var(--c-bg-card); border: 1.5px solid var(--c-border); border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--c-text-secondary); cursor: pointer; transition: all 0.2s; }
 .type-tab:hover { border-color: var(--c-accent); color: var(--c-accent); }
 .type-tab.active { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+.fin-subtabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px dashed var(--c-border); }
+.fin-subtabs .type-tab { padding: 7px 14px; border-radius: 10px; font-size: 13px; }
 .form-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
 .form-section h3 { font-size: 18px; font-weight: 700; margin: 0 0 20px; }
 .data-form { display: flex; flex-direction: column; gap: 16px; }
@@ -1905,6 +2493,57 @@ watch(currentType, (val) => {
 .existing-meta { font-size: 11px; color: var(--c-text-tertiary); }
 .existing-del { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all .2s; }
 .existing-del:hover { background: #ff3b30; color: #fff; }
+.existing-del.ok { border-color: #34c759; color: #2f9e44; }
+.existing-del.ok:hover { background: #34c759; color: #fff; }
+/* 班费线上化（预算公示 / 报销审批） */
+.input-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-tertiary); color: var(--c-text); font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+.input-inline { flex: 1; min-width: 120px; padding: 7px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-tertiary); color: var(--c-text); font-size: 13px; font-family: inherit; box-sizing: border-box; }
+.budget-item-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+.mini-add { background: none; border: 1px dashed var(--c-accent); color: var(--c-accent); border-radius: 10px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.budget-objections { margin-top: 4px; }
+.budget-objections summary { font-size: 12px; color: var(--c-accent); cursor: pointer; }
+.obj-row { font-size: 12px; color: var(--c-text-secondary); padding: 2px 0; }
+.obj-row a { color: var(--c-accent); text-decoration: none; word-break: break-all; }
+.reimb-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+.bc-open { color: var(--c-accent); } .bc-passed { color: #2f9e44; } .bc-rejected { color: #ff3b30; }
+.bc-cancelled, .bc-spent { color: var(--c-text-tertiary); } .bc-pending { color: #b45309; }
+.bc-submitted { color: #b45309; } .bc-approved { color: var(--c-accent); }
+.bc-paid { color: #2f9e44; } .bc-rejected { color: #ff3b30; }
+.bc-need_revision { color: #b45309; }
+/* 财务 v2：参数配置 / 监督视图 */
+.fin-config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.fin-config-grid .form-group { display: flex; flex-direction: column; gap: 6px; }
+.fin-config-grid input { padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-tertiary); color: var(--c-text); font-size: 13px; font-family: inherit; box-sizing: border-box; }
+.fin-roles-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.fin-role-row { display: flex; align-items: center; gap: 10px; background: var(--c-bg-tertiary); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.fin-role-name { font-weight: 600; color: var(--c-text-primary); }
+.fin-role-f { color: var(--c-text-secondary); font-size: 12px; }
+.fin-role-linked { color: #2f9e44; font-size: 12px; }
+.fin-role-unlinked { color: #b45309; font-size: 12px; }
+.fin-role-add { display: flex; gap: 8px; margin-bottom: 14px; }
+.fin-config-actions { display: flex; align-items: center; gap: 12px; }
+.supervision-item { align-items: flex-start; }
+.obj-reason { font-size: 12px; color: var(--c-text-secondary); padding-left: 12px; }
+.emergency-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 10px; background: rgba(255,159,10,.15); color: #b45309; font-size: 11px; font-weight: 600; }
+.ok { color: #2f9e44; }
+/* 活动管理（新版日历字段） */
+.form-actions { display: flex; gap: 10px; align-items: center; }
+.week-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.week-chip {
+  min-width: 38px; height: 34px; border-radius: var(--radius-full);
+  border: 1px solid var(--c-border); background: var(--c-bg-tertiary);
+  color: var(--c-text-secondary); font-size: 14px; cursor: pointer; font-family: inherit;
+  transition: all .15s;
+}
+.week-chip.on { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+.act-stage {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 1px 8px; border-radius: var(--radius-full); margin-right: 6px;
+}
+.act-dated { background: var(--c-accent-light); color: var(--c-accent); }
+.act-planning { background: #fff7e6; color: #b45309; }
+.act-recurring { background: #e8f4ec; color: #2f9e44; }
+.act-reminder { background: #ffecec; color: #ff3b30; }
 .session-mgr { margin-top: 16px; border-top: 1px dashed var(--c-border); padding-top: 14px; }
 .session-mgr h4 { margin: 0 0 4px; font-size: 14px; color: var(--c-text-primary); }
 .mgr-hint { margin: 0 0 10px; font-size: 12px; color: var(--c-text-tertiary); line-height: 1.5; }
@@ -1928,4 +2567,16 @@ watch(currentType, (val) => {
 .seg-control button { flex: 1; padding: 7px 10px; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; background: transparent; color: var(--c-text-secondary); cursor: pointer; transition: all .2s; white-space: nowrap; }
 .seg-control button.active { background: var(--c-bg); color: var(--c-accent); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .seg-control button:hover:not(.active) { color: var(--c-text); }
+.fin-items-editor { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.fin-item-row { display: flex; gap: 6px; align-items: center; width: 100%; }
+.fin-item-cat { flex: 0 0 104px; min-width: 0; font-size: 13px; }
+.fin-item-amt { flex: 0 0 80px; min-width: 0; font-size: 13px; }
+.fin-item-desc { flex: 1 1 auto; min-width: 0; width: auto; }
+.fin-item-del { flex: 0 0 auto; white-space: nowrap; padding: 4px 10px; font-size: 12px; color: #ff3b30; background: rgba(255,59,48,.08); border: 1px solid rgba(255,59,48,.25); border-radius: 8px; cursor: pointer; transition: all .15s; }
+.fin-item-del:hover:not(:disabled) { background: rgba(255,59,48,.16); border-color: #ff3b30; }
+.fin-item-del:disabled { opacity: .35; cursor: not-allowed; }
+.fin-item-add { align-self: flex-start; background: var(--c-bg-tertiary); border: 1px dashed var(--c-border-accent); color: var(--c-accent); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.fin-item-add:hover { background: var(--c-accent-light); }
+.fin-items-foot { display: flex; align-items: center; gap: 12px; }
+.fin-items-total { font-size: 13px; font-weight: 700; color: var(--c-accent); }
 </style>

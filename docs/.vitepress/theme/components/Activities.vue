@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vitepress'
+import { useRouter, useRoute } from 'vitepress'
 import { useLang, formatDate, formatRelative } from '../composables/useLang'
 import { useNow } from '../composables/useNow.js'
 import { parseDate } from '../utils/dateUtils.js'
@@ -11,6 +11,7 @@ import { markRead } from '../composables/useUnread.js'
 import ActivityCalendar from './ActivityCalendar.vue'
 
 const router = useRouter()
+const route = useRoute()
 const { currentUser, isAuthenticated, authToken } = useAuth()
 
 // 视图切换：月历 / 时间线（许愿池为独立页 /wishes/）
@@ -99,6 +100,21 @@ const wishesLink = computed(() => `${langPrefix.value}/wishes/`)
 
 /* ========== 活动数据：统一 selector（DB 优先、静态回退），相册/班费标记自动派生 ========== */
 const { activities } = useActivities({ withFinance: true })
+
+// 从财务页跳转深链：/activities/?focus=<activityId> → 定位到该活动日期
+const focusDate = ref(null)
+watch([() => route?.query?.focus, activities], ([id]) => {
+  if (!id) { focusDate.value = null; return }
+  const act = activities.value.find(a => String(a.id) === String(id))
+  if (act?.date) {
+    focusDate.value = act.date
+    view.value = 'calendar'
+    requestAnimationFrame(() => {
+      const el = document.querySelector('.pane-calendar')
+      if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    })
+  }
+}, { immediate: true })
 
 watch(activities, (list) => {
   markRead('activities', list.map(a => String(a.id)))
@@ -438,6 +454,7 @@ const tr = (obj, key) => {
       :activities="activities"
       :is-authenticated="isAuthenticated"
       :actions="calendarActions"
+      :focus-date="focusDate"
     />
 
     <!-- ===== 垂直脊柱时间线 ===== -->

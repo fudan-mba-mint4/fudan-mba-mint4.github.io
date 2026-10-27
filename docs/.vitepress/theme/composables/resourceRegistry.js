@@ -16,7 +16,7 @@ export const RESOURCES = {
   courseMaterials: { dbUrl: '/api/course-materials-db', staticUrl: '/data/course-materials.json', listKey: null },
   polls:           { dbUrl: '/api/polls-admin',         staticUrl: '/data/polls.json',           listKey: 'polls' },
   knowledge:       { dbUrl: '/api/knowledge-db',        staticUrl: '/data/knowledge-base.json',  listKey: null },
-  finance:         { dbUrl: '/api/finance-db',          staticUrl: '/data/finance.json',         listKey: null },
+  finance:         { dbUrl: '/api/finance-v2',          staticUrl: '/data/finance.json',         listKey: null },
 }
 
 // admin 提交记录（admin_history）的 type 字段 → 资源 key（用于发布 / 撤回后失效）

@@ -1,6 +1,6 @@
-// 许愿池图片上传 - POST /api/upload（登录即可，面向全体同学）
-// 与班委专用 /api/admin/upload 隔离：仅接受图片（image/*），且 key 必须在
-// wishes/ 前缀下，防止越权写入其他路径或上传非图片文件。
+// 许愿池图片 / 报销凭证 上传 - POST /api/upload（登录即可，面向全体同学）
+// 与班委专用 /api/admin/upload 隔离：仅接受图片（image/*）或报销 PDF，
+// 且 key 必须在 wishes/ 或 receipts/ 前缀下，防止越权写入其他路径或上传非白名单文件。
 // body: { key, contentType, dataBase64 }
 import {
   corsResponse, optionsResponse, parseBody, requireLogin,
@@ -16,10 +16,14 @@ export async function onRequest(context) {
   try {
     const { key, contentType, dataBase64 } = await parseBody(request)
     if (!key || !dataBase64) return corsResponse({ error: '缺少 key 或 dataBase64' }, 400)
-    if (!/^wishes\/[^/][^.]*\.(jpe?g|png|webp|gif|heic)$/i.test(key || ''))
-      return corsResponse({ error: '非法的存储路径或文件类型' }, 400)
-    if (!/^image\//.test(contentType || ''))
-      return corsResponse({ error: '许愿池只能上传图片' }, 400)
+    const isReceipt = /^receipts\//.test(key || '')
+    const okKey = /^wishes\/[^/][^.]*\.(jpe?g|png|webp|gif|heic)$/i.test(key || '')
+      || /^receipts\/[^/]+\/[^/][^.]*\.(jpe?g|png|webp|gif|pdf)$/i.test(key || '')
+    if (!okKey) return corsResponse({ error: '非法的存储路径或文件类型' }, 400)
+    const okType = isReceipt
+      ? (/^image\//.test(contentType || '') || contentType === 'application/pdf')
+      : /^image\//.test(contentType || '')
+    if (!okType) return corsResponse({ error: isReceipt ? '报销凭证仅支持图片或 PDF' : '许愿池只能上传图片' }, 400)
     // 大小上限：base64 约 14M 字符 ≈ 10MB 二进制（前端已压缩到 1600px，通常 <1MB）
     if (typeof dataBase64 !== 'string' || dataBase64.length > 14 * 1024 * 1024)
       return corsResponse({ error: '图片过大（单张不超过 10MB）' }, 400)

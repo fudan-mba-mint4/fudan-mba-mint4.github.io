@@ -23,10 +23,12 @@
         v-for="(cell, i) in cells"
         :key="i"
         class="cal-cell"
+        :data-iso="cell.iso"
         :class="{
           muted: !cell.inMonth,
           today: cell.isToday,
           selected: cell.iso === selectedIso,
+          'focus-hl': cell.iso === focusHlIso,
           weekend: cell.inMonth && cell.isWeekend,
         }"
         @click="selectCell(cell)"
@@ -120,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useLang } from '../composables/useLang'
 
 const i18n = {
@@ -194,6 +196,7 @@ const props = defineProps({
   activities: { type: Array, default: () => [] },
   isAuthenticated: { type: Boolean, default: false },
   actions: { type: Object, default: () => ({}) },
+  focusDate: { type: String, default: '' },
 })
 
 const weekdays = computed(() => t.value.weekdays)
@@ -586,11 +589,49 @@ async function copyPlan() {
   }
 }
 
+// 深链定位：外部（如财务页）带 focusDate 跳转时，直接选中该日期并高亮滚动到该格
+const focusHlIso = ref('')
+function applyFocus(iso) {
+  if (!iso || !ready.value) return
+  const parts = iso.split('-').map(Number)
+  if (parts.length !== 3 || !parts[0] || !parts[1]) return
+  selectedIso.value = iso
+  cursor.value = new Date(parts[0], parts[1] - 1, 1)
+  requestAnimationFrame(() => {
+    const cell = document.querySelector(`.cal-cell[data-iso="${iso}"]`)
+    if (cell) {
+      focusHlIso.value = iso
+      cell.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      setTimeout(() => { focusHlIso.value = '' }, 2400)
+    }
+  })
+}
 onMounted(() => {
   const t = new Date()
   cursor.value = new Date(t.getFullYear(), t.getMonth(), 1)
   selectedIso.value = isoOf(t)
   ready.value = true
+  // 深链定位：外部（如财务页）带 focusDate 跳转时，直接选中该日期
+  if (props.focusDate) {
+    const parts = props.focusDate.split('-').map(Number)
+    if (parts.length === 3 && parts[0] && parts[1]) {
+      selectedIso.value = props.focusDate
+      cursor.value = new Date(parts[0], parts[1] - 1, 1)
+      requestAnimationFrame(() => {
+        const cell = document.querySelector(`.cal-cell[data-iso="${props.focusDate}"]`)
+        if (cell) {
+          focusHlIso.value = props.focusDate
+          cell.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          setTimeout(() => { focusHlIso.value = '' }, 2400)
+        }
+      })
+    }
+  }
+})
+
+// 监听 focusDate 变化（SPA 内跳转时也能定位）
+watch(() => props.focusDate, (iso) => {
+  applyFocus(iso)
 })
 </script>
 
@@ -692,6 +733,8 @@ onMounted(() => {
   overflow: hidden;
 }
 .cal-cell:hover { border-color: var(--c-border-accent); }
+.cal-cell.focus-hl { border-color: var(--c-accent); outline: 2px solid var(--c-accent); outline-offset: 1px; animation: focusPulse 1.2s ease 2; }
+@keyframes focusPulse { 0%, 100% { background: var(--c-accent-light); } 50% { background: rgba(94, 92, 230, .22); } }
 .cal-cell.muted { background: var(--c-bg-tertiary); opacity: 0.55; }
 .cal-cell.weekend { background: var(--c-red-light); }
 .cal-cell.muted.weekend { background: var(--c-bg-tertiary); }

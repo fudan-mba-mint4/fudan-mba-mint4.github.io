@@ -1,0 +1,14 @@
+name = "mint4-finance-cron"
+main = "src/index.js"
+compatibility_date = "2026-09-21"
+
+# 每天 UTC 00:30（北京时间 08:30）扫描财务时限：
+# 报销提交 7 工作日 / 审核 3 工作日 / 付款 3 工作日 / 公示期满待结算
+[triggers]
+crons = ["30 0 * * *"]
+
+# 与 Pages 站点共用同一个 D1
+[[d1_databases]]
+binding = "DB"
+database_name = "mint4"
+database_id = "e3ec14ca-48ee-45ae-84ca-fbf0156bf87a"

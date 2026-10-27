@@ -3,10 +3,10 @@ layout: page
 ---
 
 <PageHeader
-  title="Class Finance"
-  description="Transparent class fee income and expense records, every transaction accounted for. Updated regularly by the Finance Officer."
-  slogan="Transparent — from the class, for the class."
+  title="Ledger"
+  description="Every class-fund transaction is public, traceable, and updated regularly by the finance committee."
+  slogan="Transparent. From the class, for the class."
   icon="💰"
 />
 
-<ClassFinance />
+<ClassFinanceLedger />
