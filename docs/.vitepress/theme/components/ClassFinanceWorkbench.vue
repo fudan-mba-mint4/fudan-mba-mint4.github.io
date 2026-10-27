@@ -84,6 +84,7 @@ const closeVouchers = () => { voucherView.value = null }
 
 <template>
   <div class="finance-page workbench">
+    <div class="demo-banner">{{ t.demoNotice }}</div>
     <div v-if="!isAuthenticated" class="empty-state"><p>{{ t.loginFirst }}</p></div>
     <template v-else>
       <div v-if="loading" class="fp-state">{{ t.loading }}</div>

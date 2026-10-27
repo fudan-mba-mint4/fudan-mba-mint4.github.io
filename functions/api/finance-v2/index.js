@@ -22,7 +22,7 @@ function mapBudget(row) {
     amount: row.amount, proposer: row.proposer || '',
     exposeType: row.expose_type || 'normal',
     status: row.status, exposeStart: row.expose_start, exposeEnd: row.expose_end,
-    createdAt: row.created_at, settledAt: row.settled_at,
+    createdAt: row.created_at, settledAt: row.settled_at, isDemo: row.is_demo || 0,
   }
 }
 
@@ -59,7 +59,7 @@ export async function onRequest(context) {
       proposalId: r.proposal_id, reimbursementId: r.reimbursement_id,
       items: (() => { try { return JSON.parse(r.items || '[]') } catch (e) { return [] } })(),
       vouchers: (() => { try { return JSON.parse(r.vouchers || '[]') } catch (e) { return [] } })(),
-      handler: r.handler || '', checker: r.checker || '', createdAt: r.created_at,
+      handler: r.handler || '', checker: r.checker || '', createdAt: r.created_at, isDemo: r.is_demo || 0,
     }))
 
     // 预算聚合：赞成/反对/未表态 + 匿名反对留言（公开不含投票人）
@@ -105,13 +105,13 @@ export async function onRequest(context) {
       endorsement: (() => { try { return JSON.parse(r.endorsement || 'null') } catch (e) { return null } })(),
       status: r.status,
       auditBy: r.audit_by || '', auditAt: r.audit_at || '', auditNote: r.audit_note || '',
-      paidBy: r.paid_by || '', paidAt: r.paid_at || '', createdAt: r.created_at,
+      paidBy: r.paid_by || '', paidAt: r.paid_at || '', createdAt: r.created_at, isDemo: r.is_demo || 0,
     }))
 
     const reconcilationsOut = reconciles.map(r => ({
       id: r.id, date: r.date, actualBalance: r.actual_balance,
       note: r.note || '', proposalId: r.proposal_id, reimbursementId: r.reimbursement_id,
-      createdBy: r.created_by || '', createdAt: r.created_at,
+      createdBy: r.created_by || '', createdAt: r.created_at, isDemo: r.is_demo || 0,
     }))
 
     // 财务工作台队列计数（按当前登录人角色）

@@ -217,6 +217,7 @@ CREATE TABLE IF NOT EXISTS finance_tx (
   amount REAL NOT NULL,
   description TEXT NOT NULL,
   items TEXT DEFAULT '[]',     -- JSON 数组 [{category,amount,description}] 多行明细（分类-金额），空=单笔
+  is_demo INTEGER DEFAULT 0,   -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
   activity_id TEXT,
   proposal_id TEXT,
   reimbursement_id TEXT,
@@ -243,7 +244,8 @@ CREATE TABLE IF NOT EXISTS budget_proposals (
   expose_end TEXT,
   created_by TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  settled_at TEXT
+  settled_at TEXT,
+  is_demo INTEGER DEFAULT 0      -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
 );
 CREATE INDEX IF NOT EXISTS idx_budget_proposals_status ON budget_proposals (status);
 
@@ -288,7 +290,8 @@ CREATE TABLE IF NOT EXISTS reimbursements (
   audit_note TEXT,
   paid_by TEXT,
   paid_at TEXT,
-  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  is_demo INTEGER DEFAULT 0      -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
 );
 CREATE INDEX IF NOT EXISTS idx_reimbursements_applicant ON reimbursements (applicant_id);
 CREATE INDEX IF NOT EXISTS idx_reimbursements_status ON reimbursements (status);
@@ -316,7 +319,8 @@ CREATE TABLE IF NOT EXISTS reconcilations (
   proposal_id TEXT,                -- 关联预算公示（可空）
   reimbursement_id TEXT,           -- 关联报销单（可空）
   created_by TEXT NOT NULL,
-  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  is_demo INTEGER DEFAULT 0      -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
 );
 CREATE INDEX IF NOT EXISTS idx_reconcilations_date ON reconcilations (date DESC);
 `

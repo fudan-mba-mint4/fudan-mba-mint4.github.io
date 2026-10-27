@@ -2204,15 +2204,17 @@ onUnmounted(() => {
   position: absolute;
   top: 22px;
   right: 6px;
-  padding: 1px 6px;
+  padding: 1px 7px;
   border-radius: 8px;
-  background: var(--c-accent);
+  background: #ff3b30;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
   line-height: 14px;
   pointer-events: none;
   white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(255, 59, 48, .45);
+  z-index: 2;
 }
 
 /* ========== 4. 班级统计 ========== */

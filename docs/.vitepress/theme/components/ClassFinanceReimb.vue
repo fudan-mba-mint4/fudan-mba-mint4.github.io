@@ -183,6 +183,7 @@ watch(() => router.route?.query?.focus, (v) => {
 
 <template>
   <div class="finance-page reimb">
+    <div class="demo-banner">{{ t.demoNotice }}</div>
     <div v-if="loading" class="fp-state">{{ t.loading }}</div>
     <div v-else-if="error" class="fp-state">
       {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
