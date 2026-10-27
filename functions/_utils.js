@@ -325,7 +325,16 @@ CREATE INDEX IF NOT EXISTS idx_reconcilations_date ON reconcilations (date DESC)
 // 只在「懒初始化兜底」（查询报 no such table）或需要时调用，不在每个冷节点
 // 首请求的热路径上跑。
 export async function initDatabase(env) {
-  await env.DB.exec(SCHEMA)
+  // 逐条执行建表语句：D1 exec 一次性跑整个 SCHEMA 在个别语句上会解析失败，
+  // 拆分后每条独立执行更稳；CREATE ... IF NOT EXISTS 本身幂等。
+  const stmts = SCHEMA.split(';').map(s => s.trim()).filter(s => s && !s.startsWith('--'))
+  for (const s of stmts) {
+    try { await env.DB.exec(s) }
+    catch (e) {
+      if (/already exists/i.test(String((e && e.message) || e || ''))) continue
+      throw e
+    }
+  }
 }
 
 // 兼容旧 import
