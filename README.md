@@ -94,7 +94,9 @@ class-homepage/
 ├── functions/                   # ── 后端（Cloudflare Pages Functions）──
 │   ├── _d1.js                   # D1 适配层：neon 风格 sql`` 模板 → prepare/bind
 │   ├── _utils.js                # 公共：DB schema、鉴权、RBAC 角色、logHistory、R2
-│   ├── _roster.js               # 班级名录（注册白名单、真名唯一校验）
+│   ├── _roster.js               # 班级名录（注册白名单、真名唯一校验、班主任/传承人只读判定）
+│   ├── _coins.js                # 薄荷币：配置、生长阶段（200 开花/500 结果）、森林
+│   ├── _cache.js                # 公开接口边缘缓存（Cache API）+ 写后失效
 │   ├── _birthday.js  _lunar.js  # 生日计算、农历（lunar-javascript）
 │   └── api/
 │       ├── auth/[[route]].js    # 注册/登录/资料
