@@ -39,6 +39,11 @@
         </div>
       </header>
 
+      <!-- 统一操作提示（提交成功/失败） -->
+      <transition name="toast-fade">
+        <div v-if="toastMsg" class="admin-toast" :class="toastType">{{ toastMsg }}</div>
+      </transition>
+
       <!-- 数据库与 R2 已就绪 -->
       <div class="token-bar">
         <span class="token-badge">✓ 数据库与 R2 已连接</span>
@@ -101,8 +106,22 @@
         </form>
       </div>
 
-      <!-- ===== 活动表单（对应新版日历全部字段） ===== -->
-      <div v-if="currentType === 'activities'" class="form-section">
+      <!-- ===== 活动模块（统一布局试点：动作栏 + 新建展开 + 现有列表） ===== -->
+      <div v-if="currentType === 'activities'" class="module-section">
+        <!-- 动作栏：统计（可点击筛选）+ 新建 -->
+        <div class="module-bar">
+          <div class="module-stats">
+            <button type="button" class="stat-chip" :class="{ on: actStageFilter === '' }" @click="actStageFilter = ''">全部 {{ actList.length }}</button>
+            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'dated' }" @click="toggleActFilter('dated')">已定 {{ actStageCount('dated') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'planning' }" @click="toggleActFilter('planning')">待排期 {{ actStageCount('planning') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'recurring' }" @click="toggleActFilter('recurring')">固定每周 {{ actStageCount('recurring') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'reminder' }" @click="toggleActFilter('reminder')">节日 {{ actStageCount('reminder') }}</button>
+          </div>
+          <button type="button" class="module-add-btn" @click="openActForm">＋ 新建活动</button>
+        </div>
+
+        <!-- 新建/编辑表单（展开式） -->
+        <div v-if="actFormOpen" class="module-form">
         <h3>{{ actForm.id ? '✏️ 编辑活动' : '🎉 添加活动' }}</h3>
         <form @submit.prevent="submitActivity" class="data-form">
           <div class="form-row">
@@ -158,6 +177,23 @@
 
           <!-- 待排期 -->
           <template v-if="actForm.stage === 'planning'">
+            <div class="form-row">
+              <div class="form-group"><label>预计时间（可选）</label><input v-model="actForm.time" placeholder="如：11月中旬 / 周末下午" /></div>
+              <div class="form-group"><label>规模（可选）</label>
+                <select v-model="actForm.scale">
+                  <option value="">不填</option>
+                  <option v-for="s in ACT_SCALE_OPTIONS" :key="s.key" :value="s.key">{{ s }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>拟邀地点（可选）</label><input v-model="actForm.locationZh" placeholder="如：政立院区 / 校外" /></div>
+              <div class="form-group"><label>组织者（可选）</label><input v-model="actForm.organizerZh" placeholder="如：班级筹备组" /></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>报名人数上限（0 或留空=不开放报名）</label><input type="number" min="0" v-model.number="actForm.capacity" placeholder="0" /></div>
+              <div class="form-group"><label>已报名人数</label><input type="number" min="0" v-model.number="actForm.registered" placeholder="0" /></div>
+            </div>
             <div class="form-group"><label>备注说明（可选）</label><textarea v-model="actForm.descriptionZh" rows="2" placeholder="想办什么、预计时间等，欢迎同学在许愿池提议"></textarea></div>
           </template>
 
@@ -211,15 +247,18 @@
             <button type="submit" class="submit-btn" :disabled="submitting || !actCanSubmit">
               {{ submitting ? '提交中...' : (actForm.id ? '保存修改' : '发布') }}
             </button>
-            <button v-if="actForm.id" type="button" class="existing-del" @click="cancelEditActivity">取消编辑</button>
+            <button type="button" class="existing-del" @click="closeActForm">取消</button>
           </div>
         </form>
+        </div><!-- /module-form -->
 
-        <!-- 活动列表（编辑/删除） -->
-        <div class="existing-list">
-          <h4>当前活动（{{ actList.length }}）</h4>
-          <p v-if="!actList.length" class="empty-hint">暂无活动</p>
-          <div v-for="a in actList.slice(0, 30)" :key="a.id" class="existing-item">
+        <!-- 现有活动列表（编辑/删除） -->
+        <div class="module-list">
+          <div class="module-list-head">
+            <h4>现有活动{{ actStageFilter ? ' · ' + actStageLabel(actStageFilter) : '' }}（{{ filteredActList.length }}）</h4>
+          </div>
+          <p v-if="!filteredActList.length" class="empty-hint">{{ actStageFilter ? '该分类暂无活动，点击统计可切换筛选' : '暂无活动，点上方「新建活动」发布第一个' }}</p>
+          <div v-for="a in filteredActList.slice(0, 30)" :key="a.id" class="existing-item">
             <div class="existing-info">
               <span class="existing-title">
                 <span :class="'act-stage act-' + (a.stage || 'dated')">{{ actStageLabel(a.stage) }}</span>
@@ -228,7 +267,7 @@
               <span class="existing-meta">{{ actDateRange(a) }}{{ a.category ? ' · ' + a.category : '' }}{{ a.scale ? ' · ' + a.scale : '' }}</span>
             </div>
             <div class="reimb-actions">
-              <button type="button" class="existing-del ok" @click="editActivity(a)">编辑</button>
+              <button type="button" class="existing-del ok" @click="openActEdit(a)">编辑</button>
               <button type="button" class="existing-del" @click="deleteActivity(a)">删除</button>
             </div>
           </div>
@@ -290,8 +329,28 @@
         </form>
       </div>
 
-      <!-- ===== 课程资料表单 ===== -->
-      <div v-if="currentType === 'courseMaterials'" class="form-section">
+      <!-- ===== 课程资料（双 Tab：当前课件与资料 / 讲次管理） ===== -->
+      <div v-if="currentType === 'courseMaterials'" class="module-section">
+        <!-- Tab 切换 -->
+        <div class="module-tabs">
+          <button type="button" class="module-tab" :class="{ on: cmTab === 'files' }" @click="cmTab = 'files'">当前课件与资料</button>
+          <button type="button" class="module-tab" :class="{ on: cmTab === 'sessions' }" @click="cmTab = 'sessions'">讲次管理</button>
+        </div>
+
+        <template v-if="cmTab === 'files'">
+        <!-- 动作栏：统计（可点击筛选）+ 上传 -->
+        <div class="module-bar">
+          <div class="module-stats">
+            <button type="button" class="stat-chip" :class="{ on: cmFilter === '' }" @click="cmFilter = ''">全部 {{ cmFiles.length }}</button>
+            <button type="button" class="stat-chip" :class="{ on: cmFilter === '课件' }" @click="toggleCmFilter('课件')">课件 {{ cmKindCount('课件') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: cmFilter === '作业' }" @click="toggleCmFilter('作业')">作业 {{ cmKindCount('作业') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: cmFilter === '参考' }" @click="toggleCmFilter('参考')">参考 {{ cmKindCount('参考') }}</button>
+          </div>
+          <button type="button" class="module-add-btn" @click="openCmForm">＋ 上传资料</button>
+        </div>
+
+        <!-- 上传表单（展开式） -->
+        <div v-if="cmFormOpen" class="module-form">
         <h3>📚 添加课程资料</h3>
         <form @submit.prevent="submitCourseMaterial" class="data-form">
           <!-- 1. 选课程 -->
@@ -374,15 +433,20 @@
             </div>
           </template>
 
-          <button type="submit" class="submit-btn" :disabled="submitting || !cmCanSubmit">
-            {{ submitting ? '上传中…（文件较大请稍候）' : '提交' }}
-          </button>
+          <div class="form-actions">
+            <button type="submit" class="submit-btn" :disabled="submitting || !cmCanSubmit">{{ submitting ? '上传中…（文件较大请稍候）' : '提交' }}</button>
+            <button type="button" class="existing-del" @click="closeCmForm">取消</button>
+          </div>
         </form>
+        </div><!-- /module-form -->
 
-        <div class="existing-list">
-          <h4>当前课件与资料（{{ cmFiles.length }}）</h4>
-          <p v-if="!cmFiles.length" class="empty-hint">暂无资料</p>
-          <div v-for="item in cmFiles" :key="item.fileUrl" class="existing-item">
+        <!-- 当前课件与资料列表 -->
+        <div class="module-list">
+          <div class="module-list-head">
+            <h4>当前课件与资料{{ cmFilter ? ' · ' + cmFilter : '' }}（{{ filteredCmFiles.length }}）</h4>
+          </div>
+          <p v-if="!filteredCmFiles.length" class="empty-hint">{{ cmFilter ? '该类型暂无资料，点击统计可切换筛选' : '暂无资料，点上方「上传资料」添加第一个' }}</p>
+          <div v-for="item in filteredCmFiles" :key="item.fileUrl" class="existing-item">
             <div class="existing-info">
               <span class="existing-title">{{ item.name }}</span>
               <span class="existing-meta">{{ item.courseName }} · {{ item.kind }} · {{ item.size }}</span>
@@ -392,7 +456,8 @@
         </div>
 
         <!-- 讲次管理：编辑标题/日期、删除讲次（空讲次也可删） -->
-        <div class="session-mgr">
+        </template>
+        <div v-else class="session-mgr">
           <h4>讲次管理</h4>
           <p class="mgr-hint">可直接修改讲次标题或日期后点「保存」；标题填错、空讲次都可在此处理。删除含文件的讲次会一并删除其文件。</p>
           <div v-for="course in cmMgr" :key="course.id" class="mgr-course">
@@ -410,8 +475,22 @@
         </div>
       </div>
 
-      <!-- ===== 知识库表单 ===== -->
-      <div v-if="currentType === 'knowledge'" class="form-section">
+      <!-- ===== 知识库（动作栏 + 上传展开 + 资料列表） ===== -->
+      <div v-if="currentType === 'knowledge'" class="module-section">
+        <!-- 动作栏：统计（可点击筛选）+ 上传 -->
+        <div class="module-bar">
+          <div class="module-stats">
+            <button type="button" class="stat-chip" :class="{ on: kbFilter === '' }" @click="kbFilter = ''">全部 {{ kbDocuments.length }}</button>
+            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'note' }" @click="toggleKbFilter('note')">笔记 {{ kbTypeCount('note') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'summary' }" @click="toggleKbFilter('summary')">总结 {{ kbTypeCount('summary') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'exam' }" @click="toggleKbFilter('exam')">考题 {{ kbTypeCount('exam') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'resource' }" @click="toggleKbFilter('resource')">资源 {{ kbTypeCount('resource') }}</button>
+          </div>
+          <button type="button" class="module-add-btn" @click="openKbForm">＋ 上传资料</button>
+        </div>
+
+        <!-- 上传表单（展开式） -->
+        <div v-if="kbFormOpen" class="module-form">
         <h3>📖 上传知识库资料</h3>
         <form @submit.prevent="submitKnowledge" class="data-form">
           <div class="form-row">
@@ -442,23 +521,28 @@
             <input type="file" accept=".pdf,image/*" @change="onKbFile" class="file-input" />
             <span v-if="kbForm.file" class="file-info">📄 {{ kbForm.file.name }} ({{ formatSize(kbForm.file.size) }})</span>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !kbForm.file">
-            {{ submitting ? '上传中...（文件较大请稍候）' : '上传文件并提交' }}
-          </button>
+          <div class="form-actions">
+            <button type="submit" class="submit-btn" :disabled="submitting || !kbForm.file">{{ submitting ? '上传中...（文件较大请稍候）' : '上传文件并提交' }}</button>
+            <button type="button" class="existing-del" @click="closeKbForm">取消</button>
+          </div>
         </form>
+        </div><!-- /module-form -->
 
-        <div class="existing-list">
-          <h4>当前资料（{{ kbDocuments.length }}）</h4>
-          <p v-if="!kbDocuments.length" class="empty-hint">暂无资料</p>
-          <div v-for="doc in kbDocuments" :key="doc.id" class="existing-item">
+        <!-- 当前资料列表 -->
+        <div class="module-list">
+          <div class="module-list-head">
+            <h4>当前资料{{ kbFilter ? ' · ' + kbTypeLabel(kbFilter) : '' }}（{{ filteredKbDocs.length }}）</h4>
+          </div>
+          <p v-if="!filteredKbDocs.length" class="empty-hint">{{ kbFilter ? '该分类暂无资料，点击统计可切换筛选' : '暂无资料，点上方「上传资料」添加第一个' }}</p>
+          <div v-for="doc in filteredKbDocs" :key="doc.id" class="existing-item">
             <div class="existing-info">
               <span class="existing-title">{{ doc.title?.zh || doc.title }}</span>
               <span class="existing-meta">{{ doc.courseId }} · {{ doc.date }} · {{ doc.size }}</span>
             </div>
             <button type="button" class="existing-del" @click="deleteKnowledgeDoc(doc)">删除</button>
           </div>
-        </div>
-      </div>
+        </div><!-- /module-list -->
+      </div><!-- /module-section -->
 
       <!-- ===== 班费（子 Tab 管理） ===== -->
       <div v-if="currentType === 'finance'" class="form-section">
@@ -469,6 +553,17 @@
         </div>
 
         <div v-show="finTab === 'ledger'">
+        <!-- 动作栏：流水统计（可筛选）+ 记一笔 -->
+        <div class="module-bar">
+          <div class="module-stats">
+            <button type="button" class="stat-chip" :class="{ on: finTxFilter === '' }" @click="finTxFilter = ''">全部 {{ finTransactions.length }}</button>
+            <button type="button" class="stat-chip" :class="{ on: finTxFilter === 'income' }" @click="toggleFinTxFilter('income')">收入 {{ finTxKindCount('income') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: finTxFilter === 'expense' }" @click="toggleFinTxFilter('expense')">支出 {{ finTxKindCount('expense') }}</button>
+          </div>
+          <button type="button" class="module-add-btn" @click="openFinForm">＋ 记一笔</button>
+        </div>
+        <!-- 记一笔表单（展开式） -->
+        <div v-if="finFormOpen" class="module-form">
         <h3>💰 添加班费收支</h3>
         <form @submit.prevent="submitFinance" class="data-form">
           <div class="form-row">
@@ -511,15 +606,19 @@
               <option v-for="b in finBudgets" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ b.amount }}<template v-if="b.status !== 'passed'">（{{ b.status }}）</template></option>
             </select>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !finCanSubmit">
-            {{ submitting ? '提交中...' : '提交并发布' }}
-          </button>
+          <div class="form-actions">
+            <button type="submit" class="submit-btn" :disabled="submitting || !finCanSubmit">{{ submitting ? '提交中...' : '提交并发布' }}</button>
+            <button type="button" class="existing-del" @click="closeFinForm">取消</button>
+          </div>
         </form>
+        </div><!-- /module-form -->
 
-        <div class="existing-list">
-          <h4>当前流水（{{ finTransactions.length }}）</h4>
-          <p v-if="!finTransactions.length" class="empty-hint">暂无流水</p>
-          <div v-for="tx in finTransactions" :key="tx.id" class="existing-item">
+        <div class="module-list">
+          <div class="module-list-head">
+            <h4>当前流水{{ finTxFilter ? ' · ' + (finTxFilter === 'income' ? '收入' : '支出') : '' }}（{{ filteredFinTx.length }}）</h4>
+          </div>
+          <p v-if="!filteredFinTx.length" class="empty-hint">{{ finTxFilter ? '该类型暂无流水，点击统计可切换筛选' : '暂无流水，点上方「记一笔」添加第一笔' }}</p>
+          <div v-for="tx in filteredFinTx" :key="tx.id" class="existing-item">
             <div class="existing-info">
               <span class="existing-title">
                 <span :class="tx.type==='income' ? 'tx-income' : 'tx-expense'">{{ tx.type==='income' ? '收入' : '支出' }}</span>
@@ -534,8 +633,19 @@
         </div>
 
         <div v-show="finTab === 'budgets'">
-        <!-- 预算公示（支出前） -->
-        <h3 style="margin-top:30px">📋 发布预算公示（支出前，公示 3 天征集反对）</h3>
+        <!-- 动作栏：公示统计（可筛选）+ 发公示 -->
+        <div class="module-bar">
+          <div class="module-stats">
+            <button type="button" class="stat-chip" :class="{ on: budgetFilter === '' }" @click="budgetFilter = ''">全部 {{ finBudgets.length }}</button>
+            <button type="button" class="stat-chip" :class="{ on: budgetFilter === 'open' }" @click="toggleBudgetFilter('open')">公示中 {{ budgetKindCount('open') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: budgetFilter === 'passed' }" @click="toggleBudgetFilter('passed')">已通过 {{ budgetKindCount('passed') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: budgetFilter === 'ended' }" @click="toggleBudgetFilter('ended')">已结束 {{ budgetEndedCount }}</button>
+          </div>
+          <button type="button" class="module-add-btn" @click="openBudgetForm">＋ 发公示</button>
+        </div>
+        <!-- 发布预算表单（展开式） -->
+        <div v-if="budgetFormOpen" class="module-form">
+        <h3 style="margin-top:0">📋 发布预算公示（支出前，公示 3 天征集反对）</h3>
         <form @submit.prevent="publishBudget" class="data-form">
           <div class="form-row">
             <div class="form-group"><label>公示标题（事项）<span class="required">*</span></label><input v-model="budgetForm.title" required placeholder="如：9月班级聚餐预算" /></div>
@@ -567,15 +677,19 @@
             </div>
             <button type="button" class="mini-add" @click="addBudgetItem">+ 添加明细项</button>
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting || !budgetCanSubmit">
-            {{ submitting ? '提交中...' : '发布公示（3 天异议期）' }}
-          </button>
+          <div class="form-actions">
+            <button type="submit" class="submit-btn" :disabled="submitting || !budgetCanSubmit">{{ submitting ? '提交中...' : '发布公示（3 天异议期）' }}</button>
+            <button type="button" class="existing-del" @click="closeBudgetForm">取消</button>
+          </div>
         </form>
+        </div><!-- /module-form -->
 
-        <div class="existing-list">
-          <h4>公示记录（{{ finBudgets.length }}）</h4>
-          <p v-if="!finBudgets.length" class="empty-hint">暂无公示</p>
-          <div v-for="b in finBudgets" :key="b.id" class="existing-item">
+        <div class="module-list">
+          <div class="module-list-head">
+            <h4>公示记录{{ budgetFilter ? ' · ' + (budgetFilter === 'ended' ? '已结束' : budgetFilter) : '' }}（{{ filteredFinBudgets.length }}）</h4>
+          </div>
+          <p v-if="!filteredFinBudgets.length" class="empty-hint">{{ budgetFilter ? '该状态暂无公示，点击统计可切换筛选' : '暂无公示，点上方「发公示」发布第一个' }}</p>
+          <div v-for="b in filteredFinBudgets" :key="b.id" class="existing-item">
             <div class="existing-info">
               <span class="existing-title">
                 <span :class="'bc-' + b.status">[{{ b.status }}]</span> {{ b.title }} · ¥{{ b.amount }}
@@ -617,10 +731,16 @@
               </details>
             </div>
             <div class="reimb-actions">
-              <button v-if="r.status === 'submitted'" type="button" class="existing-del ok" @click="auditReimb(r, 'approve')">通过</button>
-              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="auditReimb(r, 'revision')">退回补正</button>
-              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="auditReimb(r, 'reject')">驳回</button>
-              <button v-if="r.status === 'approved'" type="button" class="existing-del ok" @click="auditReimb(r, 'pay')">确认打款</button>
+              <button v-if="r.status === 'submitted'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'approve')">通过</button>
+              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'revision')">退回补正</button>
+              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'reject')">驳回</button>
+              <button v-if="r.status === 'approved'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'pay')">确认打款</button>
+            </div>
+            <!-- 审批意见输入（二次确认） -->
+            <div v-if="reimbAudit && reimbAudit.id === r.id" class="reject-box reimb-audit-box">
+              <input v-model="reimbAuditNote" :placeholder="reimbAuditNotePh" />
+              <button type="button" class="audit-no" @click="doReimbAudit(r)" :disabled="submitting || !reimbAuditNote.trim()">确认{{ reimbAuditLabel }}</button>
+              <button type="button" class="audit-cancel" @click="closeReimbAudit">取消</button>
             </div>
           </div>
         </div>
@@ -673,8 +793,8 @@
         <div v-show="finTab === 'supervision'">
         <!-- 监督视图（仅雷振宇可见；票向实名明细） -->
         <div v-if="isSupervisorLzy" class="form-section" style="margin-top:26px">
-          <h3>🔍 监督视图（仅主理人可见）</h3>
-          <p class="empty-hint">票向实名明细：显示每条公示的赞成/反对名单与留言人身份，仅监督人可查看。</p>
+          <h3>🔍 监督视图（仅本人可见）</h3>
+          <p class="empty-hint">票向实名明细：显示每条公示的赞成/反对名单与留言人身份，仅本人可查看。</p>
           <div v-if="supervisionMsg" class="empty-hint">{{ supervisionMsg }}</div>
           <div v-else-if="!finSupervision" class="empty-hint">加载中…</div>
           <template v-else>
@@ -738,8 +858,19 @@
         </div>
 
         <div v-show="coinsTab === 'rules'">
-          <h3>⚙️ 奖励规则配置</h3>
-          <form @submit.prevent="createRule" class="data-form">
+        <!-- 动作栏：规则统计（可筛选）+ 添加 -->
+        <div class="module-bar">
+          <div class="module-stats">
+            <button type="button" class="stat-chip" :class="{ on: coinRuleFilter === '' }" @click="coinRuleFilter = ''">全部 {{ coinRules.length }}</button>
+            <button type="button" class="stat-chip" :class="{ on: coinRuleFilter === 'routine' }" @click="toggleCoinRuleFilter('routine')">常规 {{ coinRuleKindCount('routine') }}</button>
+            <button type="button" class="stat-chip" :class="{ on: coinRuleFilter === 'custom' }" @click="toggleCoinRuleFilter('custom')">自定义 {{ coinRuleCustomCount }}</button>
+          </div>
+          <button type="button" class="module-add-btn" @click="openRuleForm">＋ 添加规则</button>
+        </div>
+        <!-- 添加规则表单（展开式） -->
+        <div v-if="ruleFormOpen" class="module-form">
+        <h3>⚙️ 奖励规则配置</h3>
+        <form @submit.prevent="createRule" class="data-form">
             <div class="form-row">
               <div class="form-group"><label>规则名称（中文）<span class="required">*</span></label><input v-model="ruleForm.nameZh" required placeholder="如：参与班级活动" /></div>
               <div class="form-group"><label>单次奖励币数 <span class="required">*</span></label><input v-model.number="ruleForm.amount" type="number" min="1" step="1" required /></div>
@@ -769,13 +900,19 @@
               <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" v-model="ruleForm.isRoutine" /> 常规规则（快速复核）</label></div>
               <div class="form-group"><label>备注</label><input v-model="ruleForm.note" placeholder="选填" /></div>
             </div>
-            <button type="submit" class="submit-btn" :disabled="submitting">添加规则</button>
+            <div class="form-actions">
+              <button type="submit" class="submit-btn" :disabled="submitting">添加规则</button>
+              <button type="button" class="existing-del" @click="closeRuleForm">取消</button>
+            </div>
           </form>
+        </div><!-- /module-form -->
 
-          <div class="existing-list">
-            <h4>当前规则（{{ coinRules.length }}）</h4>
-            <p v-if="!coinRules.length" class="empty-hint">暂无规则</p>
-            <div v-for="r in coinRules" :key="r.id" class="existing-item">
+        <div class="module-list">
+          <div class="module-list-head">
+            <h4>当前规则{{ coinRuleFilter ? ' · ' + (coinRuleFilter === 'routine' ? '常规' : '自定义') : '' }}（{{ filteredCoinRules.length }}）</h4>
+          </div>
+          <p v-if="!filteredCoinRules.length" class="empty-hint">{{ coinRuleFilter ? '该分类暂无规则' : '暂无规则，点上方「添加规则」创建第一个' }}</p>
+          <div v-for="r in filteredCoinRules" :key="r.id" class="existing-item">
               <div class="existing-info">
                 <span class="existing-title">{{ r.name_zh }}（+{{ r.amount }} 币）<span :class="r.status ? 'tx-income' : 'tx-expense'">{{ r.status ? '启用' : '停用' }}</span></span>
                 <span class="existing-meta">{{ r.category }} · {{ r.unit === 'per_activity' ? '按活动' : '固定' }}{{ r.is_routine ? ' · 常规' : ' · 非常规' }}{{ r.note ? ' · ' + r.note : '' }}</span>
@@ -925,9 +1062,9 @@
       <div class="workspace-right">
       <!-- ===== 提交记录 ===== -->
       <div class="history-section">
-        <h3>📜 提交记录 <span class="history-count">({{ submitHistory.length }}条)</span> <span v-if="historyLoading" class="history-loading">加载中...</span></h3>
-        <div v-if="submitHistory.length === 0" class="history-empty">暂无提交记录</div>
-        <div v-for="record in submitHistory" :key="record.id" class="history-item">
+        <h3>📜 {{ currentTypeLabel }}·操作记录 <span class="history-count">({{ currentHistory.length }}条)</span> <span v-if="historyLoading" class="history-loading">加载中...</span></h3>
+        <div v-if="currentHistory.length === 0" class="history-empty">该模块暂无提交记录</div>
+        <div v-for="record in currentHistory" :key="record.id" class="history-item">
           <div class="history-card">
             <div class="history-row1">
               <span class="history-badge" :class="'badge-' + record.status">
@@ -1061,6 +1198,17 @@ watch(visibleTypes, (list) => {
 
 const submitting = ref(false)
 
+// ===== 统一操作提示（toast）=====
+const toastMsg = ref('')
+const toastType = ref('success')
+let toastTimer = null
+function showToast(msg, type = 'success') {
+  toastMsg.value = msg
+  toastType.value = type
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastMsg.value = '' }, 2600)
+}
+
 // ===== 表单数据 =====
 const today = new Date().toISOString().split('T')[0]
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
@@ -1188,6 +1336,19 @@ function editActivity(a) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 function cancelEditActivity() { resetActForm() }
+// 活动模块：新建表单展开状态（统一布局试点）
+const actFormOpen = ref(false)
+function openActForm() { resetActForm(); actFormOpen.value = true }
+function openActEdit(a) { editActivity(a); actFormOpen.value = true }
+function closeActForm() { resetActForm(); actFormOpen.value = false }
+// 活动模块：按阶段筛选（统计 chip 点击切换，再点取消）
+const actStageFilter = ref('')
+const filteredActList = computed(() => {
+  if (!actStageFilter.value) return actList.value
+  return actList.value.filter(a => (a.stage || 'dated') === actStageFilter.value)
+})
+const actStageCount = (s) => actList.value.filter(a => (a.stage || 'dated') === s).length
+function toggleActFilter(s) { actStageFilter.value = actStageFilter.value === s ? '' : s }
 function toggleRecurDay(d) {
   const arr = actForm.value.recurDays
   const i = arr.indexOf(d)
@@ -1589,6 +1750,9 @@ function formatTreeholeTime(iso) {
 // ===== 提交记录（数据源：D1 admin_history 表）=====
 const submitHistory = ref([])
 const historyLoading = ref(false)
+// 右列操作记录：仅显示当前模块（admin_history 的 type 与模块 id 一一对应）
+const currentHistory = computed(() => submitHistory.value.filter(r => r.type === currentType.value))
+const currentTypeLabel = computed(() => dataTypes.find(t => t.id === currentType.value)?.name || currentType.value)
 function shortTime(t){
   if(!t) return ''
   const d = t instanceof Date ? t : new Date(t)
@@ -1687,7 +1851,8 @@ async function submitAnnouncement() {
     rec.status = 'success'
     invalidateResource('/api/announcements')
     annForm.value = { titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' }
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    showToast('公告已发布')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('发布失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
@@ -1709,7 +1874,12 @@ function buildActPayload() {
     if (typeof f.registered === 'number' && f.registered > 0) base.registered = f.registered
   } else if (f.stage === 'planning') {
     base.scale = f.scale || '小活动'
+    if (f.time) base.time = f.time
+    if (f.locationZh) base.location = { zh: f.locationZh }
+    if (f.organizerZh) base.organizer = { zh: f.organizerZh }
     if (f.descriptionZh) base.description = { zh: f.descriptionZh }
+    if (typeof f.capacity === 'number' && f.capacity > 0) base.capacity = f.capacity
+    if (typeof f.registered === 'number' && f.registered > 0) base.registered = f.registered
   } else if (f.stage === 'recurring') {
     base.recurrence = { days: [...f.recurDays].sort(), time: f.recurTime || '' }
     if (f.locationZh) base.location = { zh: f.locationZh }
@@ -1750,8 +1920,10 @@ async function submitActivity() {
     rec.status = 'success'
     invalidateResource('/api/activities-db')
     resetActForm()
+    actFormOpen.value = false
     await loadActivityList()
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    showToast(isEdit ? '活动已保存' : '活动已发布')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('提交失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
@@ -1832,10 +2004,22 @@ async function submitCourseMaterial() {
     invalidateResource('/api/course-materials-db')
     resetCmForm()
     await loadCourseFiles()
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    cmFormOpen.value = false
+    showToast('资料已上传')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('上传失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
+
+// ===== 课程资料：表单展开 + 按类型筛选 =====
+const cmFormOpen = ref(false)
+function openCmForm() { cmFormOpen.value = true }
+function closeCmForm() { cmFormOpen.value = false }
+const cmTab = ref('files') // 'files' = 当前课件与资料 | 'sessions' = 讲次管理
+const cmFilter = ref('')
+const cmKindCount = (k) => cmFiles.value.filter(f => f.kind === k).length
+const filteredCmFiles = computed(() => cmFilter.value ? cmFiles.value.filter(f => f.kind === cmFilter.value) : cmFiles.value)
+function toggleCmFilter(s) { cmFilter.value = cmFilter.value === s ? '' : s }
 
 // ===== 知识库（整包：DB 优先，失败回退静态 JSON）=====
 async function getCurrentKnowledgePack() {
@@ -1885,10 +2069,22 @@ async function submitKnowledge() {
     invalidateResource('/api/knowledge-db')
     kbForm.value = { courseId:'general', type:'note', date:today, title:'', author:'', file:null }
     await loadKbCourses()
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    kbFormOpen.value = false
+    showToast('资料已上传')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('上传失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
+
+// ===== 知识库：表单展开 + 按类型筛选 =====
+const kbFormOpen = ref(false)
+function openKbForm() { kbFormOpen.value = true }
+function closeKbForm() { kbFormOpen.value = false }
+const kbFilter = ref('')
+const kbTypeCount = (t) => kbDocuments.value.filter(d => d.type === t).length
+const kbTypeLabel = (t) => ({ note: '课程笔记', summary: '重点总结', exam: '考题参考', resource: '学习资源' }[t] || t)
+const filteredKbDocs = computed(() => kbFilter.value ? kbDocuments.value.filter(d => d.type === kbFilter.value) : kbDocuments.value)
+function toggleKbFilter(s) { kbFilter.value = kbFilter.value === s ? '' : s }
 
 // ===== 提交班费（结构化流水 POST /api/admin/finance/transactions）=====
 async function submitFinance() {
@@ -1912,10 +2108,34 @@ async function submitFinance() {
     invalidateResource('/api/finance-v2')
     finForm.value = { type:'expense', date:today, category:'dining', amount:null, description:'', activityId:'', proposalId:'', handler:'', items:[{ category:'dining', amount:null, description:'' }] }
     await loadFinanceTransactions()
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    finFormOpen.value = false
+    showToast('收支已入账')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('入账失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
+
+// ===== 班费：流水表单展开 + 类型筛选；预算表单展开 + 状态筛选 =====
+const finFormOpen = ref(false)
+function openFinForm() { finFormOpen.value = true }
+function closeFinForm() { finFormOpen.value = false }
+const finTxFilter = ref('')
+const finTxKindCount = (k) => finTransactions.value.filter(t => t.type === k).length
+const filteredFinTx = computed(() => finTxFilter.value ? finTransactions.value.filter(t => t.type === finTxFilter.value) : finTransactions.value)
+function toggleFinTxFilter(s) { finTxFilter.value = finTxFilter.value === s ? '' : s }
+const budgetFormOpen = ref(false)
+function openBudgetForm() { budgetFormOpen.value = true }
+function closeBudgetForm() { budgetFormOpen.value = false }
+const budgetFilter = ref('')
+const budgetKindCount = (s) => finBudgets.value.filter(b => b.status === s).length
+const budgetEndedCount = computed(() => finBudgets.value.filter(b => !['open', 'passed'].includes(b.status)).length)
+const filteredFinBudgets = computed(() => {
+  const f = budgetFilter.value
+  if (!f) return finBudgets.value
+  if (f === 'ended') return finBudgets.value.filter(b => !['open', 'passed'].includes(b.status))
+  return finBudgets.value.filter(b => b.status === f)
+})
+function toggleBudgetFilter(s) { budgetFilter.value = budgetFilter.value === s ? '' : s }
 
 // ===== 课程资料 / 班费：当前内容列表与单条删除 =====
 function flattenCourseFiles(pack) {
@@ -2092,7 +2312,9 @@ async function publishBudget() {
     invalidateResource('/api/finance-v2')
     budgetForm.value = { activityId:'', title:'', description:'', detailItems:[{item:'',amount:null}], amount:null, proposer:'', exposeType:'normal', approvalNote:'' }
     await loadFinanceTransactions()
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    budgetFormOpen.value = false
+    showToast('预算公示已发布')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('发布失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
@@ -2120,18 +2342,32 @@ async function cancelBudget(b) {
     await loadFinanceTransactions()
   } catch (e) { alert('取消失败: ' + e.message) }
 }
-async function auditReimb(r, action) {
-  let note = ''
-  if (action === 'reject') {
-    note = prompt('驳回原因：')
-    if (note === null) return
-  }
-  if (action === 'revision') {
-    note = prompt('退回补正意见（请说明需要修改的内容）：')
-    if (note === null) return
-  }
-  const verb = action === 'approve' ? '通过' : action === 'reject' ? '驳回' : action === 'revision' ? '退回补正' : '确认已打款'
-  if (!confirm(`${verb}报销「${r.description}」（¥${r.amount}）？`)) return
+// ===== 报销审批：二次确认 + 审批人意见（通过/退回/驳回/打款均留痕）=====
+const reimbAudit = ref(null) // { id, action }
+const reimbAuditNote = ref('')
+const reimbAuditLabel = computed(() => reimbAudit.value
+  ? ({ approve: '通过', reject: '驳回', revision: '退回补正', pay: '确认打款' }[reimbAudit.value.action] || '')
+  : '')
+const reimbAuditNotePh = computed(() => {
+  if (!reimbAudit.value) return ''
+  const a = reimbAudit.value.action
+  if (a === 'pay') return '打款留言（已按规范预填，可修改）'
+  if (a === 'approve') return '通过意见（必填，如：同意报销，凭证齐全）'
+  if (a === 'revision') return '退回补正意见（必填，请说明需要修改的内容）'
+  return '驳回原因（必填）'
+})
+function openReimbAudit(r, action) {
+  reimbAudit.value = { id: r.id, action }
+  reimbAuditNote.value = action === 'pay' ? `李浩鹏写小荷包付给${r.applicant}` : ''
+}
+function closeReimbAudit() { reimbAudit.value = null; reimbAuditNote.value = '' }
+async function doReimbAudit(r) {
+  const a = reimbAudit.value
+  if (!a || a.id !== r.id) return
+  const action = a.action
+  const note = reimbAuditNote.value.trim()
+  if (!note) { showToast('请填写审批意见', 'error'); return }
+  if (!confirm(`确认${reimbAuditLabel.value}报销「${r.description}」（¥${r.amount}）？\n\n审批意见：${note}`)) return
   submitting.value = true
   try {
     const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/reimbursements/${r.id}/audit`, {
@@ -2140,7 +2376,9 @@ async function auditReimb(r, action) {
     await throwIfNotOk(res, '报销处理')
     invalidateResource('/api/finance-v2')
     await loadFinanceTransactions()
-  } catch (e) { alert('操作失败: ' + e.message) }
+    closeReimbAudit()
+    showToast(`报销${reimbAuditLabel.value}成功`)
+  } catch (e) { showToast('操作失败: ' + e.message, 'error') }
   submitting.value = false
 }
 
@@ -2195,6 +2433,20 @@ const approvingId = ref('')
 const rejectingId = ref('')
 const rejectNote = ref('')
 const ruleForm = ref({ nameZh: '', nameEn: '', nameTh: '', amount: 1, unit: 'fixed', category: 'contribution', isRoutine: true, note: '' })
+
+// 薄荷币规则：表单展开 + 常规/自定义筛选
+const ruleFormOpen = ref(false)
+function openRuleForm() { ruleFormOpen.value = true }
+function closeRuleForm() { ruleFormOpen.value = false }
+const coinRuleFilter = ref('')
+const coinRuleKindCount = (k) => coinRules.value.filter(r => k === 'routine' ? r.isRoutine : !r.isRoutine).length
+const coinRuleCustomCount = computed(() => coinRules.value.filter(r => !r.isRoutine).length)
+const filteredCoinRules = computed(() => {
+  const f = coinRuleFilter.value
+  if (!f) return coinRules.value
+  return coinRules.value.filter(r => f === 'routine' ? r.isRoutine : !r.isRoutine)
+})
+function toggleCoinRuleFilter(s) { coinRuleFilter.value = coinRuleFilter.value === s ? '' : s }
 
 async function loadCoinClaims() {
   coinClaimsMsg.value = ''
@@ -2252,7 +2504,9 @@ async function createRule() {
     ruleForm.value = { nameZh: '', nameEn: '', nameTh: '', amount: 1, unit: 'fixed', category: 'contribution', isRoutine: true, note: '' }
     loadCoinRules()
     loadHistory()
-  } catch (e) { alert(e.message) }
+    ruleFormOpen.value = false
+    showToast('规则已添加')
+  } catch (e) { showToast('添加失败：' + e.message, 'error') }
   finally { submitting.value = false }
 }
 async function toggleRule(r) {
@@ -2377,7 +2631,8 @@ async function submitAlbum() {
     invalidateResource('/api/activities-db')
     albForm.value.localPhotos.forEach(p => p.previewUrl && URL.revokeObjectURL(p.previewUrl))
     albForm.value = { title:'', date:today, url:'', albumType:'live', coverFile:null, localPhotos:[], description:'' }
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    showToast('相册已发布')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('发布失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
@@ -2442,7 +2697,8 @@ async function submitPoll() {
       visibility: 'after_vote', deadline: '',
       options: [{ textZh: '', imageFile: null }, { textZh: '', imageFile: null }],
     }
-  } catch(e) { rec.status='failed'; rec.error=e.message }
+    showToast('投票已发布')
+  } catch(e) { rec.status='failed'; rec.error=e.message; showToast('发布失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
 }
@@ -2516,6 +2772,33 @@ watch(currentType, (val) => {
 .type-tab.active { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
 .fin-subtabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px dashed var(--c-border); }
 .fin-subtabs .type-tab { padding: 7px 14px; border-radius: 10px; font-size: 13px; }
+/* ===== 模块统一布局（试点：活动模块）===== */
+.module-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+.module-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap; margin-bottom: 18px; }
+.module-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--c-border, #333); }
+.module-tab { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--c-text-secondary, #999); font-size: 14px; font-weight: 600; padding: 8px 14px; cursor: pointer; margin-bottom: -1px; transition: color .2s; }
+.module-tab.on { color: var(--c-accent, #34c759); border-bottom-color: var(--c-accent, #34c759); }
+.module-stats { display: flex; align-items: center; gap: 8px; overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.module-stats::-webkit-scrollbar { display: none; }
+.stat-chip { font-size: 12px; font-weight: 500; color: var(--c-text-secondary); background: var(--c-bg-secondary); border: 1px solid var(--c-border); border-radius: 12px; padding: 4px 10px; cursor: pointer; transition: all .2s; }
+.stat-chip:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.stat-chip.on { background: var(--c-accent-light); border-color: var(--c-accent); color: var(--c-accent); font-weight: 600; }
+.module-add-btn { font-size: 14px; font-weight: 600; color: #fff; background: var(--c-accent); border: none; border-radius: 10px; padding: 9px 18px; cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0; }
+.module-add-btn:hover { filter: brightness(1.08); }
+.module-form { background: var(--c-bg-secondary); border: 1px dashed var(--c-border-accent); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+.module-form h3 { font-size: 16px; font-weight: 700; margin: 0 0 16px; }
+.module-list { }
+.module-list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.module-list-head h4 { font-size: 15px; font-weight: 700; margin: 0; }
+.module-list .empty-hint { padding: 28px 0; text-align: center; color: var(--c-text-tertiary); font-size: 13px; }
+
+/* ===== 统一操作提示 toast ===== */
+.admin-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 9999; max-width: 90%; padding: 11px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; color: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+.admin-toast.success { background: var(--c-accent, #2D7A6C); }
+.admin-toast.error { background: #ff3b30; }
+.toast-fade-enter-active, .toast-fade-leave-active { transition: opacity .25s ease, transform .25s ease; }
+.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translate(-50%, -8px); }
+
 .form-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
 .form-section h3 { font-size: 18px; font-weight: 700; margin: 0 0 20px; }
 .data-form { display: flex; flex-direction: column; gap: 16px; }
@@ -2565,7 +2848,7 @@ watch(currentType, (val) => {
 .add-option-btn { padding: 8px 16px; background: transparent; border: 1px dashed var(--c-accent); border-radius: 8px; color: var(--c-accent); cursor: pointer; font-size: 13px; }
 .add-option-btn:hover { background: var(--c-accent-light); }
 
-.submit-btn { padding: 14px; background: var(--c-accent); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+.submit-btn { padding: 7px 16px; background: var(--c-accent); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 /* ===== 左右分栏：左表单 / 右提交记录 ===== */
 .admin-workspace { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(300px,0.92fr); gap: 20px; align-items: start; margin-top: 4px; }
