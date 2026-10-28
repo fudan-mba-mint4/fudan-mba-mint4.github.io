@@ -16,11 +16,11 @@ export async function getPublicCache(key) {
   } catch (e) { return null }
 }
 
-// 写缓存（TTL 秒；响应会被克隆，不影响原响应）
+// 写缓存（TTL 秒；clone 一份入缓存，原响应照常返回客户端）
 export async function setPublicCache(key, response, ttlSeconds = 60) {
   try {
     const cache = caches.default
-    const r = new Response(response.body, response)
+    const r = response.clone()
     r.headers.set('Cache-Control', `public, max-age=${ttlSeconds}`)
     await cache.put(keyUrl(key), r)
   } catch (e) { /* 缓存失败不影响主流程 */ }
