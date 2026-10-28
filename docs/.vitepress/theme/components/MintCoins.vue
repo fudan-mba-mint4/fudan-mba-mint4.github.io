@@ -48,10 +48,12 @@
                 <circle :cx="c.x" :cy="c.y" :r="c.r" class="mc-tree-crown-inner" />
               </g>
               <g v-if="tree.stage === 'bloomed'" class="mc-tree-blooms">
-                <circle v-for="(b, i) in bloomDots" :key="'b' + i" :cx="b.x" :cy="b.y" r="3.2" class="mc-bloom" />
+                <circle v-for="(b, i) in stageDots(tree, 'bloom')" :key="'b' + i" :cx="b.x" :cy="b.y" r="4.2" class="mc-bloom" />
+                <circle v-for="(b, i) in stageDots(tree, 'bloom')" :key="'bh' + i" :cx="b.x - 1.5" :cy="b.y - 1.5" r="1.6" class="mc-bloom-hi" />
               </g>
               <g v-if="tree.stage === 'fruited'" class="mc-tree-fruits">
-                <circle v-for="(f, i) in fruitDots" :key="'f' + i" :cx="f.x" :cy="f.y" r="4.5" class="mc-fruit" />
+                <circle v-for="(f, i) in stageDots(tree, 'fruit')" :key="'f' + i" :cx="f.x" :cy="f.y" r="5.8" class="mc-fruit" />
+                <circle v-for="(f, i) in stageDots(tree, 'fruit')" :key="'fh' + i" :cx="f.x - 2" :cy="f.y - 2" r="1.9" class="mc-fruit-hi" />
               </g>
             </g>
           </svg>
@@ -172,12 +174,18 @@ function treeGrowStyle(tree) {
     transformOrigin: '60px 158px',
   }
 }
-const bloomDots = [
-  { x: 40, y: 118 }, { x: 55, y: 112 }, { x: 68, y: 116 }, { x: 50, y: 126 }, { x: 75, y: 124 }, { x: 46, y: 104 },
-]
-const fruitDots = [
-  { x: 42, y: 126 }, { x: 58, y: 120 }, { x: 72, y: 128 }, { x: 62, y: 134 }, { x: 50, y: 134 },
-]
+// 花/果随树冠动态定位：粉花开在枝头（树冠上部），橙果挂在冠间，随生长比例上移
+function stageDots(tree, kind) {
+  const trunkH = 36 + 62 * tree.grow
+  const cy = 158 - trunkH - 26 - 6 * tree.grow
+  const r = 17 + 9 * tree.grow
+  const ox = 60
+  const oy = cy + 6
+  const rel = kind === 'bloom'
+    ? [[-0.55, -0.4], [0.1, -0.58], [0.52, -0.24], [-0.28, 0.02], [0.38, 0.0], [-0.5, 0.2]]
+    : [[-0.5, 0.12], [0.08, 0.34], [0.46, 0.16], [-0.12, 0.5], [0.32, 0.48], [0.12, -0.2]]
+  return rel.map(([fx, fy]) => ({ x: ox + fx * r * 1.45, y: oy + fy * r * 1.45 }))
+}
 const stageLabel = (tree) => (t.value.treeStages[tree.stage] || tree.stage)
 const treeLabel = (tree) => `${t.value.group.replace('{n}', tree.group)} · ${tree.earned} ${t.value.coins} · ${stageLabel(tree)}`
 
@@ -403,10 +411,12 @@ onMounted(() => {
 .mc-tree-crown-inner { fill: #5ec4ac; opacity: 0.5; }
 .dark .mc-tree-crown { fill: #2a8a74; }
 .dark .mc-tree-crown-inner { fill: #5ec4ac; opacity: 0.45; }
-.mc-bloom { fill: #ffb3c1; animation: mc-bloom-pulse 2.4s ease-in-out infinite; }
+.mc-bloom { fill: #ff9ebc; animation: mc-bloom-pulse 2.4s ease-in-out infinite; }
+.mc-bloom-hi { fill: rgba(255, 255, 255, 0.9); }
 .mc-bloom:nth-child(even) { animation-delay: 0.7s; }
-@keyframes mc-bloom-pulse { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; transform-origin: center; } }
-.mc-fruit { fill: #ff8a3d; }
+@keyframes mc-bloom-pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; transform-origin: center; } }
+.mc-fruit { fill: #ff7b29; }
+.mc-fruit-hi { fill: rgba(255, 235, 200, 0.95); }
 .mc-tree-meta { margin-top: 4px; position: relative; }
 .mc-tree-group { font-size: 14px; font-weight: 700; }
 .mc-tree-amount { font-size: 13px; color: var(--c-text-secondary, #6e6e73); margin: 2px 0; }
