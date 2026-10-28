@@ -4,6 +4,7 @@ import {
   getSql, corsResponse, optionsResponse, parseBody, requireLogin,
   ensureTables, isMissingTableError, isViewerOnly, VIEWER_ONLY_MSG,
 } from '../../_utils.js'
+import { purgePublicCache } from '../../_cache.js'
 import { newId, COIN_CONFIG } from '../../_coins.js'
 
 export async function onRequest(context) {
@@ -76,5 +77,6 @@ async function handleCreate(request, env, user) {
     INSERT INTO coin_claims (id, user_id, applicant, rule_id, title, description, activity_id, proofs, recipients, total, status)
     VALUES (${id}, ${user.id}, ${user.name}, ${rule.id}, ${title}, ${description}, ${activityId},
       ${JSON.stringify(proofs)}, ${JSON.stringify(recipients)}, ${total}, 'pending')`
+  await purgePublicCache('coins-board')
   return corsResponse({ message: '申报已提交，等待班委审核', id, total }, 201)
 }

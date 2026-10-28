@@ -3,8 +3,9 @@
  * 统一处理各组件中重复的 fetch('/data/xxx.json') 逻辑
  * 使用方式：const { data, loading, error, reload } = useData('/data/announcements.json')
  *
- * 支持数据库优先：传入 options.dbUrl（公开只读 API），先用短超时原生 fetch 探测 DB，
- * 成功则用 DB 数据；失败/超时快速回退到静态 JSON url。
+ * 静态先行 + 数据库异步校准（stale-while-revalidate）：
+ * 首屏先用随站点打包的静态 JSON（CDN/本地毫秒级）立即渲染，
+ * 再在后台静默拉取 dbUrl 公开只读 API 校准为最新数据（成功覆盖静态、失败保留静态）。
  *   useData('/data/course-materials.json', { dbUrl: '/api/course-materials-db' })
  *
  * 自动更新：写入侧（admin）发布 / 删除 / 撤回成功后调用 invalidateResource(dbUrl)，
@@ -83,20 +84,24 @@ export function useData(url, options = {}) {
         data.value = cache.get(cacheKey)
         source.value = cacheKey === url ? 'static' : 'db'
         loading.value = false
+        // 有 DB 时缓存也可能过期：后台静默校准，不阻塞首屏
+        if (dbUrl) await tryDb()
         return
       }
-      // 1. DB 优先（短超时探测，不重试，快速失败）
-      if (dbUrl && await tryDb()) {
-        loading.value = false
-        return
+      // 1. 静态 JSON 先行：随站点打包的本地/CDN 文件，毫秒级返回，首屏立即有数据
+      if (url) {
+        const res = await fetchWithRetry(url)
+        if (res.ok) {
+          const json = await res.json()
+          data.value = json
+          source.value = 'static'
+          if (useCache) cache.set(cacheKey, json)
+        } else {
+          throw new Error(`HTTP ${res.status}`)
+        }
       }
-      // 2. 回退静态 JSON
-      const res = await fetchWithRetry(url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = await res.json()
-      data.value = json
-      source.value = 'static'
-      if (useCache) cache.set(cacheKey, json)
+      // 2. 数据库异步校准：不阻塞首屏，成功后覆盖为最新数据
+      if (dbUrl) await tryDb()
     } catch (e) {
       error.value = e.message
       console.error(`[useData] Failed to fetch ${url}:`, e)

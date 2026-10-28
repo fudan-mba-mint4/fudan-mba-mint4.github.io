@@ -6,6 +6,7 @@
 // body: { action, note? }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, isMissingTableError, ensureTables } from '../../../../../../_utils.js'
 import { getFinanceRoles, isAccountant } from '../../../../../../_finance.js'
+import { purgePublicCache } from '../../../../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env, params } = context
@@ -38,6 +39,7 @@ export async function onRequest(context) {
       await sql`UPDATE reimbursements SET status = 'rejected', audit_by = ${auth.user.name}, audit_at = ${nowIso}, audit_note = ${String(note).slice(0, 300)} WHERE id = ${id}`
       await logHistory(sql, { type: 'finance', action: 'reject', refId: id,
         description: `驳回报销：${rb.description || rb.id}${note ? '（' + String(note).slice(0, 100) + '）' : ''}`, operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '已驳回该报销', status: 'rejected' })
     }
 
@@ -46,6 +48,7 @@ export async function onRequest(context) {
       await sql`UPDATE reimbursements SET status = 'need_revision', audit_by = ${auth.user.name}, audit_at = ${nowIso}, audit_note = ${String(note).slice(0, 300)} WHERE id = ${id}`
       await logHistory(sql, { type: 'finance', action: 'revision', refId: id,
         description: `退回补正报销：${rb.description || rb.id}${note ? '（' + String(note).slice(0, 100) + '）' : ''}`, operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '已退回补正，等待申请人修改重提', status: 'need_revision' })
     }
 
@@ -54,12 +57,14 @@ export async function onRequest(context) {
       await sql`UPDATE reimbursements SET status = 'approved', audit_by = ${auth.user.name}, audit_at = ${nowIso}, audit_note = ${String(note).slice(0, 300)} WHERE id = ${id}`
       await logHistory(sql, { type: 'finance', action: 'approve', refId: id,
         description: `审核通过报销：${rb.description || rb.id}`, operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '已审核通过，等待出纳打款', status: 'approved' })
     }
 
     return corsResponse({ error: '未知操作' }, 400)
   } catch (err) {
     console.error('admin/finance/reimbursements/audit 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

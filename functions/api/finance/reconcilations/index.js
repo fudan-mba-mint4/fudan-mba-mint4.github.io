@@ -4,6 +4,7 @@
 // body: { date, actualBalance, note?, proposalId?, reimbursementId? }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, logHistory } from '../../../_utils.js'
 import { getFinanceRoles, isCashier, newId } from '../../../_finance.js'
+import { purgePublicCache } from '../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -65,12 +66,14 @@ export async function onRequest(context) {
       }
       await logHistory(sql, { type: 'finance', action: 'reconcile', refId: id,
         description: `登记小荷包对账：余额 ¥${bal}${proposalId ? '，关联公示' + proposalId : ''}${reimbursementId ? '，关联报销' + reimbursementId : ''}`, operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '对账记录已登记', id }, 201)
     }
 
     return corsResponse({ error: '不支持的请求方法' }, 405)
   } catch (err) {
     console.error('finance reconcilations 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

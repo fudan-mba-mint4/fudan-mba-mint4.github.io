@@ -11,7 +11,12 @@
 //   config: 参数（分母/红线/阈值/预警线/时限/期初）, now: 服务端时间
 // }
 import { getSql, corsResponse, optionsResponse, getAuthUser, ensureTables, isMissingTableError } from '../../_utils.js'
+import { getPublicCache, setPublicCache } from '../../_cache.js'
 import { getFinanceConfig, getFinanceRoles, isAccountant, isCashier, isFinanceSupervisor, isFinanceStaff, voteStats, anonymousReasons } from '../../_finance.js'
+
+// 未登录响应为纯公开数据：CDN 边缘缓存 30 秒（登录响应含私有数据不缓存）
+const PUBLIC_KEY = 'finance-v2-public'
+const PUBLIC_TTL = 30
 
 function mapBudget(row) {
   let items = []
@@ -118,7 +123,7 @@ export async function onRequest(context) {
     const pendingAudit = reimbursementsOut.filter(r => r.status === 'submitted').length
     const pendingPay = reimbursementsOut.filter(r => r.status === 'approved').length
 
-    return corsResponse({
+    const resp = corsResponse({
       transactions,
       budgets: budgetsOut,
       reimbursements: reimbursementsOut,
@@ -135,6 +140,13 @@ export async function onRequest(context) {
       config,
       now: new Date().toISOString(),
     })
+    // 未登录 = 纯公开数据：边缘缓存秒回，避免每次直达 D1
+    if (!auth) {
+      const cached = await getPublicCache(PUBLIC_KEY)
+      if (cached) return cached
+      await setPublicCache(PUBLIC_KEY, resp, PUBLIC_TTL)
+    }
+    return resp
   } catch (err) {
     console.error('finance-v2 API 错误:', err)
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)

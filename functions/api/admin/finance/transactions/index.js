@@ -4,6 +4,7 @@
 // 鉴权：仅会计（管账）或出纳（管钱）可登记/删除
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../_utils.js'
 import { getFinanceRoles, isAccountant, isCashier, FINANCE_CATEGORIES, INCOME_CATEGORIES, newId, nextVoucherNo } from '../../../../_finance.js'
+import { purgePublicCache } from '../../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -59,6 +60,7 @@ export async function onRequest(context) {
         description: `登记${body.type === 'income' ? '收入' : '支出'}：${String(body.description).trim()}（¥${finalAmount}，凭证号 ${voucherNo}${items.length ? `，${items.length} 项明细` : ''}）`, operator: auth.user.name })
       await notify(sql, { type: 'finance', title: '班费明细已更新',
         body: `${body.type === 'income' ? '收入' : '支出'}：${String(body.description).trim()} ¥${finalAmount}（${voucherNo}）`, modulePath: '/finance/', operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '流水已登记', id, voucherNo, amount: finalAmount, items }, 201)
     }
 
@@ -76,12 +78,14 @@ export async function onRequest(context) {
       await sql`DELETE FROM finance_tx WHERE id = ${body.id}`
       await logHistory(sql, { type: 'finance', action: 'delete', refId: body.id,
         description: `删除流水：${rows[0].description || body.id}`, operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '已删除' })
     }
 
     return corsResponse({ error: '不支持的请求方法' }, 405)
   } catch (err) {
     console.error('admin/finance/transactions 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

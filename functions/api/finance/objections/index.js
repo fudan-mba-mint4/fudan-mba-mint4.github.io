@@ -3,6 +3,7 @@
 // body: { proposalId, reason }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
 import { exposeOpen } from '../../../_finance.js'
+import { purgePublicCache } from '../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -35,9 +36,11 @@ export async function onRequest(context) {
       VALUES (${proposal.id}, ${auth.user.id}, ${reason})
       ON CONFLICT (proposal_id, user_id) DO UPDATE SET reason = excluded.reason
     `
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ message: '已提交反对意见', ok: true })
   } catch (err) {
     console.error('finance objections 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

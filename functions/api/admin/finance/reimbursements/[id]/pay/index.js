@@ -3,6 +3,7 @@
 // 硬约束：审核人与付款人不得为同一人（钱账分离）
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../../../_utils.js'
 import { getFinanceRoles, isCashier, newId, nextVoucherNo } from '../../../../../../_finance.js'
+import { purgePublicCache } from '../../../../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env, params } = context
@@ -48,9 +49,11 @@ export async function onRequest(context) {
       description: `确认支付报销：${rb.description || rb.id}（¥${rb.amount}，凭证号 ${voucherNo}）`, operator: auth.user.name })
     await notify(sql, { type: 'finance', title: '报销已支付',
       body: `${rb.description || rb.id}（¥${rb.amount}）已由出纳确认打款，流水凭证号 ${voucherNo}`, modulePath: '/finance/', operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ message: '已确认打款并生成支出流水', status: 'paid', txId, voucherNo })
   } catch (err) {
     console.error('admin/finance/reimbursements/pay 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

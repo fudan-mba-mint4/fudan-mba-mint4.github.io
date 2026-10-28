@@ -4,6 +4,7 @@
 import {
   getSql, corsResponse, optionsResponse, parseBody, requireRole, logHistory, notify,
 } from '../../../_utils.js'
+import { purgePublicCache } from '../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -30,6 +31,7 @@ export async function onRequest(context) {
       `
       await logHistory(sql, { type: 'finance', action: 'delete',
         description: `删除流水：${target.description || txId}`, operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '已删除', removed: true })
     }
 
@@ -53,12 +55,14 @@ export async function onRequest(context) {
       await notify(sql, { type: 'finance', title: '班费明细已更新',
         body: added > 0 ? `新增 ${added} 条流水` : '流水已调整',
         modulePath: '/finance/', operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '财务数据保存成功', id: result[0]?.id }, 200)
     }
 
     return corsResponse({ error: '不支持的请求方法' }, 405)
   } catch (err) {
     console.error('admin/finance 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err?.message || err) }, 500)
   }
 }

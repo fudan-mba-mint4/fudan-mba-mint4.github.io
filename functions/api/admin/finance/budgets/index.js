@@ -4,6 +4,7 @@
 // GET：全部公示 + v2 投票聚合（赞成/反对/未表态/红线 + 匿名反对留言；票向明细仅监督视图提供）
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../_utils.js'
 import { getFinanceRoles, isAccountant, getFinanceConfig, FINANCE_CATEGORIES, newId, voteStats, anonymousReasons } from '../../../../_finance.js'
+import { purgePublicCache } from '../../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -87,12 +88,14 @@ export async function onRequest(context) {
         description: `发布预算公示${exposeType === 'emergency' ? '（紧急·事后补公示）' : ''}：${String(body.title).trim()}`, operator: auth.user.name })
       await notify(sql, { type: 'finance', title: exposeType === 'emergency' ? '紧急支出补公示' : '班费预算公示',
         body: `${String(body.title).trim()}（预算上限 ¥${amount}）${exposeType === 'emergency' ? '【紧急·事后补公示】' : ''}公示 ${days} 日，请到财务页登录投票`, modulePath: '/finance/', operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '预算公示已发布', id, exposeEnd, exposeType }, 201)
     }
 
     return corsResponse({ error: '不支持的请求方法' }, 405)
   } catch (err) {
     console.error('admin/finance/budgets 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

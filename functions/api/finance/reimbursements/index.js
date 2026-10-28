@@ -6,6 +6,7 @@
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
 import { COMMITTEE_ROLES } from '../../../_utils.js'
 import { getFinanceConfig, VOUCHER_TYPES, newId } from '../../../_finance.js'
+import { purgePublicCache } from '../../../_cache.js'
 
 function voucherOk(url) {
   return /^https:\/\/files\.mint4\.cn\//.test(url || '') || /^\/files\//.test(url || '')
@@ -85,6 +86,7 @@ export async function onRequest(context) {
             status = 'submitted', audit_note = ''
         WHERE id = ${id}
       `
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '已补正并重新提交，等待会计审核', status: 'submitted' })
     }
 
@@ -128,9 +130,11 @@ export async function onRequest(context) {
       else throw e
     }
 
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ message: '报销已提交，等待会计审核', id }, 201)
   } catch (err) {
     console.error('finance reimbursements 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

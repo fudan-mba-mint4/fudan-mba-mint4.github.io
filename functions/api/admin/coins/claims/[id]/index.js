@@ -4,6 +4,7 @@ import {
   getSql, corsResponse, optionsResponse, parseBody, requireCoinsAdmin,
   logHistory, ensureTables, isMissingTableError,
 } from '../../../../../_utils.js'
+import { purgePublicCache } from '../../../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env, params } = context
@@ -46,6 +47,7 @@ async function handleAudit(request, env, id, auditor) {
       type: 'coins', action: `驳回薄荷币申报：${claim.title}`,
       refId: id, description: `原因：${note}`, operator: auditor.name,
     })
+    await purgePublicCache('coins-board')
     return corsResponse({ message: '已驳回' })
   }
 
@@ -83,5 +85,6 @@ async function handleAudit(request, env, id, auditor) {
     type: 'coins', action: `审核通过薄荷币申报：${claim.title}`,
     refId: id, description: `发放 ${total} 币 · ${okRecipients.length} 人`, operator: auditor.name,
   })
+  await purgePublicCache('coins-board')
   return corsResponse({ message: `已通过并发放 ${total} 币`, total, recipients: okRecipients })
 }

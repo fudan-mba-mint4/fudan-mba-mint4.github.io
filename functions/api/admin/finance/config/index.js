@@ -4,6 +4,7 @@
 // body: { config?: { key: value, ... }, roles?: [{name, f_role}] }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, isMissingTableError, ensureTables } from '../../../../_utils.js'
 import { DEFAULT_FINANCE_CONFIG, getFinanceConfig, getFinanceRoles, isFinanceSupervisor, isFinanceStaff } from '../../../../_finance.js'
+import { purgePublicCache } from '../../../../_cache.js'
 
 const ALLOWED_KEYS = Object.keys(DEFAULT_FINANCE_CONFIG)
 // 财务制度写死项：69 人 / 23 票否决线 / 公示 3 天，后台不可修改（POST 直接忽略）
@@ -70,12 +71,14 @@ export async function onRequest(context) {
       await logHistory(sql, { type: 'finance', action: 'config', description: `更新财务配置（${updates.length} 项参数、${roleUpdated} 个角色）`, operator: auth.user.name })
       const config = await getFinanceConfig(env)
       const rolesOut = await getFinanceRoles(env)
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '财务配置已更新', config, roles: rolesOut })
     }
 
     return corsResponse({ error: '不支持的请求方法' }, 405)
   } catch (err) {
     console.error('admin/finance/config 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

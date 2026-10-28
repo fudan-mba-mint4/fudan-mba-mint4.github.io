@@ -4,19 +4,30 @@ import {
   getSql, corsResponse, optionsResponse,
   ensureTables, isMissingTableError,
 } from '../../_utils.js'
+import { getPublicCache, setPublicCache } from '../../_cache.js'
 import { COIN_CONFIG, FOREST, treeStageOf } from '../../_coins.js'
+
+const CACHE_KEY = 'coins-board'
+const CACHE_TTL = 60 // 公开聚合数据边缘缓存 60 秒；审批/申报写入侧会立即失效
 
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
   if (request.method !== 'GET') return corsResponse({ error: '不支持的请求方法' }, 405)
   try {
-    return await handleBoard(env)
+    // 边缘缓存命中直接秒回（公开数据，无用户私有信息）
+    const cached = await getPublicCache(CACHE_KEY)
+    if (cached) return cached
+    const resp = await handleBoard(env)
+    await setPublicCache(CACHE_KEY, resp, CACHE_TTL)
+    return resp
   } catch (err) {
     if (isMissingTableError(err)) {
       try {
         await ensureTables(env)
-        return await handleBoard(env)
+        const resp = await handleBoard(env)
+        await setPublicCache(CACHE_KEY, resp, CACHE_TTL)
+        return resp
       } catch (e2) { console.error('coins board 懒建表后重试失败:', e2) }
     }
     console.error('coins board 错误:', err)

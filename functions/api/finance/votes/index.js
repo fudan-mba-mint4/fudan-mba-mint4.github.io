@@ -3,6 +3,7 @@
 // body: { proposalId, choice: 'for' | 'against', reason? }  reason 仅反对时可填（匿名公开）
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
 import { exposeOpen } from '../../../_finance.js'
+import { purgePublicCache } from '../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -49,9 +50,11 @@ export async function onRequest(context) {
       } else throw e
     }
 
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ message: choice === 'for' ? '已投赞成票' : '已投反对票（理由将匿名公开）', choice }, 201)
   } catch (err) {
     console.error('finance votes 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }

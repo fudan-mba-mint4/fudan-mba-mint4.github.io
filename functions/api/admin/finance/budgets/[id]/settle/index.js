@@ -3,6 +3,7 @@
 // body: { action: 'settle' | 'cancel' }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../../../_utils.js'
 import { getFinanceRoles, isAccountant, getFinanceConfig, voteStats } from '../../../../../../_finance.js'
+import { purgePublicCache } from '../../../../../../_cache.js'
 
 export async function onRequest(context) {
   const { request, env, params } = context
@@ -34,6 +35,7 @@ export async function onRequest(context) {
       await sql`UPDATE budget_proposals SET status = 'cancelled', settled_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ${id}`
       await logHistory(sql, { type: 'finance', action: 'cancel', refId: id,
         description: `取消预算公示：${proposal.title}`, operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
       return corsResponse({ message: '已取消该预算公示', status: 'cancelled' })
     }
 
@@ -52,9 +54,11 @@ export async function onRequest(context) {
     await notify(sql, { type: 'finance', title: stats.vetoed ? '预算被否决' : '预算已通过',
       body: `${proposal.title}：赞成 ${stats.forCount}、反对 ${stats.againstCount} 人（${(stats.ratio * 100).toFixed(1)}%），${stats.vetoed ? '反对达 ' + config.vetoCount + ' 票，不可动用班费' : '可按预算执行'}`,
       modulePath: '/finance/', operator: auth.user.name })
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ message: stats.vetoed ? `反对达 ${config.vetoCount} 票，已否决该预算` : '预算通过，可按预算执行', status })
   } catch (err) {
     console.error('admin/finance/budgets/settle 错误:', err)
+    await purgePublicCache('finance-v2-public')
     return corsResponse({ error: '服务器内部错误', detail: String(err && err.message || err) }, 500)
   }
 }
