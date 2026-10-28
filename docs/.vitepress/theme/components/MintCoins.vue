@@ -39,7 +39,7 @@
       <p class="mc-tip">{{ t.forestTip }}</p>
       <div class="mc-forest">
         <div v-for="tree in forest" :key="tree.group" class="mc-tree-card" :class="{ 'mc-tree-card--bloomed': tree.stage !== 'growing' }">
-          <svg class="mc-tree-svg" viewBox="0 0 120 170" role="img" :aria-label="treeLabel(tree)">
+          <svg class="mc-tree-svg" viewBox="0 0 120 170" role="img" :aria-label="treeLabel(tree)" :style="treeSwayStyle(tree)">
             <ellipse cx="60" cy="162" rx="34" ry="7" class="mc-tree-shadow" />
             <g class="mc-tree-grow" :style="treeGrowStyle(tree)">
               <path :d="trunkPath(tree)" class="mc-tree-trunk" />
@@ -159,7 +159,8 @@ function trunkPath(tree) {
 }
 function crownCircles(tree) {
   const trunkH = 36 + 62 * tree.grow
-  const cy = 158 - trunkH - 26 - 6 * tree.grow
+  // cy 下移 10px：保证完全生长时树冠顶部仍在 SVG 内留白（顶部圆 r+4）
+  const cy = 158 - trunkH - 16 - 6 * tree.grow
   const r = 17 + 9 * tree.grow
   return [
     { x: 45, y: cy + 8, r },
@@ -174,10 +175,20 @@ function treeGrowStyle(tree) {
     transformOrigin: '60px 158px',
   }
 }
+// 六棵树各自不同的摇摆参数（周期/幅度/相位），风吹般错落
+const SWAY = [
+  { dur: 4.4, amp: 2.0, delay: 0 }, { dur: 5.8, amp: 1.4, delay: -1.6 },
+  { dur: 3.6, amp: 2.6, delay: -3.4 }, { dur: 6.2, amp: 1.2, delay: -0.7 },
+  { dur: 4.9, amp: 2.2, delay: -2.6 }, { dur: 5.3, amp: 1.7, delay: -4.2 },
+]
+function treeSwayStyle(tree) {
+  const s = SWAY[(tree.group - 1) % SWAY.length]
+  return { '--sway-dur': s.dur + 's', '--sway-amp': s.amp + 'deg', '--sway-delay': s.delay + 's' }
+}
 // 花/果随树冠动态定位：粉花开在枝头（树冠上部），橙果挂在冠间，随生长比例上移
 function stageDots(tree, kind) {
   const trunkH = 36 + 62 * tree.grow
-  const cy = 158 - trunkH - 26 - 6 * tree.grow
+  const cy = 158 - trunkH - 16 - 6 * tree.grow
   const r = 17 + 9 * tree.grow
   const ox = 60
   const oy = cy + 6
@@ -242,7 +253,7 @@ onMounted(() => {
 .mc-hero {
   position: relative;
   border-radius: 24px;
-  padding: 56px 40px 112px;
+  padding: 56px 40px 48px;
   margin: 24px 0 28px;
   overflow: hidden;
   background:
@@ -286,28 +297,24 @@ onMounted(() => {
 }
 .mc-wallet-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(45, 122, 108, 0.45); }
 
-/* 概览指标 */
+/* 概览指标：文档流 grid，宽屏 4 列 / 窄屏 2 列，避免绝对定位换行遮挡 */
 .mc-overview {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  width: min(92%, 720px);
+  margin: 28px auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  width: min(92%, 780px);
 }
 .mc-stat {
-  flex: 1 1 120px;
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(45, 122, 108, 0.14);
   border-radius: 14px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  align-items: center;
 }
 .dark .mc-stat { background: rgba(29, 29, 31, 0.7); border-color: rgba(94, 196, 172, 0.2); }
 .mc-stat-num { font-size: 24px; font-weight: 800; color: #2d7a6c; }
@@ -398,7 +405,18 @@ onMounted(() => {
 .mc-tree-card--bloomed::before {
   background: radial-gradient(80% 60% at 50% 0%, rgba(255, 182, 193, 0.22), rgba(94, 196, 172, 0.08) 60%, transparent 75%);
 }
-.mc-tree-svg { width: 100%; max-width: 170px; height: auto; }
+.mc-tree-svg {
+  width: 100%;
+  max-width: 170px;
+  height: auto;
+  transform-origin: 60px 158px;
+  animation: mc-sway var(--sway-dur, 4.8s) ease-in-out infinite;
+  animation-delay: var(--sway-delay, 0s);
+}
+@keyframes mc-sway {
+  0%, 100% { transform: rotate(var(--sway-amp, 2deg)); }
+  50% { transform: rotate(calc(var(--sway-amp, 2deg) * -1)); }
+}
 .mc-tree-shadow { fill: rgba(0, 0, 0, 0.08); }
 .mc-tree-grow { transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .mc-tree-trunk {
@@ -542,13 +560,13 @@ onMounted(() => {
 @media (max-width: 860px) {
   .mc-forest { grid-template-columns: repeat(2, 1fr); }
   .mc-honors { grid-template-columns: 1fr; }
-  .mc-hero { padding: 40px 20px 118px; }
+  .mc-hero { padding: 40px 20px 56px; }
   .mc-hero-title { font-size: 32px; }
-  .mc-overview { bottom: 16px; }
+  .mc-overview { grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; }
 }
 @media (max-width: 560px) {
   .mc-forest { grid-template-columns: 1fr; }
-  .mc-hero { padding: 32px 16px 128px; }
+  .mc-hero { padding: 32px 16px 40px; }
   .mc-hero-title { font-size: 28px; }
 }
 </style>
