@@ -17,11 +17,14 @@ export async function getPublicCache(key) {
 }
 
 // 写缓存（TTL 秒；clone 一份入缓存，原响应照常返回客户端）
+// 注意：原响应带 no-store 头（corsResponse 默认），必须连同 CDN-Cache-Control 一并覆盖，
+// 否则 Cloudflare 缓存层会拒绝存储，缓存永不命中。
 export async function setPublicCache(key, response, ttlSeconds = 60) {
   try {
     const cache = caches.default
     const r = response.clone()
     r.headers.set('Cache-Control', `public, max-age=${ttlSeconds}`)
+    r.headers.set('CDN-Cache-Control', `public, max-age=${ttlSeconds}`)
     await cache.put(keyUrl(key), r)
   } catch (e) { /* 缓存失败不影响主流程 */ }
 }
