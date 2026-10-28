@@ -43,7 +43,6 @@ const i18n = {
       gallery: '相册',
       finance: '班费',
       coins: '薄荷币',
-      polls: '投票',
       knowledge: '知识库',
     },
     // 倒计时
@@ -109,7 +108,6 @@ const i18n = {
       gallery: 'Gallery',
       finance: 'Finance',
       coins: 'Mint Coins',
-      polls: 'Polls',
       knowledge: 'Knowledge',
     },
     countdownTitle: 'Next Class In',
@@ -167,7 +165,6 @@ const i18n = {
       gallery: 'อัลบั้ม',
       finance: 'การเงิน',
       coins: 'เหรียญมินต์',
-      polls: 'โหวต',
       knowledge: 'คลังความรู้',
     },
     countdownTitle: 'อีกกี่วันถึงคาบเรียนถัดไป',
@@ -606,10 +603,9 @@ const quickLinks = computed(() => [
   { key: 'announcements', label: t.value.links.announcements, href: `${langPrefix.value}/announcements/`, icon: 'megaphone' },
   { key: 'activities', label: t.value.links.activities, href: `${langPrefix.value}/activities/`, icon: 'party-popper' },
   { key: 'slides', label: t.value.links.slides, href: `${langPrefix.value}/slides/`, icon: 'book' },
-  { key: 'polls', label: t.value.links.polls, href: `${langPrefix.value}/polls/`, icon: 'poll' },
+  { key: 'coins', label: t.value.links.coins, href: `${langPrefix.value}/mint-coins/`, icon: 'leaf' },
   { key: 'knowledge', label: t.value.links.knowledge, href: `${langPrefix.value}/knowledge/`, icon: 'graduation' },
   { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
-  { key: 'coins', label: t.value.links.coins, href: `${langPrefix.value}/mint-coins/`, icon: 'leaf' },
 ])
 
 /* ===== 财务待办角标（登录后按财务角色显示：待审核/待付款） ===== */
@@ -622,7 +618,11 @@ async function loadFinanceTodo() {
     if (!res.ok) { financeTodo.value = null; return }
     const j = await res.json()
     const wb = j.workbench || {}
-    financeTodo.value = wb.isFinanceStaff ? { audit: wb.pendingAudit || 0, pay: wb.pendingPay || 0 } : null
+    // 待办角标按财务细分角色显示：会计（程枭）只看待审，出纳（李浩鹏）只看待付，
+    // 其他角色（监督/备岗/管理员等）一律不显示
+    if (wb.isAccountant) financeTodo.value = { audit: wb.pendingAudit || 0 }
+    else if (wb.isCashier) financeTodo.value = { pay: wb.pendingPay || 0 }
+    else financeTodo.value = null
   } catch { financeTodo.value = null }
 }
 watch(isAuthenticated, (v) => { if (v) loadFinanceTodo() }, { immediate: true })
