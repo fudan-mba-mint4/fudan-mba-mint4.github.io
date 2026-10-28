@@ -199,6 +199,7 @@ CREATE INDEX IF NOT EXISTS idx_reimbursements_status ON reimbursements (status);
 CREATE TABLE IF NOT EXISTS coin_accounts (
   user_id INTEGER PRIMARY KEY,
   balance INTEGER NOT NULL DEFAULT 1,   -- 当前余额（注册可得初始 1 币，计划 P43 口径）
+  is_demo INTEGER DEFAULT 0,   -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
@@ -214,6 +215,7 @@ CREATE TABLE IF NOT EXISTS coin_rules (
   is_routine INTEGER DEFAULT 1,          -- 1=常规（系统快速复核） 0=非常规（人工审核）
   status INTEGER DEFAULT 1,              -- 1=启用 0=停用
   note TEXT DEFAULT '',
+  is_demo INTEGER DEFAULT 0,   -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
@@ -231,6 +233,7 @@ CREATE TABLE IF NOT EXISTS coin_claims (
   status TEXT DEFAULT 'pending',        -- pending / approved / rejected
   auditor TEXT,
   audit_note TEXT,
+  is_demo INTEGER DEFAULT 0,   -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   audited_at TEXT
 );
@@ -248,6 +251,7 @@ CREATE TABLE IF NOT EXISTS coin_ledger (
   balance_after INTEGER,
   operator TEXT,                        -- 经办班委真名
   note TEXT DEFAULT '',
+  is_demo INTEGER DEFAULT 0,   -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_coin_ledger_user ON coin_ledger (user_id, created_at DESC);

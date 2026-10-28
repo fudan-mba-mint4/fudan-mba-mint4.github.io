@@ -137,6 +137,7 @@
             <div v-for="c in coinMe.claims" :key="c.id" class="claim-item" :class="'claim-' + c.status">
               <div class="claim-top">
                 <span class="claim-title">{{ c.title }}</span>
+                <span v-if="c.isDemo" class="mc-demo">演示</span>
                 <span class="claim-status" :class="c.status">{{ statusText(c.status) }}</span>
               </div>
               <div class="claim-meta">
@@ -156,6 +157,7 @@
             <div v-for="l in coinMe.ledgers.slice(0, 8)" :key="l.id" class="ledger-item">
               <span class="ledger-delta" :class="l.delta > 0 ? 'earn' : 'spend'">{{ l.delta > 0 ? '+' : '' }}{{ l.delta }}</span>
               <span class="ledger-note">{{ l.note || '—' }}</span>
+              <span v-if="l.isDemo" class="mc-demo">演示</span>
               <time class="ledger-date">{{ shortDate(l.createdAt) }}</time>
             </div>
           </div>
@@ -732,6 +734,18 @@ async function cancelSignup(eventId) {
 .ledger-delta.spend { color: #ff3b30; }
 .ledger-note { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ledger-date { font-size: 12px; color: var(--c-text-tertiary, #aeaeb2); flex-shrink: 0; }
+.mc-demo {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  color: #b78a1a;
+  background: rgba(255, 214, 102, 0.18);
+  border: 0.5px solid rgba(183, 138, 26, 0.35);
+  border-radius: 999px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+}
+.dark .mc-demo { color: #f2c94c; background: rgba(183, 138, 26, 0.22); }
 
 /* 申报弹层 */
 .claim-modal-mask {

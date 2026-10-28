@@ -93,6 +93,7 @@
         <div v-for="row in board?.ledger || []" :key="row.createdAt + ':' + row.delta + ':' + row.note" class="mc-ledger-row">
           <span class="mc-ledger-delta" :class="row.delta > 0 ? 'earn' : 'spend'">{{ row.delta > 0 ? '+' : '' }}{{ row.delta }}</span>
           <span class="mc-ledger-note">{{ row.note || '—' }}</span>
+          <span v-if="row.isDemo" class="mc-demo">{{ t.demo }}</span>
           <span class="mc-ledger-op">{{ row.operator || '' }}</span>
           <time class="mc-ledger-date">{{ shortDate(row.createdAt) }}</time>
         </div>
@@ -516,6 +517,18 @@ onMounted(() => {
 .mc-ledger-note { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-ledger-op { font-size: 12px; color: var(--c-text-tertiary, #aeaeb2); flex-shrink: 0; }
 .mc-ledger-date { font-size: 12px; color: var(--c-text-tertiary, #aeaeb2); flex-shrink: 0; }
+.mc-demo {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  color: #b78a1a;
+  background: rgba(255, 214, 102, 0.18);
+  border: 0.5px solid rgba(183, 138, 26, 0.35);
+  border-radius: 999px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+}
+.dark .mc-demo { color: #f2c94c; background: rgba(183, 138, 26, 0.22); }
 
 /* ===== 荣誉墙 ===== */
 .mc-honors { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }

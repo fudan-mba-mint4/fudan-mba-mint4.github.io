@@ -8,6 +8,7 @@ import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 
 export const COIN_I18N = {
   zh: {
+    demo: '演示',
     title: '薄荷币',
     slogan: '每一片叶子，都是你为班级付出的样子',
     subtitle: '班级虚拟激励积分 · 与班费现金完全隔离，不可兑换现金',
@@ -43,6 +44,7 @@ export const COIN_I18N = {
     updated: '更新于',
   },
   en: {
+    demo: 'Demo',
     title: 'Mint Coins',
     slogan: 'Every leaf is a piece of you, given to our class',
     subtitle: 'Class virtual incentive points · Fully separate from class funds, not redeemable for cash',
@@ -78,6 +80,7 @@ export const COIN_I18N = {
     updated: 'Updated',
   },
   th: {
+    demo: 'ตัวอย่าง',
     title: 'เหรียญมินต์',
     slogan: 'ทุกใบคือสิ่งที่คุณมอบให้ห้องเรียน',
     subtitle: 'คะแนนสะสมเสมือนจริงของห้องเรียน · แยกจากเงินส่วนกลาง ไม่สามารถแลกเป็นเงินสดได้',

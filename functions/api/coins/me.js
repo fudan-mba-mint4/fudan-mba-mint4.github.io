@@ -35,10 +35,10 @@ async function handleMe(env, user) {
   const earnedRow = (await sql`SELECT COALESCE(SUM(delta),0) AS v FROM coin_ledger WHERE user_id=${user.id} AND delta>0`)[0]
   const spentRow = (await sql`SELECT COALESCE(SUM(-delta),0) AS v FROM coin_ledger WHERE user_id=${user.id} AND delta<0`)[0]
   const ledgers = await sql`
-    SELECT id, delta, type, note, ref_id, ref_type, operator, created_at
+    SELECT id, delta, type, note, ref_id, ref_type, operator, is_demo, created_at
     FROM coin_ledger WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 30`
   const claims = await sql`
-    SELECT id, rule_id, title, description, activity_id, proofs, recipients, total, status, auditor, audit_note, created_at
+    SELECT id, rule_id, title, description, activity_id, proofs, recipients, total, status, auditor, audit_note, is_demo, created_at
     FROM coin_claims WHERE user_id=${user.id} ORDER BY created_at DESC LIMIT 30`
   const rules = await sql`
     SELECT id, name_zh, name_en, name_th, amount, unit, category, is_routine, status, note
@@ -55,7 +55,8 @@ async function handleMe(env, user) {
     tierList: GROWTH_TIERS.map(t => ({ key: t.key, zh: t.zh, en: t.en, th: t.th, min: t.min, max: t.max === Infinity ? null : t.max })),
     ledgers: ledgers.map(l => ({
       id: l.id, delta: l.delta, type: l.type, note: l.note,
-      refId: l.ref_id, refType: l.ref_type, operator: l.operator, createdAt: l.created_at,
+      refId: l.ref_id, refType: l.ref_type, operator: l.operator,
+      isDemo: l.is_demo || 0, createdAt: l.created_at,
     })),
     claims: claims.map(c => {
       let proofs = [], recipients = []
@@ -64,6 +65,7 @@ async function handleMe(env, user) {
       return {
         id: c.id, ruleId: c.rule_id, title: c.title, description: c.description,
         activityId: c.activity_id, proofs, recipients, total: c.total,
+        isDemo: c.is_demo || 0,
         status: c.status, auditor: c.auditor, auditNote: c.audit_note, createdAt: c.created_at,
       }
     }),

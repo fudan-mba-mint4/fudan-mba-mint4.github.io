@@ -79,7 +79,7 @@ async function handleBoard(env) {
 
   // —— 公开账本（脱敏：不含 user_id/姓名，只留事由/数量/经办/时间） ——
   const ledger = await sql`
-    SELECT delta, type, note, ref_type, operator, created_at
+    SELECT delta, type, note, ref_type, operator, is_demo, created_at
     FROM coin_ledger ORDER BY created_at DESC LIMIT ${COIN_CONFIG.ledgerPublicLimit}`
 
   // —— 规则（公开） ——
@@ -107,7 +107,8 @@ async function handleBoard(env) {
     },
     ledger: ledger.map(l => ({
       delta: l.delta, type: l.type, note: l.note,
-      refType: l.ref_type, operator: l.operator, createdAt: l.created_at,
+      refType: l.ref_type, operator: l.operator,
+      isDemo: l.is_demo || 0, createdAt: l.created_at,
     })),
     rules: rules.map(r => ({
       id: r.id,

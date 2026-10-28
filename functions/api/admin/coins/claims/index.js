@@ -27,7 +27,8 @@ export async function onRequest(context) {
           id: c.id, userId: c.user_id, applicant: c.applicant, ruleId: c.rule_id,
           title: c.title, description: c.description, activityId: c.activity_id,
           proofs, recipients, total: c.total, status: c.status,
-          auditor: c.auditor, auditNote: c.audit_note, createdAt: c.created_at,
+          auditor: c.auditor, auditNote: c.audit_note,
+          isDemo: c.is_demo || 0, createdAt: c.created_at,
         }
       }),
     })

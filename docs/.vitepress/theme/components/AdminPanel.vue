@@ -713,6 +713,7 @@
             <div v-for="c in coinClaims" :key="c.id" class="existing-item">
               <div class="existing-info">
                 <span class="existing-title">{{ c.applicant }} · {{ c.title }}（+{{ c.total }} 币）</span>
+                <span v-if="c.isDemo" class="demo-chip">演示</span>
                 <span class="existing-meta">{{ coinShortDate(c.createdAt) }} · {{ coinRuleName(c.ruleId) }}</span>
                 <span v-if="c.description" class="existing-meta">说明：{{ c.description }}</span>
                 <div v-if="c.proofs && c.proofs.length" class="proofs-mini">
@@ -2702,6 +2703,17 @@ watch(currentType, (val) => {
 .existing-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .existing-title { font-size: 13px; font-weight: 600; color: var(--c-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .existing-meta { font-size: 11px; color: var(--c-text-tertiary); }
+.demo-chip {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  color: #b78a1a;
+  background: rgba(255, 214, 102, 0.18);
+  border: 0.5px solid rgba(183, 138, 26, 0.35);
+  border-radius: 999px;
+  padding: 3px 8px;
+  margin-left: 4px;
+}
 .existing-del { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all .2s; }
 .existing-del:hover { background: #ff3b30; color: #fff; }
 .existing-del.ok { border-color: #34c759; color: #2f9e44; }
