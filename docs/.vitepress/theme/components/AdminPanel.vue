@@ -54,6 +54,7 @@
         <button v-for="t in visibleTypes" :key="t.id" @click="currentType = t.id"
           :class="{ active: currentType === t.id }" class="type-tab">
           {{ t.icon }} {{ t.name }}
+          <span v-if="todoBadges[t.id]" class="todo-badge">{{ todoBadges[t.id] > 99 ? '99+' : todoBadges[t.id] }}</span>
         </button>
       </div>
 
@@ -109,16 +110,7 @@
       <!-- ===== 活动模块（统一布局试点：动作栏 + 新建展开 + 现有列表） ===== -->
       <div v-if="currentType === 'activities'" class="module-section">
         <!-- 动作栏：统计（可点击筛选）+ 新建 -->
-        <div class="module-bar">
-          <div class="module-stats">
-            <button type="button" class="stat-chip" :class="{ on: actStageFilter === '' }" @click="actStageFilter = ''">全部 {{ actList.length }}</button>
-            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'dated' }" @click="toggleActFilter('dated')">已定 {{ actStageCount('dated') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'planning' }" @click="toggleActFilter('planning')">待排期 {{ actStageCount('planning') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'recurring' }" @click="toggleActFilter('recurring')">固定每周 {{ actStageCount('recurring') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: actStageFilter === 'reminder' }" @click="toggleActFilter('reminder')">节日 {{ actStageCount('reminder') }}</button>
-          </div>
-          <button type="button" class="module-add-btn" @click="openActForm">＋ 新建活动</button>
-        </div>
+        <ModuleBar :stats="actStats" :active="actStageFilter" add-label="＋ 新建活动" @toggle="toggleActFilter" @add="openActForm" />
 
         <!-- 新建/编辑表单（展开式） -->
         <div v-if="actFormOpen" class="module-form">
@@ -331,23 +323,11 @@
 
       <!-- ===== 课程资料（双 Tab：当前课件与资料 / 讲次管理） ===== -->
       <div v-if="currentType === 'courseMaterials'" class="module-section">
-        <!-- Tab 切换 -->
-        <div class="module-tabs">
-          <button type="button" class="module-tab" :class="{ on: cmTab === 'files' }" @click="cmTab = 'files'">当前课件与资料</button>
-          <button type="button" class="module-tab" :class="{ on: cmTab === 'sessions' }" @click="cmTab = 'sessions'">讲次管理</button>
-        </div>
+        <ModuleTabs :tabs="cmTabs" :active="cmTab" @select="cmTab = $event" />
 
         <template v-if="cmTab === 'files'">
         <!-- 动作栏：统计（可点击筛选）+ 上传 -->
-        <div class="module-bar">
-          <div class="module-stats">
-            <button type="button" class="stat-chip" :class="{ on: cmFilter === '' }" @click="cmFilter = ''">全部 {{ cmFiles.length }}</button>
-            <button type="button" class="stat-chip" :class="{ on: cmFilter === '课件' }" @click="toggleCmFilter('课件')">课件 {{ cmKindCount('课件') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: cmFilter === '作业' }" @click="toggleCmFilter('作业')">作业 {{ cmKindCount('作业') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: cmFilter === '参考' }" @click="toggleCmFilter('参考')">参考 {{ cmKindCount('参考') }}</button>
-          </div>
-          <button type="button" class="module-add-btn" @click="openCmForm">＋ 上传资料</button>
-        </div>
+        <ModuleBar :stats="cmStats" :active="cmFilter" add-label="＋ 上传资料" @toggle="toggleCmFilter" @add="openCmForm" />
 
         <!-- 上传表单（展开式） -->
         <div v-if="cmFormOpen" class="module-form">
@@ -478,16 +458,7 @@
       <!-- ===== 知识库（动作栏 + 上传展开 + 资料列表） ===== -->
       <div v-if="currentType === 'knowledge'" class="module-section">
         <!-- 动作栏：统计（可点击筛选）+ 上传 -->
-        <div class="module-bar">
-          <div class="module-stats">
-            <button type="button" class="stat-chip" :class="{ on: kbFilter === '' }" @click="kbFilter = ''">全部 {{ kbDocuments.length }}</button>
-            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'note' }" @click="toggleKbFilter('note')">笔记 {{ kbTypeCount('note') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'summary' }" @click="toggleKbFilter('summary')">总结 {{ kbTypeCount('summary') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'exam' }" @click="toggleKbFilter('exam')">考题 {{ kbTypeCount('exam') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: kbFilter === 'resource' }" @click="toggleKbFilter('resource')">资源 {{ kbTypeCount('resource') }}</button>
-          </div>
-          <button type="button" class="module-add-btn" @click="openKbForm">＋ 上传资料</button>
-        </div>
+        <ModuleBar :stats="kbStats" :active="kbFilter" add-label="＋ 上传资料" @toggle="toggleKbFilter" @add="openKbForm" />
 
         <!-- 上传表单（展开式） -->
         <div v-if="kbFormOpen" class="module-form">
@@ -554,14 +525,7 @@
 
         <div v-show="finTab === 'ledger'">
         <!-- 动作栏：流水统计（可筛选）+ 记一笔 -->
-        <div class="module-bar">
-          <div class="module-stats">
-            <button type="button" class="stat-chip" :class="{ on: finTxFilter === '' }" @click="finTxFilter = ''">全部 {{ finTransactions.length }}</button>
-            <button type="button" class="stat-chip" :class="{ on: finTxFilter === 'income' }" @click="toggleFinTxFilter('income')">收入 {{ finTxKindCount('income') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: finTxFilter === 'expense' }" @click="toggleFinTxFilter('expense')">支出 {{ finTxKindCount('expense') }}</button>
-          </div>
-          <button type="button" class="module-add-btn" @click="openFinForm">＋ 记一笔</button>
-        </div>
+        <ModuleBar :stats="finTxStats" :active="finTxFilter" add-label="＋ 记一笔" @toggle="toggleFinTxFilter" @add="openFinForm" />
         <!-- 记一笔表单（展开式） -->
         <div v-if="finFormOpen" class="module-form">
         <h3>💰 添加班费收支</h3>
@@ -634,15 +598,9 @@
 
         <div v-show="finTab === 'budgets'">
         <!-- 动作栏：公示统计（可筛选）+ 发公示 -->
-        <div class="module-bar">
-          <div class="module-stats">
-            <button type="button" class="stat-chip" :class="{ on: budgetFilter === '' }" @click="budgetFilter = ''">全部 {{ finBudgets.length }}</button>
-            <button type="button" class="stat-chip" :class="{ on: budgetFilter === 'open' }" @click="toggleBudgetFilter('open')">公示中 {{ budgetKindCount('open') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: budgetFilter === 'passed' }" @click="toggleBudgetFilter('passed')">已通过 {{ budgetKindCount('passed') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: budgetFilter === 'ended' }" @click="toggleBudgetFilter('ended')">已结束 {{ budgetEndedCount }}</button>
-          </div>
-          <button type="button" class="module-add-btn" @click="openBudgetForm">＋ 发公示</button>
-        </div>
+        <ModuleBar :stats="budgetStats" :active="budgetFilter" add-label="＋ 发公示" @toggle="toggleBudgetFilter" @add="openBudgetForm" />
+        <!-- 公示到期提醒（到期前 24h） -->
+        <p v-if="budgetExpiringCount" class="budget-expiring">⏰ 有 {{ budgetExpiringCount }} 条公示将在 24 小时内到期，请注意跟进</p>
         <!-- 发布预算表单（展开式） -->
         <div v-if="budgetFormOpen" class="module-form">
         <h3 style="margin-top:0">📋 发布预算公示（支出前，公示 3 天征集反对）</h3>
@@ -859,14 +817,7 @@
 
         <div v-show="coinsTab === 'rules'">
         <!-- 动作栏：规则统计（可筛选）+ 添加 -->
-        <div class="module-bar">
-          <div class="module-stats">
-            <button type="button" class="stat-chip" :class="{ on: coinRuleFilter === '' }" @click="coinRuleFilter = ''">全部 {{ coinRules.length }}</button>
-            <button type="button" class="stat-chip" :class="{ on: coinRuleFilter === 'routine' }" @click="toggleCoinRuleFilter('routine')">常规 {{ coinRuleKindCount('routine') }}</button>
-            <button type="button" class="stat-chip" :class="{ on: coinRuleFilter === 'custom' }" @click="toggleCoinRuleFilter('custom')">自定义 {{ coinRuleCustomCount }}</button>
-          </div>
-          <button type="button" class="module-add-btn" @click="openRuleForm">＋ 添加规则</button>
-        </div>
+        <ModuleBar :stats="coinRuleStats" :active="coinRuleFilter" add-label="＋ 添加规则" @toggle="toggleCoinRuleFilter" @add="openRuleForm" />
         <!-- 添加规则表单（展开式） -->
         <div v-if="ruleFormOpen" class="module-form">
         <h3>⚙️ 奖励规则配置</h3>
@@ -1094,6 +1045,12 @@ import { API_PREFIX } from '../composables/apiConfig.js'
 import { useAuth } from '../composables/useAuth.js'
 import { invalidateResource } from '../composables/useData.js'
 import { dbKeyOf, HISTORY_TYPE_TO_RESOURCE } from '../composables/resourceRegistry.js'
+import { todayStr } from '../utils/dateUtils.js'
+import { dataTypes, finTabs, coinsTabs, MODULE_ROLE_MAP, COIN_AUDITORS, ROLE_LABEL_MAP } from '../utils/admin/constants.js'
+import { formatSize, translateBoth, randomHex, extFromFileName, readFileAsBase64, formatTreeholeTime, shortTime, coinShortDate, flattenCourseFiles, sessionUrls, buildCmMgrRows } from '../utils/admin/utils.js'
+import { getAdminToken, adminHeaders, throwIfNotOk, uploadFileToAdmin } from '../utils/admin/api.js'
+import ModuleBar from './admin/ModuleBar.vue'
+import ModuleTabs from './admin/ModuleTabs.vue'
 
 // ===== 认证（班委实名登录；登录态由 useAuth 用 localStorage 持久化，刷新/重开免登录）=====
 const { currentUser, isAuthenticated, login, logout, getToken } = useAuth()
@@ -1111,70 +1068,16 @@ async function doLogin() {
   if (!r.success) authError.value = r.error
 }
 
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB'
-  return (bytes/1048576).toFixed(1) + ' MB'
-}
-
-// ===== 自动翻译已停用：英/泰字段暂以中文填充，不请求外部、不阻塞提交；后续需要可人工补译 =====
-function translateBoth(text) {
-  return Promise.resolve({ en: text, th: text })
-}
-
-// ===== 数据类型 =====
-const dataTypes = [
-  { id: 'announcements', name: '公告', icon: '📢' },
-  { id: 'activities', name: '活动', icon: '🎉' },
-  { id: 'polls', name: '投票', icon: '🗳️' },
-  { id: 'courseMaterials', name: '课程资料', icon: '📚' },
-  { id: 'knowledge', name: '知识库', icon: '📖' },
-  { id: 'finance', name: '班费', icon: '💰' },
-  { id: 'coins', name: '薄荷币', icon: '🍃' },
-  { id: 'gallery', name: '相册', icon: '🖼️' },
-  { id: 'treehole', name: '树洞管理', icon: '🌳' },
-]
+// ===== 数据类型（常量见 utils/admin/constants.js） =====
 const currentType = ref('announcements')
 
 // 班费模块内部子 Tab（选"班费"后按模块分开管理）
 const finTab = ref('ledger')
-const finTabs = [
-  { key: 'ledger', name: '流水管理', icon: '💸' },
-  { key: 'budgets', name: '预算公示', icon: '📋' },
-  { key: 'reimb', name: '报销审批', icon: '🧾' },
-  { key: 'config', name: '参数配置', icon: '⚙️' },
-  { key: 'supervision', name: '监督视图', icon: '🔍' },
-]
 
 // 薄荷币模块内部子 Tab（申报审核 / 规则配置）
 const coinsTab = ref('claims')
-const coinsTabs = [
-  { key: 'claims', name: '申报审核', icon: '🧾' },
-  { key: 'rules', name: '规则配置', icon: '⚙️' },
-]
 
-// 各模块允许的角色（与 functions/_utils.js 的 MODULE_ROLES 保持一致，改动需同步）
-// leader/deputy/supervisor 可见并可写全部模块；其余角色只看到本职能模块。
-const MODULE_ROLE_MAP = {
-  announcements: ['leader', 'deputy', 'experience', 'finance', 'thinktank', 'memory'],
-  activities: ['leader', 'deputy', 'experience'],
-  polls: ['leader', 'deputy', 'experience'],
-  courseMaterials: ['leader', 'deputy', 'thinktank'],
-  knowledge: ['leader', 'deputy', 'thinktank'],
-  finance: ['leader', 'deputy', 'finance'],
-  // 薄荷币：审批由财务激励官「高晓梅 / 叶宏颖」专人负责（与 functions/_utils.js COIN_AUDITORS 一致），
-  // 不再整体放行 finance 组；leader/deputy/supervisor 兜底可见。
-  coins: ['leader', 'deputy'],
-  gallery: ['leader', 'deputy', 'memory'],
-  treehole: ['leader', 'deputy', 'memory'],
-}
-// 薄荷币审批负责人（真名白名单，与后端 COIN_AUDITORS 保持一致）
-const COIN_AUDITORS = ['高晓梅', '叶宏颖']
-const ROLE_LABEL_MAP = {
-  leader: '班级主理人', deputy: '副主理人', experience: '体验运营官',
-  finance: '财务激励官', thinktank: '智库研究员', memory: '记忆主理人',
-  supervisor: '独立董事会',
-}
+// 各模块角色映射 / 审批人 / 角色名（常量见 utils/admin/constants.js，与 functions/_utils.js 同步）
 // 按当前登录用户过滤可见模块：
 // 主理人/副主理人/独立董事会看全部（均可写）；薄荷币审批人（高晓梅/叶宏颖）额外放行薄荷币；其余角色按本职能过滤。
 const visibleTypes = computed(() => {
@@ -1210,7 +1113,7 @@ function showToast(msg, type = 'success') {
 }
 
 // ===== 表单数据 =====
-const today = new Date().toISOString().split('T')[0]
+const today = todayStr()
 const annForm = ref({ titleZh:'', category:'normal', date:today, deadline:'', pinned:false, summaryZh:'', contentZh:'' })
 // ===== 活动表单（对应新版日历字段：stage/category/date/endDate/time/location/scale/capacity + recurrence/节日规则）=====
 const ACT_STAGE_OPTIONS = [
@@ -1349,6 +1252,13 @@ const filteredActList = computed(() => {
 })
 const actStageCount = (s) => actList.value.filter(a => (a.stage || 'dated') === s).length
 function toggleActFilter(s) { actStageFilter.value = actStageFilter.value === s ? '' : s }
+const actStats = computed(() => [
+  { key: '', label: '全部', count: actList.value.length },
+  { key: 'dated', label: '已定', count: actStageCount('dated') },
+  { key: 'planning', label: '待排期', count: actStageCount('planning') },
+  { key: 'recurring', label: '固定每周', count: actStageCount('recurring') },
+  { key: 'reminder', label: '节日', count: actStageCount('reminder') },
+])
 function toggleRecurDay(d) {
   const arr = actForm.value.recurDays
   const i = arr.indexOf(d)
@@ -1365,6 +1275,7 @@ async function deleteActivity(a) {
     invalidateResource('/api/activities-db')
     await loadActivityList()
     if (actForm.value.id === a.id) resetActForm()
+    loadTodoBadges()
   } catch (e) { alert('删除失败: ' + e.message) }
 }
 const albForm = ref({ title:'', date:today, url:'', albumType:'live', coverFile:null, localPhotos:[], description:'' })
@@ -1489,57 +1400,8 @@ const treeholeStats = ref({ total: 0, active_count: 0, deleted_count: 0, today_c
 const expandedId = ref(null)
 let searchDebounceTimer = null
 
-// ===== Cloudflare 后端 admin API（直连，不再走 GitHub 代理写文件）=====
+// ===== Cloudflare 后端 admin API（封装见 utils/admin/api.js）=====
 // Authorization 使用当前登录班委的个人 token（getToken），原样 Bearer 带上。
-function getAdminToken() {
-  return getToken() || ''
-}
-function adminHeaders(extra = {}) {
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}`, ...extra }
-}
-// 统一处理非 2xx：读出后端错误信息
-async function throwIfNotOk(res, action) {
-  if (res.ok) return
-  let msg = `${action}失败 ${res.status}`
-  try { const e = await res.json(); if (e && e.error) msg = e.error } catch {}
-  throw new Error(msg)
-}
-function randomHex(n) {
-  const arr = new Uint8Array(n)
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(arr)
-  else for (let i = 0; i < n; i++) arr[i] = Math.floor(Math.random() * 256)
-  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
-}
-function extFromFileName(name) {
-  const m = /\.([a-zA-Z0-9]+)$/.exec(name || '')
-  return m ? m[1].toLowerCase() : 'bin'
-}
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const s = String(reader.result || '')
-      resolve(s.includes(',') ? s.slice(s.indexOf(',') + 1) : s)
-    }
-    reader.onerror = () => reject(reader.error || new Error('FileReader 读取失败'))
-    reader.readAsDataURL(file)
-  })
-}
-// 上传图片/PDF：File -> base64 -> POST /api/admin/upload -> { url }
-async function uploadFileToAdmin(file, customKey) {
-  const key = customKey || `uploads/${Date.now()}-${randomHex(4)}.${extFromFileName(file.name)}`
-  const dataBase64 = await readFileAsBase64(file)
-  // 大文件给足单次超时（慢网络/代理下避免误判超时），并减少重试以免反复重传整个大文件
-  const res = await fetchWithRetry(`${API_PREFIX}/api/admin/upload`, {
-    method: 'POST',
-    headers: adminHeaders(),
-    body: JSON.stringify({ key, contentType: file.type || 'application/octet-stream', dataBase64 }),
-  }, { timeoutMs: 120000, retries: 2 })
-  await throwIfNotOk(res, '上传文件')
-  const data = await res.json()
-  if (!data.url) throw new Error('上传未返回 url')
-  return data.url
-}
 
 // 防抖搜索
 function onTreeholeSearchInput() {
@@ -1741,25 +1603,12 @@ function treeholePageChange(page) {
   loadTreeholeMessages()
 }
 
-function formatTreeholeTime(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
 // ===== 提交记录（数据源：D1 admin_history 表）=====
 const submitHistory = ref([])
 const historyLoading = ref(false)
 // 右列操作记录：仅显示当前模块（admin_history 的 type 与模块 id 一一对应）
 const currentHistory = computed(() => submitHistory.value.filter(r => r.type === currentType.value))
 const currentTypeLabel = computed(() => dataTypes.find(t => t.id === currentType.value)?.name || currentType.value)
-function shortTime(t){
-  if(!t) return ''
-  const d = t instanceof Date ? t : new Date(t)
-  if(isNaN(d.getTime())) return String(t)
-  const p = n => String(n).padStart(2,'0')
-  return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
-}
 function createRecord(type, desc, refId = null) {
   const r = {
     id: 'h-' + Date.now() + '-' + randomHex(3),
@@ -1784,6 +1633,17 @@ async function loadHistory() {
   } finally {
     historyLoading.value = false
   }
+}
+
+// ===== 模块待办红点（未处理事项计数，登录后拉取、写操作后刷新） =====
+const todoBadges = ref({ activities: 0, finance: 0, coins: 0 })
+async function loadTodoBadges() {
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/todos`, { headers: adminHeaders() })
+    if (!res.ok) return
+    const j = await res.json()
+    todoBadges.value = { activities: 0, finance: 0, coins: 0, ...(j.todos || {}) }
+  } catch (e) { console.warn('加载待办计数失败:', e.message) }
 }
 // 操作记录已由后端写端点统一写入 admin_history（含真名 operator、准确 action），
 // 前端不再重复 POST；此函数保留为空以兼容现有调用点。
@@ -1923,6 +1783,7 @@ async function submitActivity() {
     actFormOpen.value = false
     await loadActivityList()
     showToast(isEdit ? '活动已保存' : '活动已发布')
+    loadTodoBadges()
   } catch(e) { rec.status='failed'; rec.error=e.message; showToast('提交失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
@@ -2016,10 +1877,20 @@ const cmFormOpen = ref(false)
 function openCmForm() { cmFormOpen.value = true }
 function closeCmForm() { cmFormOpen.value = false }
 const cmTab = ref('files') // 'files' = 当前课件与资料 | 'sessions' = 讲次管理
+const cmTabs = [
+  { key: 'files', label: '当前课件与资料' },
+  { key: 'sessions', label: '讲次管理' },
+]
 const cmFilter = ref('')
 const cmKindCount = (k) => cmFiles.value.filter(f => f.kind === k).length
 const filteredCmFiles = computed(() => cmFilter.value ? cmFiles.value.filter(f => f.kind === cmFilter.value) : cmFiles.value)
 function toggleCmFilter(s) { cmFilter.value = cmFilter.value === s ? '' : s }
+const cmStats = computed(() => [
+  { key: '', label: '全部', count: cmFiles.value.length },
+  { key: '课件', label: '课件', count: cmKindCount('课件') },
+  { key: '作业', label: '作业', count: cmKindCount('作业') },
+  { key: '参考', label: '参考', count: cmKindCount('参考') },
+])
 
 // ===== 知识库（整包：DB 优先，失败回退静态 JSON）=====
 async function getCurrentKnowledgePack() {
@@ -2085,6 +1956,13 @@ const kbTypeCount = (t) => kbDocuments.value.filter(d => d.type === t).length
 const kbTypeLabel = (t) => ({ note: '课程笔记', summary: '重点总结', exam: '考题参考', resource: '学习资源' }[t] || t)
 const filteredKbDocs = computed(() => kbFilter.value ? kbDocuments.value.filter(d => d.type === kbFilter.value) : kbDocuments.value)
 function toggleKbFilter(s) { kbFilter.value = kbFilter.value === s ? '' : s }
+const kbStats = computed(() => [
+  { key: '', label: '全部', count: kbDocuments.value.length },
+  { key: 'note', label: '笔记', count: kbTypeCount('note') },
+  { key: 'summary', label: '总结', count: kbTypeCount('summary') },
+  { key: 'exam', label: '考题', count: kbTypeCount('exam') },
+  { key: 'resource', label: '资源', count: kbTypeCount('resource') },
+])
 
 // ===== 提交班费（结构化流水 POST /api/admin/finance/transactions）=====
 async function submitFinance() {
@@ -2123,11 +2001,25 @@ const finTxFilter = ref('')
 const finTxKindCount = (k) => finTransactions.value.filter(t => t.type === k).length
 const filteredFinTx = computed(() => finTxFilter.value ? finTransactions.value.filter(t => t.type === finTxFilter.value) : finTransactions.value)
 function toggleFinTxFilter(s) { finTxFilter.value = finTxFilter.value === s ? '' : s }
+const finTxStats = computed(() => [
+  { key: '', label: '全部', count: finTransactions.value.length },
+  { key: 'income', label: '收入', count: finTxKindCount('income') },
+  { key: 'expense', label: '支出', count: finTxKindCount('expense') },
+])
 const budgetFormOpen = ref(false)
 function openBudgetForm() { budgetFormOpen.value = true }
 function closeBudgetForm() { budgetFormOpen.value = false }
 const budgetFilter = ref('')
 const budgetKindCount = (s) => finBudgets.value.filter(b => b.status === s).length
+// 公示到期前 24h 提醒计数（仅 open 且 exposeEnd 在 now ~ now+24h）
+const budgetExpiringCount = computed(() => {
+  const now = Date.now()
+  return finBudgets.value.filter(b => {
+    if (b.status !== 'open' || !b.exposeEnd) return false
+    const end = new Date(b.exposeEnd).getTime()
+    return end > now && end <= now + 24 * 3600 * 1000
+  }).length
+})
 const budgetEndedCount = computed(() => finBudgets.value.filter(b => !['open', 'passed'].includes(b.status)).length)
 const filteredFinBudgets = computed(() => {
   const f = budgetFilter.value
@@ -2136,28 +2028,20 @@ const filteredFinBudgets = computed(() => {
   return finBudgets.value.filter(b => b.status === f)
 })
 function toggleBudgetFilter(s) { budgetFilter.value = budgetFilter.value === s ? '' : s }
+const budgetStats = computed(() => [
+  { key: '', label: '全部', count: finBudgets.value.length },
+  { key: 'open', label: '公示中', count: budgetKindCount('open') },
+  { key: 'passed', label: '已通过', count: budgetKindCount('passed') },
+  { key: 'ended', label: '已结束', count: budgetEndedCount },
+])
 
-// ===== 课程资料 / 班费：当前内容列表与单条删除 =====
-function flattenCourseFiles(pack) {
-  const out = []
-  for (const c of pack.courses || []) {
-    for (const sess of c.sessions || []) {
-      for (const f of sess.files || [])
-        out.push({ courseName: c.name, kind: '课件', name: f.name, size: f.size, fileUrl: f.url })
-      if (sess.homework?.url)
-        out.push({ courseName: c.name, kind: '作业', name: sess.homework.name, size: sess.homework.size, fileUrl: sess.homework.url })
-      for (const r of sess.references || []) if (r.url)
-        out.push({ courseName: c.name, kind: '参考', name: r.name, size: r.size, fileUrl: r.url })
-    }
-  }
-  return out
-}
+// ===== 课程资料 / 班费：当前内容列表与单条删除（flatten/build 纯函数见 utils/admin/utils.js） =====
 async function loadCourseFiles() {
   try {
     const pack = await getCurrentCourseMaterials()
     cmPack.value = pack
     cmFiles.value = flattenCourseFiles(pack)
-    buildCmMgr(pack)
+    cmMgr.value = buildCmMgrRows(pack)
   } catch (e) { console.warn('加载课件列表失败:', e.message) }
 }
 async function deleteCourseFile(item) {
@@ -2171,28 +2055,8 @@ async function deleteCourseFile(item) {
     cmFiles.value = cmFiles.value.filter(x => x.fileUrl !== item.fileUrl)
   } catch (e) { alert('删除失败: ' + e.message) }
 }
-// ===== 讲次管理（编辑标题/日期、删除讲次） =====
+// ===== 讲次管理（编辑标题/日期、删除讲次；行构建见 utils/admin/utils.js buildCmMgrRows） =====
 const cmMgr = ref([])
-function sessionUrls(sess) {
-  const urls = []
-  ;(sess.files || []).forEach(f => f.url && urls.push(f.url))
-  ;(sess.references || []).forEach(r => r.url && urls.push(r.url))
-  if (sess.homework?.url) urls.push(sess.homework.url)
-  return [...new Set(urls)]
-}
-function buildCmMgr(pack) {
-  cmMgr.value = (pack.courses || []).map(c => ({
-    id: c.id, name: c.name,
-    sessions: (c.sessions || []).slice().sort((a, b) => Number(a.session) - Number(b.session)).map(sess => {
-      const urls = sessionUrls(sess)
-      return {
-        session: sess.session, date: sess.date, title: sess.title || '',
-        draftTitle: sess.title || '', draftDate: sess.date,
-        fileCount: urls.length, urls,
-      }
-    }),
-  }))
-}
 async function saveSession(course, sx) {
   if (!sx.draftTitle.trim()) { alert('讲次标题不能为空'); return }
   submitting.value = true
@@ -2314,6 +2178,7 @@ async function publishBudget() {
     await loadFinanceTransactions()
     budgetFormOpen.value = false
     showToast('预算公示已发布')
+    loadTodoBadges()
   } catch(e) { rec.status='failed'; rec.error=e.message; showToast('发布失败：' + e.message, 'error') }
   submitting.value = false
   await saveRecord(rec)
@@ -2328,6 +2193,7 @@ async function settleBudget(b) {
     await throwIfNotOk(res, '结算预算')
     invalidateResource('/api/finance-v2')
     await loadFinanceTransactions()
+    loadTodoBadges()
   } catch (e) { alert('结算失败: ' + e.message) }
   submitting.value = false
 }
@@ -2340,6 +2206,7 @@ async function cancelBudget(b) {
     await throwIfNotOk(res, '取消预算')
     invalidateResource('/api/finance-v2')
     await loadFinanceTransactions()
+    loadTodoBadges()
   } catch (e) { alert('取消失败: ' + e.message) }
 }
 // ===== 报销审批：二次确认 + 审批人意见（通过/退回/驳回/打款均留痕）=====
@@ -2378,6 +2245,7 @@ async function doReimbAudit(r) {
     await loadFinanceTransactions()
     closeReimbAudit()
     showToast(`报销${reimbAuditLabel.value}成功`)
+    loadTodoBadges()
   } catch (e) { showToast('操作失败: ' + e.message, 'error') }
   submitting.value = false
 }
@@ -2447,6 +2315,11 @@ const filteredCoinRules = computed(() => {
   return coinRules.value.filter(r => f === 'routine' ? r.isRoutine : !r.isRoutine)
 })
 function toggleCoinRuleFilter(s) { coinRuleFilter.value = coinRuleFilter.value === s ? '' : s }
+const coinRuleStats = computed(() => [
+  { key: '', label: '全部', count: coinRules.value.length },
+  { key: 'routine', label: '常规', count: coinRuleKindCount('routine') },
+  { key: 'custom', label: '自定义', count: coinRuleCustomCount },
+])
 
 async function loadCoinClaims() {
   coinClaimsMsg.value = ''
@@ -2475,6 +2348,7 @@ async function approveClaim(c) {
     await throwIfNotOk(res, '审核通过')
     coinClaims.value = coinClaims.value.filter(x => x.id !== c.id)
     loadHistory()
+    loadTodoBadges()
   } catch (e) { alert(e.message) }
   finally { approvingId.value = '' }
 }
@@ -2491,6 +2365,7 @@ async function doReject(c) {
     rejectingId.value = ''
     rejectNote.value = ''
     loadHistory()
+    loadTodoBadges()
   } catch (e) { alert(e.message) }
 }
 async function createRule() {
@@ -2533,13 +2408,6 @@ async function deleteRule(r) {
 function coinRuleName(id) {
   const r = coinRules.value.find(x => x.id === id)
   return r ? r.name_zh : (id || '—')
-}
-function coinShortDate(iso) {
-  if (!iso) return ''
-  try {
-    const d = new Date(iso)
-    return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  } catch { return '' }
 }
 
 // ===== 监督视图（仅雷振宇可见；票向实名明细 + 对账 + 全局流水）=====
@@ -2726,10 +2594,10 @@ async function deleteKnowledgeDoc(doc) {
   } catch (e) { alert('删除失败: ' + e.message) }
 }
 onMounted(() => {
-  if (isAuthenticated.value) loadHistory()
+  if (isAuthenticated.value) { loadHistory(); loadTodoBadges() }
 })
-// 登录成功后加载提交记录
-watch(isAuthenticated, (v) => { if (v) loadHistory() })
+// 登录成功后加载提交记录与待办红点
+watch(isAuthenticated, (v) => { if (v) { loadHistory(); loadTodoBadges() } })
 watch(currentType, (val) => {
   if (val === 'courseMaterials') loadCourseFiles()
   if (val === 'finance') { loadFinanceTransactions(); loadFinanceConfig(); if (isSupervisorLzy.value) loadFinanceSupervision(); if (activitiesList.value.length === 0) loadActivityList() }
@@ -2767,24 +2635,15 @@ watch(currentType, (val) => {
 .token-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .token-error { color: #ff3b30; font-size: 12px; }
 .type-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-.type-tab { padding: 10px 18px; background: var(--c-bg-card); border: 1.5px solid var(--c-border); border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--c-text-secondary); cursor: pointer; transition: all 0.2s; }
+.type-tab { position: relative; padding: 10px 18px; background: var(--c-bg-card); border: 1.5px solid var(--c-border); border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--c-text-secondary); cursor: pointer; transition: all 0.2s; }
+.todo-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #ff3b30; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .type-tab:hover { border-color: var(--c-accent); color: var(--c-accent); }
 .type-tab.active { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
 .fin-subtabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px dashed var(--c-border); }
 .fin-subtabs .type-tab { padding: 7px 14px; border-radius: 10px; font-size: 13px; }
-/* ===== 模块统一布局（试点：活动模块）===== */
+/* ===== 模块统一布局（动作栏/tab 条见 components/admin/ModuleBar.vue、ModuleTabs.vue）===== */
 .module-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
-.module-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap; margin-bottom: 18px; }
-.module-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--c-border, #333); }
-.module-tab { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--c-text-secondary, #999); font-size: 14px; font-weight: 600; padding: 8px 14px; cursor: pointer; margin-bottom: -1px; transition: color .2s; }
-.module-tab.on { color: var(--c-accent, #34c759); border-bottom-color: var(--c-accent, #34c759); }
-.module-stats { display: flex; align-items: center; gap: 8px; overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.module-stats::-webkit-scrollbar { display: none; }
-.stat-chip { font-size: 12px; font-weight: 500; color: var(--c-text-secondary); background: var(--c-bg-secondary); border: 1px solid var(--c-border); border-radius: 12px; padding: 4px 10px; cursor: pointer; transition: all .2s; }
-.stat-chip:hover { border-color: var(--c-accent); color: var(--c-accent); }
-.stat-chip.on { background: var(--c-accent-light); border-color: var(--c-accent); color: var(--c-accent); font-weight: 600; }
-.module-add-btn { font-size: 14px; font-weight: 600; color: #fff; background: var(--c-accent); border: none; border-radius: 10px; padding: 9px 18px; cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0; }
-.module-add-btn:hover { filter: brightness(1.08); }
+.budget-expiring { margin: 0 0 14px; padding: 8px 12px; border-radius: 8px; background: rgba(255, 149, 0, .12); border: 1px solid rgba(255, 149, 0, .4); color: #e8890c; font-size: 13px; }
 .module-form { background: var(--c-bg-secondary); border: 1px dashed var(--c-border-accent); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
 .module-form h3 { font-size: 16px; font-weight: 700; margin: 0 0 16px; }
 .module-list { }
