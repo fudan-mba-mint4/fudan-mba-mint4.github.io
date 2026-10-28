@@ -995,7 +995,6 @@ onUnmounted(() => {
             :aria-label="link.label"
           >
             <span v-if="unreadCounts[link.key] > 0" class="unread-badge" :aria-label="unreadCounts[link.key] + ' 条未读'">{{ unreadCounts[link.key] }}</span>
-            <span v-if="link.key === 'finance' && financeTodoText" class="todo-badge" :aria-label="financeTodoText">{{ financeTodoText }}</span>
             <svg class="quicklink-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
               <template v-if="link.icon === 'calendar'">
                 <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
@@ -1029,6 +1028,7 @@ onUnmounted(() => {
               </template>
             </svg>
             <span class="quicklink-label">{{ link.label }}</span>
+            <span v-if="link.key === 'finance' && financeTodoText" class="todo-badge" :aria-label="financeTodoText">{{ financeTodoText }}</span>
           </a>
         </div>
       </div>
@@ -2201,9 +2201,7 @@ onUnmounted(() => {
   pointer-events: none;
 }
 .todo-badge {
-  position: absolute;
-  top: 22px;
-  right: 6px;
+  display: inline-block;
   padding: 1px 7px;
   border-radius: 8px;
   background: #ff3b30;
@@ -2214,7 +2212,6 @@ onUnmounted(() => {
   pointer-events: none;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgba(255, 59, 48, .45);
-  z-index: 2;
 }
 
 /* ========== 4. 班级统计 ========== */
