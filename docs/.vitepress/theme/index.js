@@ -37,6 +37,7 @@ import ProfilePage from './components/ProfilePage.vue'
 import Polls from './components/Polls.vue'
 import CityFootprint from './components/CityFootprint.vue'
 import Wishes from './components/Wishes.vue'
+import MintCoins from './components/MintCoins.vue'
 import './styles/index.css'
 
 export default {
@@ -76,6 +77,7 @@ export default {
     app.component('Polls', Polls)
     app.component('CityFootprint', CityFootprint)
     app.component('Wishes', Wishes)
+    app.component('MintCoins', MintCoins)
 
     // 全局IP追踪：应用启动 2 秒后静默记录一次城市足迹。
     // - enhanceApp 只在应用首次启动时执行一次，SPA 路由切换不会重复触发，

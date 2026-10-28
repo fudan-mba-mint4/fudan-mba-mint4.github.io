@@ -194,3 +194,61 @@ CREATE TABLE IF NOT EXISTS reimbursements (
 );
 CREATE INDEX IF NOT EXISTS idx_reimbursements_applicant ON reimbursements (applicant_id);
 CREATE INDEX IF NOT EXISTS idx_reimbursements_status ON reimbursements (status);
+
+-- ===== 薄荷币激励体系（纯虚拟积分，与班费现金严格隔离） =====
+CREATE TABLE IF NOT EXISTS coin_accounts (
+  user_id INTEGER PRIMARY KEY,
+  balance INTEGER NOT NULL DEFAULT 1,   -- 当前余额（注册可得初始 1 币，计划 P43 口径）
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS coin_rules (
+  id TEXT PRIMARY KEY,
+  name_zh TEXT NOT NULL,
+  name_en TEXT DEFAULT '',
+  name_th TEXT DEFAULT '',
+  amount INTEGER NOT NULL DEFAULT 1,     -- 单次奖励币数
+  unit TEXT DEFAULT 'fixed',             -- fixed（固定） / per_activity（按活动）
+  category TEXT DEFAULT 'contribution',  -- contribution/organize/resource/help/other
+  is_routine INTEGER DEFAULT 1,          -- 1=常规（系统快速复核） 0=非常规（人工审核）
+  status INTEGER DEFAULT 1,              -- 1=启用 0=停用
+  note TEXT DEFAULT '',
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS coin_claims (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,             -- 申报人
+  applicant TEXT NOT NULL,              -- 申报人真名
+  rule_id TEXT,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  activity_id TEXT,
+  proofs TEXT DEFAULT '[]',             -- JSON [{url,name}] ≤3
+  recipients TEXT DEFAULT '[]',         -- JSON [{userId,name,amount}] 获币名单
+  total INTEGER DEFAULT 0,              -- 本次发放总数
+  status TEXT DEFAULT 'pending',        -- pending / approved / rejected
+  auditor TEXT,
+  audit_note TEXT,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  audited_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_coin_claims_user ON coin_claims (user_id);
+CREATE INDEX IF NOT EXISTS idx_coin_claims_status ON coin_claims (status);
+
+CREATE TABLE IF NOT EXISTS coin_ledger (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  delta INTEGER NOT NULL,               -- 正=赚 负=花
+  type TEXT DEFAULT 'earn',             -- earn / spend / adjust
+  rule_id TEXT,
+  ref_id TEXT,                          -- 关联 claim/order id
+  ref_type TEXT DEFAULT 'claim',
+  balance_after INTEGER,
+  operator TEXT,                        -- 经办班委真名
+  note TEXT DEFAULT '',
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_coin_ledger_user ON coin_ledger (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_coin_ledger_created ON coin_ledger (created_at DESC);

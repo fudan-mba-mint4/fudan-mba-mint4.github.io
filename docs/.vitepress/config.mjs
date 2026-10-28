@@ -40,6 +40,7 @@ const zhNav = [
       { text: '财务工作台', link: '/finance/workbench/' },
     ],
   },
+  { text: '薄荷币', link: '/mint-coins/' },
   {
     text: '记忆主理',
     items: [
@@ -122,6 +123,7 @@ const enNav = [
       { text: 'Workbench', link: '/en/finance/workbench/' },
     ],
   },
+  { text: 'Mint Coins', link: '/en/mint-coins/' },
   {
     text: 'Memories',
     items: [
@@ -204,6 +206,7 @@ const thNav = [
       { text: 'แผงงาน', link: '/th/finance/workbench/' },
     ],
   },
+  { text: 'เหรียญมินต์', link: '/th/mint-coins/' },
   {
     text: 'ความทรงจำ',
     items: [

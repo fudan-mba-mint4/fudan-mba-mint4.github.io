@@ -697,6 +697,97 @@
         </div>
       </div>
 
+      <!-- ===== 薄荷币（子 Tab：申报审核 / 规则配置） ===== -->
+      <div v-if="currentType === 'coins'" class="form-section">
+        <div class="fin-subtabs">
+          <button v-for="ct in coinsTabs" :key="ct.key" type="button" class="type-tab"
+            :class="{ active: coinsTab === ct.key }" @click="coinsTab = ct.key">{{ ct.icon }} {{ ct.name }}</button>
+        </div>
+
+        <div v-show="coinsTab === 'claims'">
+          <h3>🧾 薄荷币申报审核</h3>
+          <p class="empty-hint">通过后按获币名单批量入账；驳回必须填写原因。全部操作留痕可追溯。</p>
+          <div v-if="coinClaimsMsg" class="empty-hint">{{ coinClaimsMsg }}</div>
+          <div v-else-if="!coinClaims.length" class="empty-hint">暂无待审核申报</div>
+          <div v-else class="existing-list">
+            <div v-for="c in coinClaims" :key="c.id" class="existing-item">
+              <div class="existing-info">
+                <span class="existing-title">{{ c.applicant }} · {{ c.title }}（+{{ c.total }} 币）</span>
+                <span class="existing-meta">{{ coinShortDate(c.createdAt) }} · {{ coinRuleName(c.ruleId) }}</span>
+                <span v-if="c.description" class="existing-meta">说明：{{ c.description }}</span>
+                <div v-if="c.proofs && c.proofs.length" class="proofs-mini">
+                  <a v-for="(u, i) in c.proofs" :key="i" :href="u" target="_blank" rel="noopener">证明 {{ i + 1 }}</a>
+                </div>
+                <div v-if="c.recipients && c.recipients.length" class="existing-meta">
+                  获币名单（{{ c.recipients.length }} 人）：{{ c.recipients.map(r => r.name + ' +' + r.amount).join('、') }}
+                </div>
+              </div>
+              <div class="audit-actions">
+                <button type="button" class="audit-ok" @click="approveClaim(c)" :disabled="approvingId === c.id">
+                  {{ approvingId === c.id ? '入账中...' : '✓ 通过入账' }}</button>
+                <button type="button" class="audit-no" @click="openReject(c)" :disabled="rejectingId === c.id">✗ 驳回</button>
+              </div>
+              <div v-if="rejectingId === c.id" class="reject-box">
+                <input v-model="rejectNote" placeholder="驳回原因（必填）" />
+                <button type="button" class="audit-no" @click="doReject(c)" :disabled="!rejectNote.trim()">确认驳回</button>
+                <button type="button" class="audit-cancel" @click="rejectingId = ''; rejectNote = ''">取消</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-show="coinsTab === 'rules'">
+          <h3>⚙️ 奖励规则配置</h3>
+          <form @submit.prevent="createRule" class="data-form">
+            <div class="form-row">
+              <div class="form-group"><label>规则名称（中文）<span class="required">*</span></label><input v-model="ruleForm.nameZh" required placeholder="如：参与班级活动" /></div>
+              <div class="form-group"><label>单次奖励币数 <span class="required">*</span></label><input v-model.number="ruleForm.amount" type="number" min="1" step="1" required /></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>英文名</label><input v-model="ruleForm.nameEn" placeholder="Attend class activity" /></div>
+              <div class="form-group"><label>泰文名</label><input v-model="ruleForm.nameTh" placeholder="เข้าร่วมกิจกรรม" /></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>类型</label>
+                <select v-model="ruleForm.unit">
+                  <option value="fixed">固定（每次固定奖励）</option>
+                  <option value="per_activity">按活动（组织者统一提交名单）</option>
+                </select>
+              </div>
+              <div class="form-group"><label>分类</label>
+                <select v-model="ruleForm.category">
+                  <option value="contribution">参与贡献</option>
+                  <option value="organize">组织筹备</option>
+                  <option value="resource">提供资源</option>
+                  <option value="help">互助帮助</option>
+                  <option value="other">其他</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" v-model="ruleForm.isRoutine" /> 常规规则（快速复核）</label></div>
+              <div class="form-group"><label>备注</label><input v-model="ruleForm.note" placeholder="选填" /></div>
+            </div>
+            <button type="submit" class="submit-btn" :disabled="submitting">添加规则</button>
+          </form>
+
+          <div class="existing-list">
+            <h4>当前规则（{{ coinRules.length }}）</h4>
+            <p v-if="!coinRules.length" class="empty-hint">暂无规则</p>
+            <div v-for="r in coinRules" :key="r.id" class="existing-item">
+              <div class="existing-info">
+                <span class="existing-title">{{ r.name_zh }}（+{{ r.amount }} 币）<span :class="r.status ? 'tx-income' : 'tx-expense'">{{ r.status ? '启用' : '停用' }}</span></span>
+                <span class="existing-meta">{{ r.category }} · {{ r.unit === 'per_activity' ? '按活动' : '固定' }}{{ r.is_routine ? ' · 常规' : ' · 非常规' }}{{ r.note ? ' · ' + r.note : '' }}</span>
+              </div>
+              <div class="audit-actions">
+                <button type="button" class="audit-ok" @click="toggleRule(r)">{{ r.status ? '停用' : '启用' }}</button>
+                <button type="button" class="audit-no" @click="deleteRule(r)">删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== 相册表单 ===== -->
       <div v-if="currentType === 'gallery'" class="form-section">
         <h3>🖼️ 添加活动相册</h3>
@@ -901,6 +992,7 @@ const dataTypes = [
   { id: 'courseMaterials', name: '课程资料', icon: '📚' },
   { id: 'knowledge', name: '知识库', icon: '📖' },
   { id: 'finance', name: '班费', icon: '💰' },
+  { id: 'coins', name: '薄荷币', icon: '🍃' },
   { id: 'gallery', name: '相册', icon: '🖼️' },
   { id: 'treehole', name: '树洞管理', icon: '🌳' },
 ]
@@ -916,6 +1008,13 @@ const finTabs = [
   { key: 'supervision', name: '监督视图', icon: '🔍' },
 ]
 
+// 薄荷币模块内部子 Tab（申报审核 / 规则配置）
+const coinsTab = ref('claims')
+const coinsTabs = [
+  { key: 'claims', name: '申报审核', icon: '🧾' },
+  { key: 'rules', name: '规则配置', icon: '⚙️' },
+]
+
 // 各模块允许的角色（与 functions/_utils.js 的 MODULE_ROLES 保持一致，改动需同步）
 // leader/deputy/supervisor 可见并可写全部模块；其余角色只看到本职能模块。
 const MODULE_ROLE_MAP = {
@@ -925,6 +1024,7 @@ const MODULE_ROLE_MAP = {
   courseMaterials: ['leader', 'deputy', 'thinktank'],
   knowledge: ['leader', 'deputy', 'thinktank'],
   finance: ['leader', 'deputy', 'finance'],
+  coins: ['leader', 'deputy', 'finance'],
   gallery: ['leader', 'deputy', 'memory'],
   treehole: ['leader', 'deputy', 'memory'],
 }
@@ -2077,6 +2177,107 @@ async function addFinanceRole() {
 }
 function removeFinanceRole(i) { finRoles.value.splice(i, 1) }
 
+// ===== 薄荷币（申报审核 / 规则配置）=====
+const coinClaims = ref([])
+const coinClaimsMsg = ref('')
+const coinRules = ref([])
+const approvingId = ref('')
+const rejectingId = ref('')
+const rejectNote = ref('')
+const ruleForm = ref({ nameZh: '', nameEn: '', nameTh: '', amount: 1, unit: 'fixed', category: 'contribution', isRoutine: true, note: '' })
+
+async function loadCoinClaims() {
+  coinClaimsMsg.value = ''
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/coins/claims`, { headers: adminHeaders() })
+    if (!res.ok) { coinClaimsMsg.value = '加载申报失败'; return }
+    const j = await res.json()
+    coinClaims.value = j.claims || []
+  } catch (e) { coinClaimsMsg.value = '网络错误' }
+}
+async function loadCoinRules() {
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/coins/rules`, { headers: adminHeaders() })
+    if (!res.ok) return
+    const j = await res.json()
+    coinRules.value = j.rules || []
+  } catch (e) {}
+}
+async function approveClaim(c) {
+  if (!confirm(`确认通过「${c.title}」并发放 ${c.total} 币给 ${c.recipients.length} 人？`)) return
+  approvingId.value = c.id
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/coins/claims/${c.id}`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action: 'approve' }),
+    })
+    await throwIfNotOk(res, '审核通过')
+    coinClaims.value = coinClaims.value.filter(x => x.id !== c.id)
+    loadHistory()
+  } catch (e) { alert(e.message) }
+  finally { approvingId.value = '' }
+}
+function openReject(c) { rejectingId.value = c.id; rejectNote.value = '' }
+async function doReject(c) {
+  const note = rejectNote.value.trim()
+  if (!note) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/coins/claims/${c.id}`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action: 'reject', note }),
+    })
+    await throwIfNotOk(res, '驳回')
+    coinClaims.value = coinClaims.value.filter(x => x.id !== c.id)
+    rejectingId.value = ''
+    rejectNote.value = ''
+    loadHistory()
+  } catch (e) { alert(e.message) }
+}
+async function createRule() {
+  if (!ruleForm.value.nameZh.trim() || !ruleForm.value.amount) return
+  submitting.value = true
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/coins/rules`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ ...ruleForm.value }),
+    })
+    await throwIfNotOk(res, '添加规则')
+    ruleForm.value = { nameZh: '', nameEn: '', nameTh: '', amount: 1, unit: 'fixed', category: 'contribution', isRoutine: true, note: '' }
+    loadCoinRules()
+    loadHistory()
+  } catch (e) { alert(e.message) }
+  finally { submitting.value = false }
+}
+async function toggleRule(r) {
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/coins/rules/${r.id}`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action: 'toggle' }),
+    })
+    await throwIfNotOk(res, '切换状态')
+    loadCoinRules()
+    loadHistory()
+  } catch (e) { alert(e.message) }
+}
+async function deleteRule(r) {
+  if (!confirm(`确定删除规则「${r.name_zh}」？历史流水不受影响。`)) return
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/coins/rules/${r.id}`, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action: 'delete' }),
+    })
+    await throwIfNotOk(res, '删除规则')
+    loadCoinRules()
+    loadHistory()
+  } catch (e) { alert(e.message) }
+}
+function coinRuleName(id) {
+  const r = coinRules.value.find(x => x.id === id)
+  return r ? r.name_zh : (id || '—')
+}
+function coinShortDate(iso) {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  } catch { return '' }
+}
+
 // ===== 监督视图（仅雷振宇可见；票向实名明细 + 对账 + 全局流水）=====
 const isSupervisorLzy = computed(() => (currentUser.value?.name || '') === '雷振宇')
 const finSupervision = ref(null)
@@ -2266,6 +2467,7 @@ watch(isAuthenticated, (v) => { if (v) loadHistory() })
 watch(currentType, (val) => {
   if (val === 'courseMaterials') loadCourseFiles()
   if (val === 'finance') { loadFinanceTransactions(); loadFinanceConfig(); if (isSupervisorLzy.value) loadFinanceSupervision(); if (activitiesList.value.length === 0) loadActivityList() }
+  if (val === 'coins') { loadCoinClaims(); loadCoinRules() }
   if (val === 'activities' && actList.value.length === 0) loadActivityList()
   if (val === 'treehole' && treeholeMessages.value.length === 0) loadTreeholeMessages()
   if (val === 'knowledge' && kbCourses.value.length === 0) loadKbCourses()
@@ -2495,6 +2697,26 @@ watch(currentType, (val) => {
 .existing-del:hover { background: #ff3b30; color: #fff; }
 .existing-del.ok { border-color: #34c759; color: #2f9e44; }
 .existing-del.ok:hover { background: #34c759; color: #fff; }
+
+/* 薄荷币审核 */
+.audit-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.audit-ok, .audit-no, .audit-cancel {
+  flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px;
+  border-radius: 8px; background: transparent; cursor: pointer; transition: all .2s;
+}
+.audit-ok { border: 1px solid #34c759; color: #2f9e44; }
+.audit-ok:hover:not(:disabled) { background: #34c759; color: #fff; }
+.audit-ok:disabled { opacity: 0.5; cursor: not-allowed; }
+.audit-no { border: 1px solid #ff3b30; color: #ff3b30; }
+.audit-no:hover:not(:disabled) { background: #ff3b30; color: #fff; }
+.audit-no:disabled { opacity: 0.5; cursor: not-allowed; }
+.audit-cancel { border: 1px solid var(--c-border, #e5e5ea); color: var(--c-text-secondary, #6e6e73); }
+.audit-cancel:hover { border-color: var(--c-text-secondary, #6e6e73); }
+.reject-box { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.reject-box input { flex: 1; min-width: 180px; padding: 7px 10px; border: 1px solid #ff3b30; border-radius: 8px; font-size: 13px; background: var(--c-bg-secondary); color: var(--c-text-primary); }
+.proofs-mini { display: flex; gap: 8px; flex-wrap: wrap; }
+.proofs-mini a { font-size: 12px; color: #2d7a6c; text-decoration: underline; }
+.proofs-mini a:hover { opacity: 0.8; }
 /* 班费线上化（预算公示 / 报销审批） */
 .input-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-tertiary); color: var(--c-text); font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; }
 .input-inline { flex: 1; min-width: 120px; padding: 7px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-tertiary); color: var(--c-text); font-size: 13px; font-family: inherit; box-sizing: border-box; }

@@ -42,6 +42,7 @@ const i18n = {
       activities: '活动',
       gallery: '相册',
       finance: '班费',
+      coins: '薄荷币',
       polls: '投票',
       knowledge: '知识库',
     },
@@ -107,6 +108,7 @@ const i18n = {
       activities: 'Activities',
       gallery: 'Gallery',
       finance: 'Finance',
+      coins: 'Mint Coins',
       polls: 'Polls',
       knowledge: 'Knowledge',
     },
@@ -164,6 +166,7 @@ const i18n = {
       activities: 'กิจกรรม',
       gallery: 'อัลบั้ม',
       finance: 'การเงิน',
+      coins: 'เหรียญมินต์',
       polls: 'โหวต',
       knowledge: 'คลังความรู้',
     },
@@ -595,6 +598,7 @@ const unreadCounts = computed(() => {
   })
   const slideSeen = getSeen('slides')
   out.slides = items.slides.filter(x => !slideSeen.has(x.key)).length
+  out.coins = coinClaimUnread.value
   return out
 })
 
@@ -605,6 +609,7 @@ const quickLinks = computed(() => [
   { key: 'polls', label: t.value.links.polls, href: `${langPrefix.value}/polls/`, icon: 'poll' },
   { key: 'knowledge', label: t.value.links.knowledge, href: `${langPrefix.value}/knowledge/`, icon: 'graduation' },
   { key: 'finance', label: t.value.links.finance, href: `${langPrefix.value}/finance/`, icon: 'wallet' },
+  { key: 'coins', label: t.value.links.coins, href: `${langPrefix.value}/mint-coins/`, icon: 'leaf' },
 ])
 
 /* ===== 财务待办角标（登录后按财务角色显示：待审核/待付款） ===== */
@@ -628,6 +633,34 @@ const financeTodoText = computed(() => {
   if (td.audit) parts.push(t.value.auditBadge.replace('{n}', td.audit))
   if (td.pay) parts.push(t.value.payBadge.replace('{n}', td.pay))
   return parts.join(' · ')
+})
+
+/* ===== 薄荷币角标 + 红点（登录后拉个人数据） ===== */
+const coinMeData = ref(null)
+async function loadCoinMe() {
+  if (!isAuthenticated.value) { coinMeData.value = null; return }
+  try {
+    const res = await fetchWithRetry('/api/coins/me', { headers: { Authorization: `Bearer ${getToken()}` } })
+    if (!res.ok) { coinMeData.value = null; return }
+    const j = await res.json()
+    coinMeData.value = j
+    // coins 红点基线：首次进入（未初始化）时把当前申报状态全部视为已读
+    if (!isInitialized('coins')) {
+      markRead('coins', (j.claims || []).map(c => `${c.id}:${c.status}`))
+    }
+  } catch { coinMeData.value = null }
+}
+watch(isAuthenticated, (v) => { if (v) loadCoinMe() }, { immediate: true })
+const coinBalanceText = computed(() => {
+  const acc = coinMeData.value?.account
+  if (!acc) return ''
+  return `🍃 ${acc.balance}`
+})
+const coinClaimUnread = computed(() => {
+  if (!coinMeData.value) return 0
+  const seen = getSeen('coins')
+  return (coinMeData.value.claims || [])
+    .filter(c => c.status !== 'pending' && !seen.has(`${c.id}:${c.status}`)).length
 })
 
 /* ========== 传承人列表（全部13人） ========== */
@@ -1026,9 +1059,13 @@ onUnmounted(() => {
               <template v-else-if="link.icon === 'graduation'">
                 <path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/>
               </template>
+              <template v-else-if="link.icon === 'leaf'">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+              </template>
             </svg>
             <span class="quicklink-label">{{ link.label }}</span>
             <span v-if="link.key === 'finance' && financeTodoText" class="todo-badge" :aria-label="financeTodoText">{{ financeTodoText }}</span>
+            <span v-if="link.key === 'coins' && coinBalanceText" class="todo-badge todo-badge--coins" :aria-label="coinBalanceText">{{ coinBalanceText }}</span>
           </a>
         </div>
       </div>
@@ -2212,6 +2249,10 @@ onUnmounted(() => {
   pointer-events: none;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgba(255, 59, 48, .45);
+}
+.todo-badge--coins {
+  background: linear-gradient(135deg, #2d7a6c, #1a5c50);
+  box-shadow: 0 1px 4px rgba(45, 122, 108, .45);
 }
 
 /* ========== 4. 班级统计 ========== */
