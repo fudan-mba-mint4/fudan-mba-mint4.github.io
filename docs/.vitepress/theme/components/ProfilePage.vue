@@ -130,7 +130,8 @@
               <span class="mc-tier-name">{{ tierName }}</span>
             </div>
           </div>
-          <button class="claim-btn" @click="openClaim" :disabled="coinLoading">{{ coinLoading ? '加载中...' : '＋ 贡献申报' }}</button>
+          <button v-if="!isViewerOnly" class="claim-btn" @click="openClaim" :disabled="coinLoading">{{ coinLoading ? '加载中...' : '＋ 贡献申报' }}</button>
+          <p v-else class="viewer-only-hint">班主任与传承人仅可查看，不能参与薄荷币申报</p>
 
           <h3 class="mc-sub-title">我的申报</h3>
           <div v-if="coinMe?.claims?.length" class="claim-list">
@@ -218,7 +219,7 @@ import { markRead } from '../composables/useUnread.js'
 
 const router = useRouter()
 import { API_PREFIX } from '../composables/apiConfig.js'
-const { currentUser, isAuthenticated, logout, updateProfile, changePassword, authToken } = useAuth()
+const { currentUser, isAuthenticated, isViewerOnly, logout, updateProfile, changePassword, authToken } = useAuth()
 const { data: activitiesData } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 const { me: coinMe, fetchMe, submitClaim } = useCoins()
 const coinLoading = ref(false)
@@ -746,6 +747,14 @@ async function cancelSignup(eventId) {
   flex-shrink: 0;
 }
 .dark .mc-demo { color: #f2c94c; background: rgba(183, 138, 26, 0.22); }
+.viewer-only-hint {
+  font-size: 12px;
+  color: var(--c-text-tertiary, #aeaeb2);
+  border: 0.5px dashed var(--c-text-tertiary, #aeaeb2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-top: 12px;
+}
 
 /* 申报弹层 */
 .claim-modal-mask {

@@ -9,6 +9,8 @@ const TOKEN_KEY = 'mint4_auth_token'
 const currentUser = ref(null)
 const authToken = ref(null)
 const isAuthenticated = computed(() => !!currentUser.value)
+// 班主任 / 传承人：仅可查看，不能参与投票、申报、报销、报名等（前端据此隐藏参与按钮）
+const isViewerOnly = computed(() => !!currentUser.value?.viewerOnly)
 
 // 统一请求：单次 10s 超时，失败自动重试。
 // 读（me）重试 3 次；写（登录/注册/改密/更新）重试 2 次——写接口均为
@@ -160,6 +162,7 @@ export function useAuth() {
   return {
     currentUser,
     isAuthenticated,
+    isViewerOnly,
     authToken,
     register,
     checkName,

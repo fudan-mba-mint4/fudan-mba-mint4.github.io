@@ -3,7 +3,7 @@
 //   body: { proposalId?, activityId?, expenseDate, amount, category, description, vouchers:[{type,url,name}], endorsement? }
 //   endorsement（≥500 无发票场景必填）：{ committee: { name } } 经办人本人 + 1 名班委签字背书
 // PUT /:id：待补正（need_revision）状态下由本人修改凭证/信息后重新提交
-import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables } from '../../../_utils.js'
+import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
 import { COMMITTEE_ROLES } from '../../../_utils.js'
 import { getFinanceConfig, VOUCHER_TYPES, newId } from '../../../_finance.js'
 
@@ -36,6 +36,8 @@ export async function onRequest(context) {
   if (request.method === 'OPTIONS') return optionsResponse()
   const auth = await requireLogin(request, env)
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
+  // 班主任 / 传承人仅可查看，不能提交/修改报销单
+  if (isViewerOnly(auth.user)) return corsResponse({ error: VIEWER_ONLY_MSG }, 403)
   if (request.method !== 'POST' && request.method !== 'PUT') return corsResponse({ error: '不支持的请求方法' }, 405)
 
   try {

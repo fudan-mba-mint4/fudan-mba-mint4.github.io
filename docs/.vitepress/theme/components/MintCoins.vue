@@ -37,6 +37,7 @@
     <!-- ===== 薄荷园 · 森林 ===== -->
     <section v-show="tab === 'forest'" class="mc-section">
       <p class="mc-tip">{{ t.forestTip }}</p>
+      <p class="mc-demo-hint">🧪 {{ t.forestDemoHint }}</p>
       <div class="mc-forest">
         <div v-for="tree in forest" :key="tree.group" class="mc-tree-card" :class="{ 'mc-tree-card--bloomed': tree.stage !== 'growing' }">
           <svg class="mc-tree-svg" viewBox="0 0 120 170" role="img" :aria-label="treeLabel(tree)" :style="treeSwayStyle(tree)">
@@ -529,6 +530,14 @@ onMounted(() => {
   flex-shrink: 0;
 }
 .dark .mc-demo { color: #f2c94c; background: rgba(183, 138, 26, 0.22); }
+.mc-demo-hint {
+  font-size: 12px;
+  color: var(--c-text-tertiary, #aeaeb2);
+  border: 0.5px dashed var(--c-text-tertiary, #aeaeb2);
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin: 0 0 14px;
+}
 
 /* ===== 荣誉墙 ===== */
 .mc-honors { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }

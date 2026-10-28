@@ -86,7 +86,7 @@ const { lang, t } = useLang({
   },
 })
 
-const { isAuthenticated, currentUser, getToken } = useAuth()
+const { isAuthenticated, currentUser, getToken, isViewerOnly } = useAuth()
 
 import { API_PREFIX } from '../composables/apiConfig.js'
 
@@ -349,6 +349,7 @@ function formatDeadline(iso) {
               <div v-if="!isAuthenticated" class="poll-login-hint">
                 <button class="poll-login-btn" @click.stop="goToAuth">{{ t.loginToVote }}</button>
               </div>
+              <div v-else-if="isViewerOnly" class="poll-voted-badge">🔒 仅可查看</div>
               <div v-else-if="hasVoted(poll.id)" class="poll-voted-badge">✓ {{ t.voted }}</div>
               <div v-else-if="!isEnded(poll)" class="poll-submit-area">
                 <button

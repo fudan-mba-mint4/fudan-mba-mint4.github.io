@@ -2,7 +2,7 @@
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
   getSql, hashIp, getClientIp, getAuthUser,
-  corsResponse, optionsResponse, parseBody,
+  corsResponse, optionsResponse, parseBody, isViewerOnly, VIEWER_ONLY_MSG,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -19,6 +19,8 @@ export async function onRequest(context) {
   // 登录为硬性前置：一律从 Authorization token 识别，忽略请求体里的 userId（防伪造）
   const authUser = await getAuthUser(request, sql)
   if (!authUser) return corsResponse({ error: '请先登录' }, 401)
+  // 班主任 / 传承人仅可查看，不能参与投票
+  if (isViewerOnly(authUser)) return corsResponse({ error: VIEWER_ONLY_MSG }, 403)
   if (!optionIds?.length) return corsResponse({ error: '请选择投票选项' }, 400)
   const voterName = authUser.username
 

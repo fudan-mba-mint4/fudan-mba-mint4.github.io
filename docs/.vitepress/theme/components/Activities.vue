@@ -12,7 +12,7 @@ import ActivityCalendar from './ActivityCalendar.vue'
 
 const router = useRouter()
 const route = useRoute()
-const { currentUser, isAuthenticated, authToken } = useAuth()
+const { currentUser, isAuthenticated, authToken, isViewerOnly } = useAuth()
 
 // 视图切换：月历 / 时间线（许愿池为独立页 /wishes/）
 const view = ref('calendar')
@@ -430,6 +430,9 @@ const tr = (obj, key) => {
         <template v-if="!isAuthenticated">
           <button class="hero-signup-btn" @click="goToAuth">登录后报名</button>
         </template>
+        <template v-else-if="isViewerOnly">
+          <button class="hero-signup-btn full" disabled>仅可查看</button>
+        </template>
         <template v-else-if="isSignedUp(heroEvent.id)">
           <button class="hero-signup-btn signed" @click="cancelSignup(heroEvent.id)">✓ 已报名 · 点击取消</button>
         </template>
@@ -526,6 +529,11 @@ const tr = (obj, key) => {
                   <template v-if="!isAuthenticated">
                     <button class="signup-btn" @click="goToAuth">
                       登录后报名
+                    </button>
+                  </template>
+                  <template v-else-if="isViewerOnly">
+                    <button class="signup-btn full" disabled>
+                      仅可查看
                     </button>
                   </template>
                   <template v-else-if="isSignedUp(act.id)">

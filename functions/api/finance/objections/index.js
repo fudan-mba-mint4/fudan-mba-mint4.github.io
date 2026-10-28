@@ -1,7 +1,7 @@
 // 预算异议（反对意见）- POST /api/finance/objections
 // 全体登录成员可在公示期内提交/更新反对意见（一人一条，实名，upsert）
 // body: { proposalId, reason }
-import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables } from '../../../_utils.js'
+import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
 import { exposeOpen } from '../../../_finance.js'
 
 export async function onRequest(context) {
@@ -9,6 +9,8 @@ export async function onRequest(context) {
   if (request.method === 'OPTIONS') return optionsResponse()
   const auth = await requireLogin(request, env)
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
+  // 班主任 / 传承人仅可查看，不能提交公示异议
+  if (isViewerOnly(auth.user)) return corsResponse({ error: VIEWER_ONLY_MSG }, 403)
   if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
 
   try {

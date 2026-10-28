@@ -2,7 +2,7 @@
 // 默认本人按规则奖励币；班委（role 非空）可带获币名单批量申报（活动奖励由组织者统一提交，不重复计）。
 import {
   getSql, corsResponse, optionsResponse, parseBody, requireLogin,
-  ensureTables, isMissingTableError,
+  ensureTables, isMissingTableError, isViewerOnly, VIEWER_ONLY_MSG,
 } from '../../_utils.js'
 import { newId, COIN_CONFIG } from '../../_coins.js'
 
@@ -12,6 +12,8 @@ export async function onRequest(context) {
   if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
   const auth = await requireLogin(request, env)
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
+  // 班主任 / 传承人仅可查看，不能参与薄荷币申报
+  if (isViewerOnly(auth.user)) return corsResponse({ error: VIEWER_ONLY_MSG }, 403)
   try {
     return await handleCreate(request, env, auth.user)
   } catch (err) {

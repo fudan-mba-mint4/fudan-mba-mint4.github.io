@@ -2,6 +2,7 @@
 // 数据库访问（Cloudflare D1 / SQLite）、密码哈希、CORS、请求解析等
 
 import { createD1Sql } from './_d1.js'
+import { isViewerOnlyName } from './_roster.js'
 
 // 数据库为 Cloudflare D1（SQLite），通过 Pages Functions 的 D1 binding（env.DB）
 // 在 Cloudflare 网络内部访问：毫秒级、无外部连接、无冷启动。
@@ -461,6 +462,14 @@ export function getClientIp(request) {
 }
 
 // 从Authorization头获取用户
+// 是否「仅可查看」身份（班主任 / 传承人，含传承人组长）：
+// 只能浏览，不能参与公示投票、薄荷币申报、报销提交、活动报名等班级活动。
+export function isViewerOnly(user) {
+  return !!user && isViewerOnlyName(user.name)
+}
+// 统一 403 文案
+export const VIEWER_ONLY_MSG = '班主任与传承人仅可查看，不能参与班级活动（投票、申报、报销、报名等）'
+
 export async function getAuthUser(request, sql) {
   const authHeader = request.headers.get('authorization') || ''
   const token = authHeader.replace('Bearer ', '').trim()

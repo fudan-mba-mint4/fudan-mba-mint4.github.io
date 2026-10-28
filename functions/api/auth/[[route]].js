@@ -7,7 +7,7 @@
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
   getSql, hashPassword, generateToken,
-  getAuthUser, corsResponse, optionsResponse, parseBody, COMMITTEE_ROLES,
+  getAuthUser, corsResponse, optionsResponse, parseBody, COMMITTEE_ROLES, isViewerOnly,
 } from '../../_utils.js'
 import { isInRoster, normalizeName } from '../../_roster.js'
 
@@ -188,5 +188,6 @@ async function handleMe(request, env) {
     await sql`UPDATE users SET role = ${freshRole} WHERE id = ${user.id}`
     user.role = freshRole
   }
-  return corsResponse({ data: user })
+  // viewerOnly：班主任 / 传承人仅可查看，不能参与投票、申报、报销、报名等活动（前端据此隐藏参与按钮）
+  return corsResponse({ data: { ...user, viewerOnly: isViewerOnly(user) } })
 }

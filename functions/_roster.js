@@ -20,10 +20,29 @@ const ROSTER_SET = new Set(
     .map((m) => normalizeName(m.name)),
 )
 
+// 名录内成员的角色：headTeacher（班主任）/ mentor（传承人）/ mentorLeader（传承人组长）/ student（在读学生）
+const ROSTER_ROLE_MAP = new Map(
+  classMembers.members
+    .filter((m) => m && m.status === 'active' && m.role)
+    .map((m) => [normalizeName(m.name), m.role]),
+)
+
 // 是否本班同学（在 84 人名录内）
 export function isInRoster(rawName) {
   const n = normalizeName(rawName)
   return n.length > 0 && ROSTER_SET.has(n)
+}
+
+// 某真名在名录中的角色（不在名录返回 null）
+export function rosterRoleOf(rawName) {
+  const n = normalizeName(rawName)
+  return n ? (ROSTER_ROLE_MAP.get(n) || null) : null
+}
+
+// 是否「仅可查看」身份：班主任 / 传承人（含组长）——不能参与投票、薄荷币申报、报销、报名等活动
+export function isViewerOnlyName(rawName) {
+  const r = rosterRoleOf(rawName)
+  return r === 'headTeacher' || r === 'mentor' || r === 'mentorLeader'
 }
 
 // 白名单人数（便于自检/日志）

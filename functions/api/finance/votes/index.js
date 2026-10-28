@@ -1,7 +1,7 @@
 // 预算投票 v2 - POST /api/finance/votes
 // 全体登录同学对公示中预算投票：赞成 / 反对（二选一），不可撤回、不可改投
 // body: { proposalId, choice: 'for' | 'against', reason? }  reason 仅反对时可填（匿名公开）
-import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables } from '../../../_utils.js'
+import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
 import { exposeOpen } from '../../../_finance.js'
 
 export async function onRequest(context) {
@@ -9,6 +9,8 @@ export async function onRequest(context) {
   if (request.method === 'OPTIONS') return optionsResponse()
   const auth = await requireLogin(request, env)
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
+  // 班主任 / 传承人仅可查看，不能参与公示投票
+  if (isViewerOnly(auth.user)) return corsResponse({ error: VIEWER_ONLY_MSG }, 403)
   if (request.method !== 'POST') return corsResponse({ error: '不支持的请求方法' }, 405)
 
   try {

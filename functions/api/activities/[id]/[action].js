@@ -5,7 +5,7 @@
 // 表已建好，热路径不建表；表缺失时由 /api/admin/migrate 重建。
 import {
   getSql, getAuthUser,
-  corsResponse, optionsResponse,
+  corsResponse, optionsResponse, isViewerOnly, VIEWER_ONLY_MSG,
 } from '../../../_utils.js'
 
 export async function onRequest(context) {
@@ -43,6 +43,8 @@ async function handleSignup(request, env, activityId) {
   const sql = getSql(env)
   const user = await getAuthUser(request, sql)
   if (!user) return corsResponse({ error: '请先登录' }, 401)
+  // 班主任 / 传承人仅可查看，不能报名活动
+  if (isViewerOnly(user)) return corsResponse({ error: VIEWER_ONLY_MSG }, 403)
 
   try {
     await sql`

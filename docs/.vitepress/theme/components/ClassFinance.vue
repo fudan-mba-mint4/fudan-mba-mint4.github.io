@@ -52,7 +52,7 @@ const i18n = {
     expenseBy: '支出构成', noExpense: '暂无支出',
     // 通用
     loading: '加载中…', loadFailed: '加载失败，请稍后重试', retry: '重试',
-    loginFirst: '请先登录', close: '关闭',
+    loginFirst: '请先登录', close: '关闭', viewerOnlyHint: '班主任与传承人仅可查看，不能参与投票、申报、报销等活动',
     detail: '详情', viewDetail: '查看详情', relatedActivity: '关联活动', relatedBudget: '关联预算公示',
     relatedReimb: '关联报销单', noRelation: '未关联活动/预算（如班费缴纳等非活动收支）', openVoucher: '查看凭证', jumpTo: '前往',
     // v2 投票
@@ -118,7 +118,7 @@ const i18n = {
     semFall: 'Fall semester', semSpring: 'Spring semester', byCategory: 'By category', byActivity: 'By activity',
     expenseBy: 'Expense breakdown', noExpense: 'No expenses yet',
     loading: 'Loading…', loadFailed: 'Failed to load. Try again.', retry: 'Retry',
-    loginFirst: 'Please log in first', close: 'Close',
+    loginFirst: 'Please log in first', close: 'Close', viewerOnlyHint: 'Head teacher & mentors can view only; voting, claims and reimbursement are for students only',
     detail: 'Details', viewDetail: 'View details', relatedActivity: 'Related activity', relatedBudget: 'Related budget',
     relatedReimb: 'Related claim', noRelation: 'Not linked to any activity/budget', openVoucher: 'View vouchers', jumpTo: 'Open',
     voteFor: 'For', voteAgainst: 'Against', voteForDone: 'Voted for', voteAgainstDone: 'Voted against',
@@ -179,7 +179,7 @@ const i18n = {
     semFall: 'ภาคเรียนแรก', semSpring: 'ภาคเรียนที่สอง', byCategory: 'รายจ่ายตามหมวด', byActivity: 'รายจ่ายตามกิจกรรม',
     expenseBy: 'สัดส่วนรายจ่าย', noExpense: 'ยังไม่มีรายจ่าย',
     loading: 'กำลังโหลด…', loadFailed: 'โหลดไม่สำเร็จ กรุณาลองใหม่', retry: 'ลองใหม่',
-    loginFirst: 'กรุณาเข้าสู่ระบบก่อน', close: 'ปิด',
+    loginFirst: 'กรุณาเข้าสู่ระบบก่อน', close: 'ปิด', viewerOnlyHint: 'อาจารย์ประจำชั้นและพี่เลี้ยงดูได้อย่างเดียว ไม่สามารถโหวต/เบิกจ่าย/ยื่นเรื่องได้',
     detail: 'รายละเอียด', viewDetail: 'ดูรายละเอียด', relatedActivity: 'กิจกรรมที่เกี่ยวข้อง', relatedBudget: 'งบประมาณที่เกี่ยวข้อง',
     relatedReimb: 'การเบิกจ่ายที่เกี่ยวข้อง', noRelation: 'ไม่ผูกกับกิจกรรม/งบประมาณ', openVoucher: 'ดูหลักฐาน', jumpTo: 'ไป',
     voteFor: 'เห็นด้วย', voteAgainst: 'คัดค้าน', voteForDone: 'โหวตเห็นด้วยแล้ว', voteAgainstDone: 'โหวตคัดค้านแล้ว',
@@ -204,7 +204,7 @@ const i18n = {
   },
 }
 const { lang: currentLang, t } = useLang(i18n)
-const { currentUser, authToken, isAuthenticated } = useAuth()
+const { currentUser, authToken, isAuthenticated, isViewerOnly } = useAuth()
 
 /* ========== 数据 ========== */
 const activeTab = ref('tx')
@@ -759,6 +759,7 @@ const catPalette = ['#5ec4ac', '#5e5ce6', '#ff9f0a', '#ff375f', '#30b0c7', '#af5
                 <div class="vote-marker" :style="{ left: Math.min(100, (b.vetoCount / b.total) * 100) + '%' }" :title="t.vetoLineV2.replace('{n}', b.vetoCount)"></div>
               </div>
               <div v-if="!isAuthenticated" class="oppose-hint">{{ t.loginFirst }}</div>
+              <div v-else-if="isViewerOnly" class="oppose-hint">{{ t.viewerOnlyHint }}</div>
               <div v-else-if="votedByMe(b.id)" class="oppose-done">{{ myVote(b.id) === 'for' ? t.voteForDone : t.voteAgainstDone }}</div>
               <div v-else-if="voteForm.id !== b.id" class="vote-actions">
                 <button class="btn-vote for" @click="startVote(b, 'for')">{{ t.voteFor }}</button>
@@ -829,6 +830,7 @@ const catPalette = ['#5ec4ac', '#5e5ce6', '#ff9f0a', '#ff375f', '#30b0c7', '#af5
         </div>
 
         <div v-if="!isAuthenticated" class="empty-state"><p>{{ t.noLoginReimb }}</p></div>
+        <div v-else-if="isViewerOnly" class="empty-state"><p>{{ t.viewerOnlyHint }}</p></div>
         <template v-else>
           <div class="reimb-topbar">
             <span class="group-title">{{ canViewAllReimb ? t.allReimb : t.myReimb }}（{{ reimbursements.length }}）</span>
