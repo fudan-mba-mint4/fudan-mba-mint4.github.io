@@ -1,14 +1,14 @@
-// 薄荷币 · 申报审核 - POST /api/admin/coins/claims/:id（班委：finance/leader/deputy）
+// 薄荷币 · 申报审核 - POST /api/admin/coins/claims/:id（审批仅限财务激励官：高晓梅 / 叶宏颖）
 // action=approve → 按获币名单批量入账（coin_ledger + 账户余额）；action=reject → 驳回（必填原因）。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole,
+  getSql, corsResponse, optionsResponse, parseBody, requireCoinsAdmin,
   logHistory, ensureTables, isMissingTableError,
 } from '../../../../../_utils.js'
 
 export async function onRequest(context) {
   const { request, env, params } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  const auth = await requireRole(request, env, 'coins')
+  const auth = await requireCoinsAdmin(request, env, { auditOnly: true })
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
   const id = String(params?.id || '')
   if (!id) return corsResponse({ error: '缺少申报单 ID' }, 400)

@@ -1,14 +1,14 @@
-// 薄荷币 · 规则操作 - POST /api/admin/coins/rules/:id（班委：finance/leader/deputy）
+// 薄荷币 · 规则操作 - POST /api/admin/coins/rules/:id（高晓梅 / 叶宏颖 + leader/deputy/supervisor 兜底）
 // action=toggle（启停）/ update（更新字段）/ delete（删除）。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole,
+  getSql, corsResponse, optionsResponse, parseBody, requireCoinsAdmin,
   logHistory, ensureTables, isMissingTableError,
 } from '../../../../../_utils.js'
 
 export async function onRequest(context) {
   const { request, env, params } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  const auth = await requireRole(request, env, 'coins')
+  const auth = await requireCoinsAdmin(request, env)
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
   const id = String(params?.id || '')
   if (!id) return corsResponse({ error: '缺少规则 ID' }, 400)

@@ -1024,22 +1024,31 @@ const MODULE_ROLE_MAP = {
   courseMaterials: ['leader', 'deputy', 'thinktank'],
   knowledge: ['leader', 'deputy', 'thinktank'],
   finance: ['leader', 'deputy', 'finance'],
-  coins: ['leader', 'deputy', 'finance'],
+  // 薄荷币：审批由财务激励官「高晓梅 / 叶宏颖」专人负责（与 functions/_utils.js COIN_AUDITORS 一致），
+  // 不再整体放行 finance 组；leader/deputy/supervisor 兜底可见。
+  coins: ['leader', 'deputy'],
   gallery: ['leader', 'deputy', 'memory'],
   treehole: ['leader', 'deputy', 'memory'],
 }
+// 薄荷币审批负责人（真名白名单，与后端 COIN_AUDITORS 保持一致）
+const COIN_AUDITORS = ['高晓梅', '叶宏颖']
 const ROLE_LABEL_MAP = {
   leader: '班级主理人', deputy: '副主理人', experience: '体验运营官',
   finance: '财务激励官', thinktank: '智库研究员', memory: '记忆主理人',
   supervisor: '独立董事会',
 }
-// 按当前登录用户角色过滤可见模块：
-// 主理人/副主理人/独立董事会看全部（均可写）；其余角色按本职能过滤。
+// 按当前登录用户过滤可见模块：
+// 主理人/副主理人/独立董事会看全部（均可写）；薄荷币审批人（高晓梅/叶宏颖）额外放行薄荷币；其余角色按本职能过滤。
 const visibleTypes = computed(() => {
   const role = currentUser.value?.role
+  const name = currentUser.value?.name
   if (!role) return []
   if (role === 'leader' || role === 'deputy' || role === 'supervisor') return dataTypes
-  return dataTypes.filter(t => (MODULE_ROLE_MAP[t.id] || []).includes(role))
+  const base = dataTypes.filter(t => (MODULE_ROLE_MAP[t.id] || []).includes(role))
+  if (COIN_AUDITORS.includes(name) && !base.some(t => t.id === 'coins')) {
+    return [...base, dataTypes.find(t => t.id === 'coins')]
+  }
+  return base
 })
 const roleLabel = computed(() => ROLE_LABEL_MAP[currentUser.value?.role] || '')
 // 登录/角色变化后，若当前模块不在可见范围，自动切到第一个可见模块

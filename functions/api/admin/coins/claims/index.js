@@ -1,7 +1,7 @@
-// 薄荷币 · 申报列表 - GET /api/admin/coins/claims（班委：finance/leader/deputy）
+// 薄荷币 · 申报列表 - GET /api/admin/coins/claims（审批仅限财务激励官：高晓梅 / 叶宏颖）
 // 默认返回待审核（pending）申报；?all=1 返回全部。
 import {
-  getSql, corsResponse, optionsResponse, requireRole,
+  getSql, corsResponse, optionsResponse, requireCoinsAdmin,
   ensureTables, isMissingTableError,
 } from '../../../../_utils.js'
 
@@ -9,7 +9,7 @@ export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
   if (request.method !== 'GET') return corsResponse({ error: '不支持的请求方法' }, 405)
-  const auth = await requireRole(request, env, 'coins')
+  const auth = await requireCoinsAdmin(request, env, { auditOnly: true })
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
   try {
     const sql = getSql(env)

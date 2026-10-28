@@ -515,7 +515,25 @@ export const MODULE_ROLES = {
   finance: ['leader', 'deputy', 'finance'],
   gallery: ['leader', 'deputy', 'memory'],
   treehole: ['leader', 'deputy', 'memory'],
-  coins: ['leader', 'deputy', 'finance'],   // 薄荷币激励体系（财务激励官运营）
+  // 薄荷币激励体系：审批由财务激励官「高晓梅 / 叶宏颖」专人负责（见 COIN_AUDITORS 与 requireCoinsAdmin），
+  // 不再整体放行 finance 组；leader/deputy/supervisor 仅可做规则配置等管理。
+  coins: ['leader', 'deputy'],
+}
+
+// 薄荷币审批负责人（真名白名单）：所有审批（列表/通过/驳回）仅此二人
+export const COIN_AUDITORS = ['高晓梅', '叶宏颖']
+
+// 薄荷币后台鉴权：
+// - auditOnly（审批工作台）：仅 COIN_AUDITORS 两人可操作
+// - 配置管理（规则等）：COIN_AUDITORS 两人 + leader/deputy/supervisor 兜底
+export async function requireCoinsAdmin(request, env, { auditOnly = false } = {}) {
+  const sql = getSql(env)
+  const user = await getAuthUser(request, sql)
+  if (!user) return { ok: false, status: 401, error: '请先登录' }
+  if (COIN_AUDITORS.includes(user.name)) return { ok: true, user }
+  if (auditOnly) return { ok: false, status: 403, error: '薄荷币审批由财务激励官高晓梅、叶宏颖负责' }
+  if (user.role === 'leader' || user.role === 'deputy' || user.role === 'supervisor') return { ok: true, user }
+  return { ok: false, status: 403, error: '没有该模块的操作权限' }
 }
 
 // 按模块鉴权【写/改/删】：

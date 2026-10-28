@@ -1,7 +1,7 @@
-// 薄荷币 · 规则管理 - GET/POST /api/admin/coins/rules（班委：finance/leader/deputy）
+// 薄荷币 · 规则管理 - GET/POST /api/admin/coins/rules（高晓梅 / 叶宏颖 + leader/deputy/supervisor 兜底）
 // GET：全部规则（含停用，供后台列表）；POST：创建规则。
 import {
-  getSql, corsResponse, optionsResponse, parseBody, requireRole,
+  getSql, corsResponse, optionsResponse, parseBody, requireCoinsAdmin,
   ensureTables, isMissingTableError,
 } from '../../../../_utils.js'
 import { newId } from '../../../../_coins.js'
@@ -9,7 +9,7 @@ import { newId } from '../../../../_coins.js'
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
-  const auth = await requireRole(request, env, 'coins')
+  const auth = await requireCoinsAdmin(request, env)
   if (!auth.ok) return corsResponse({ error: auth.error }, auth.status)
   try {
     if (request.method === 'GET') return await handleList(env)
