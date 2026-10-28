@@ -9,40 +9,39 @@ defineProps({
 
 <template>
   <div class="page-header-section">
-    <div class="page-header-inner">
+    <div class="page-header-row">
       <!-- 图标 -->
-      <div v-if="icon" class="page-header-icon">{{ icon }}</div>
+      <span v-if="icon" class="page-header-icon">{{ icon }}</span>
       
       <!-- 标题 -->
       <h1 class="page-header-title">{{ title }}</h1>
       
-      <!-- 描述 -->
-      <p v-if="description" class="page-header-desc">{{ description }}</p>
-      
-      <!-- 口号 -->
-      <div v-if="slogan" class="page-header-slogan">
-        <span class="slogan-text">{{ slogan }}</span>
-      </div>
+      <!-- 口号（与标题同行） -->
+      <span v-if="slogan" class="page-header-slogan">{{ slogan }}</span>
     </div>
     
-    <!-- 底部分割线 -->
-    <div class="page-header-divider"></div>
+    <!-- 描述 -->
+    <p v-if="description" class="page-header-desc">{{ description }}</p>
   </div>
 </template>
 
 <style scoped>
 .page-header-section {
-  margin-bottom: 20px;
+  margin: 0 0 44px;
+  text-align: center;
 }
 
-.page-header-inner {
-  text-align: center;
-  padding: 24px 24px 16px;
+.page-header-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-top: 24px;
 }
 
 .page-header-icon {
   font-size: 28px;
-  margin-bottom: 10px;
   line-height: 1;
 }
 
@@ -50,59 +49,49 @@ defineProps({
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  line-height: 1.25;
-  margin: 0 0 8px 0;
-  color: var(--c-text-primary);
-}
-
-.page-header-desc {
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.65;
-  color: var(--c-text-secondary);
-  margin: 0 auto 14px auto;
-  max-width: 560px;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--c-text-primary, #1d1d1f);
 }
 
 .page-header-slogan {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 16px;
-  background: var(--c-accent-light);
-  border-radius: 16px;
-  border: 0.5px solid var(--c-border-accent);
-}
-
-.slogan-text {
   font-size: 13px;
   font-weight: 500;
-  color: var(--c-accent);
+  padding: 6px 16px;
+  border-radius: 15px;
+  background: var(--c-accent-light, rgba(45,122,108,.12));
+  border: 0.5px solid var(--c-border-accent, rgba(45,122,108,.35));
+  color: var(--c-accent, #2D7A6C);
   letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
-.page-header-divider {
-  display: none;
+.page-header-desc {
+  margin: 12px auto 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--c-text-secondary, #6e6e73);
+  max-width: 560px;
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .page-header-inner {
-    padding: 18px 16px 14px;
+  .page-header-section {
+    margin-bottom: 30px;
   }
   
-  .page-header-icon {
-    font-size: 24px;
-    margin-bottom: 8px;
+  .page-header-row {
+    gap: 10px;
+    padding-top: 22px;
   }
   
   .page-header-title {
-    font-size: 22px;
+    font-size: 24px;
   }
   
   .page-header-desc {
-    font-size: 13px;
-    max-width: 100%;
-    margin-bottom: 12px;
+    margin-top: 12px;
+    font-size: 13.5px;
   }
 }
 </style>
