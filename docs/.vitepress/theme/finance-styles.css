@@ -308,6 +308,12 @@
 .budget-toolbar .btn-oppose { flex: 0 0 auto; white-space: nowrap; padding: 7px 12px; }
 .budget-form-card .form-row { flex-wrap: nowrap; }
 .budget-form-card .form-row .fp-input, .budget-form-card .form-row .fp-select { flex: 1 1 auto; min-width: 0; }
+/* 明细表头与输入行强制等宽对齐：铺满列容器、压缩不溢出 */
+.detail-scroll { overflow-x: auto; width: 100%; }
+.form-row.col .detail-table-head, .form-row.col .detail-row { width: 100%; }
+.detail-scroll .detail-table-head, .detail-scroll .detail-row, .detail-scroll .detail-total { min-width: 560px; }
+.detail-row > * { min-width: 0; }
+.detail-table-head span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) {
   .budget-tab { padding: 5px 9px; font-size: 12px; }
   .budget-toolbar .btn-oppose { padding: 6px 10px; font-size: 12px; }

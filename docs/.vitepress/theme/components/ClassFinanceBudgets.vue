@@ -212,27 +212,29 @@ watch(() => router.route?.query?.focus, (v) => {
         </div>
         <div class="form-row col">
           <label class="f-label">{{ t.formDetailTitle }}</label>
-          <div class="detail-table-head">
-            <span class="dt-item">{{ t.itemName }}</span><span class="dt-qty">{{ t.qty }}</span>
-            <span class="dt-price">{{ t.unitPrice }}</span><span class="dt-sub">{{ t.itemAmount }}</span>
-            <span class="dt-cat">{{ t.itemCategory }}</span><span class="dt-note">{{ t.itemNote }}</span>
-            <span class="dt-del"></span>
-          </div>
-          <div v-for="(it, i) in form.detailItems" :key="i" class="detail-row">
-            <input v-model="it.item" class="fp-input dt-item" placeholder="如：横幅印刷" />
-            <input v-model.number="it.qty" type="number" min="0" class="fp-input dt-qty" />
-            <input v-model.number="it.unitPrice" type="number" step="0.01" min="0" class="fp-input dt-price" />
-            <span class="dt-sub">{{ formatAmount(rowTotal(it)) }}</span>
-            <select v-model="it.category" class="fp-select dt-cat">
-              <option value="">请选择</option>
-              <option v-for="c in FEE_CATEGORY_OPTIONS" :key="c" :value="c">{{ c }}</option>
-            </select>
-            <input v-model="it.note" class="fp-input dt-note" placeholder="备注" />
-            <button type="button" class="mini-del" @click="removeItemRow(i)" :disabled="form.detailItems.length <= 1">×</button>
-          </div>
-          <div class="detail-total">
-            <button type="button" class="mini-add" @click="addItemRow">{{ t.addItem }}</button>
-            <span class="dt-total">{{ t.total }}：<b>¥{{ formatAmount(itemsTotal) }}</b></span>
+          <div class="detail-scroll">
+            <div class="detail-table-head">
+              <span class="dt-item">{{ t.itemName }}</span><span class="dt-qty">{{ t.qty }}</span>
+              <span class="dt-price">{{ t.unitPrice }}</span><span class="dt-sub">{{ t.itemAmount }}</span>
+              <span class="dt-cat">{{ t.itemCategory }}</span><span class="dt-note">{{ t.itemNote }}</span>
+              <span class="dt-del"></span>
+            </div>
+            <div v-for="(it, i) in form.detailItems" :key="i" class="detail-row">
+              <input v-model="it.item" class="fp-input dt-item" placeholder="如：横幅印刷" />
+              <input v-model.number="it.qty" type="number" min="0" class="fp-input dt-qty" />
+              <input v-model.number="it.unitPrice" type="number" step="0.01" min="0" class="fp-input dt-price" />
+              <span class="dt-sub">{{ formatAmount(rowTotal(it)) }}</span>
+              <select v-model="it.category" class="fp-select dt-cat">
+                <option value="">请选择</option>
+                <option v-for="c in FEE_CATEGORY_OPTIONS" :key="c" :value="c">{{ c }}</option>
+              </select>
+              <input v-model="it.note" class="fp-input dt-note" placeholder="备注" />
+              <button type="button" class="mini-del" @click="removeItemRow(i)" :disabled="form.detailItems.length <= 1">×</button>
+            </div>
+            <div class="detail-total">
+              <button type="button" class="mini-add" @click="addItemRow">{{ t.addItem }}</button>
+              <span class="dt-total">{{ t.total }}：<b>¥{{ formatAmount(itemsTotal) }}</b></span>
+            </div>
           </div>
         </div>
         <div class="form-row">
