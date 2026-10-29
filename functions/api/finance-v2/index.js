@@ -49,7 +49,7 @@ export async function onRequest(context) {
     let tx, budgets, reimb, votes, reconciles
     try {
       tx = await sql`SELECT * FROM finance_tx ORDER BY date DESC, id DESC`
-      budgets = await sql`SELECT * FROM budget_proposals WHERE status NOT IN ('submitted', 'returned') ORDER BY created_at DESC`
+      budgets = await sql`SELECT * FROM budget_proposals WHERE status NOT IN ('submitted', 'returned', 'draft') ORDER BY created_at DESC`
       reimb = await sql`SELECT * FROM reimbursements ORDER BY created_at DESC`
       votes = await sql`SELECT proposal_id, user_id, choice, reason, created_at FROM budget_votes`
       reconciles = await sql`SELECT * FROM reconcilations ORDER BY date DESC, created_at DESC`
@@ -57,7 +57,7 @@ export async function onRequest(context) {
       if (isMissingTableError(e)) {
         await ensureTables(env)
         tx = await sql`SELECT * FROM finance_tx ORDER BY date DESC, id DESC`
-        budgets = await sql`SELECT * FROM budget_proposals WHERE status NOT IN ('submitted', 'returned') ORDER BY created_at DESC`
+        budgets = await sql`SELECT * FROM budget_proposals WHERE status NOT IN ('submitted', 'returned', 'draft') ORDER BY created_at DESC`
         reimb = await sql`SELECT * FROM reimbursements ORDER BY created_at DESC`
         votes = await sql`SELECT proposal_id, user_id, choice, reason, created_at FROM budget_votes`
         reconciles = await sql`SELECT * FROM reconcilations ORDER BY date DESC, created_at DESC`

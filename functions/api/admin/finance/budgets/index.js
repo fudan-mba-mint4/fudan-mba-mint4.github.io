@@ -20,10 +20,10 @@ export async function onRequest(context) {
     if (request.method === 'GET') {
       let budgets, votes
       try {
-        budgets = await sql`SELECT * FROM budget_proposals ORDER BY created_at DESC`
+        budgets = await sql`SELECT * FROM budget_proposals WHERE status != 'draft' ORDER BY created_at DESC`
         votes = await sql`SELECT proposal_id, user_id, choice, reason, created_at FROM budget_votes`
       } catch (e) {
-        if (isMissingTableError(e)) { await ensureTables(env); budgets = await sql`SELECT * FROM budget_proposals ORDER BY created_at DESC`; votes = await sql`SELECT proposal_id, user_id, choice, reason, created_at FROM budget_votes` }
+        if (isMissingTableError(e)) { await ensureTables(env); budgets = await sql`SELECT * FROM budget_proposals WHERE status != 'draft' ORDER BY created_at DESC`; votes = await sql`SELECT proposal_id, user_id, choice, reason, created_at FROM budget_votes` }
         else throw e
       }
       const voteMap = {}

@@ -17,11 +17,11 @@ export async function onRequest(context) {
 
     let budgets, votes, users
     try {
-      budgets = await sql`SELECT * FROM budget_proposals ORDER BY created_at DESC`
+      budgets = await sql`SELECT * FROM budget_proposals WHERE status != 'draft' ORDER BY created_at DESC`
       votes = await sql`SELECT v.*, u.name AS user_name FROM budget_votes v LEFT JOIN users u ON u.id = v.user_id ORDER BY v.created_at ASC`
       users = await sql`SELECT id, name FROM users`
     } catch (e) {
-      if (isMissingTableError(e)) { await ensureTables(env); budgets = await sql`SELECT * FROM budget_proposals ORDER BY created_at DESC`; votes = await sql`SELECT v.*, u.name AS user_name FROM budget_votes v LEFT JOIN users u ON u.id = v.user_id ORDER BY v.created_at ASC`; users = await sql`SELECT id, name FROM users` }
+      if (isMissingTableError(e)) { await ensureTables(env); budgets = await sql`SELECT * FROM budget_proposals WHERE status != 'draft' ORDER BY created_at DESC`; votes = await sql`SELECT v.*, u.name AS user_name FROM budget_votes v LEFT JOIN users u ON u.id = v.user_id ORDER BY v.created_at ASC`; users = await sql`SELECT id, name FROM users` }
       else throw e
     }
 
