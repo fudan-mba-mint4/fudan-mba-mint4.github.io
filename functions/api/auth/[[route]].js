@@ -36,7 +36,7 @@ export async function onRequest(context) {
 async function handleRegister(request, env) {
   const sql = getSql(env)
   const body = await parseBody(request)
-  const { username, password, name, nickname } = body
+  const { username, password, name, nickname, groupNo } = body
 
   if (!username || username.trim().length < 2) return corsResponse({ error: '用户名至少2个字符' }, 400)
   if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) return corsResponse({ error: '用户名只能包含字母、数字和下划线' }, 400)
@@ -64,9 +64,18 @@ async function handleRegister(request, env) {
   // 按真名自动识别班委角色（非班委为 null）
   const role = COMMITTEE_ROLES[cleanName] || null
 
+  // 注册时必填分组（Orientation 1-6 组），注册后不可修改
+  if (groupNo === undefined || groupNo === '' || groupNo === null) {
+    return corsResponse({ error: '请选择你的分组（第1~6组）' }, 400)
+  }
+  const gno = parseInt(groupNo, 10)
+  if (!Number.isInteger(gno) || gno < 1 || gno > 6) {
+    return corsResponse({ error: '请选择正确的分组（第1~6组）' }, 400)
+  }
+
   const result = await sql`
-    INSERT INTO users (username, password_hash, name, nickname, role, token, token_expires_at)
-    VALUES (${username.trim()}, ${await hashPassword(password)}, ${cleanName}, ${nickname?.trim() || ''}, ${role}, ${token}, ${tokenExpires})
+    INSERT INTO users (username, password_hash, name, nickname, role, group_no, token, token_expires_at)
+    VALUES (${username.trim()}, ${await hashPassword(password)}, ${cleanName}, ${nickname?.trim() || ''}, ${role}, ${gno}, ${token}, ${tokenExpires})
     RETURNING id, username, name, nickname, role, group_no, created_at
   `
 
@@ -149,7 +158,7 @@ async function handleUpdateProfile(request, env) {
   if (!user) return corsResponse({ error: '未登录或登录已过期' }, 401)
 
   const body = await parseBody(request)
-  const { name, nickname, group_no } = body
+  const { name, nickname } = body // group_no 不可修改（注册时固定）
 
   if (name !== undefined) {
     const cleanName = normalizeName(name)
@@ -169,10 +178,7 @@ async function handleUpdateProfile(request, env) {
   if (nickname !== undefined) {
     await sql`UPDATE users SET nickname = ${String(nickname).trim()} WHERE id = ${user.id}`
   }
-  if (group_no !== undefined) {
-    const gno = group_no === '' || group_no === null ? null : parseInt(group_no, 10)
-    await sql`UPDATE users SET group_no = ${gno} WHERE id = ${user.id}`
-  }
+  // 分组在注册时填写，注册后不可修改（此处忽略任何 group_no 传参）
 
   const result = await sql`SELECT id, username, name, nickname, role, group_no, created_at FROM users WHERE id = ${user.id}`
   return corsResponse({ message: '更新成功', data: result[0] })
