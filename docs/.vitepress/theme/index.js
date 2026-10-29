@@ -5,11 +5,7 @@
 
 import DefaultTheme from 'vitepress/theme'
 import Layout from './Layout.vue'
-import HeroSection from './components/HeroSection.vue'
-import FeatureCards from './components/FeatureCards.vue'
-import SchedulePreview from './components/SchedulePreview.vue'
 import ScheduleView from './components/ScheduleView.vue'
-import PlaceholderSection from './components/PlaceholderSection.vue'
 import MobileTabBar from './components/MobileTabBar.vue'
 import Classmates from './components/Classmates.vue'
 import HomeDashboard from './components/HomeDashboard.vue'
@@ -45,11 +41,7 @@ export default {
   Layout,
   enhanceApp({ app, router, siteData }) {
     // 注册全局组件，可在 Markdown 中直接使用
-    app.component('HeroSection', HeroSection)
-    app.component('FeatureCards', FeatureCards)
-    app.component('SchedulePreview', SchedulePreview)
     app.component('ScheduleView', ScheduleView)
-    app.component('PlaceholderSection', PlaceholderSection)
     app.component('MobileTabBar', MobileTabBar)
     app.component('Classmates', Classmates)
     app.component('HomeDashboard', HomeDashboard)
