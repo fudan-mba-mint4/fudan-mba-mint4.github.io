@@ -8,9 +8,33 @@ CREATE TABLE IF NOT EXISTS treehole_messages (
   content TEXT NOT NULL,
   is_deleted INTEGER DEFAULT 0,
   ip_hash TEXT,
+  user_id TEXT,
+  anonymous INTEGER DEFAULT 1,
+  anon_hash TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_treehole_created_at ON treehole_messages (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS treehole_steps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL UNIQUE,
+  user_name TEXT NOT NULL,
+  step_count INTEGER DEFAULT 1,
+  last_stepped_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE IF NOT EXISTS treehole_comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
+  user_name TEXT,
+  anonymous INTEGER DEFAULT 1,
+  content TEXT NOT NULL,
+  ip_hash TEXT,
+  is_deleted INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_treehole_comments_msg ON treehole_comments (message_id, created_at);
 
 CREATE TABLE IF NOT EXISTS poll_votes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -7,7 +7,7 @@
           <h1 class="treehole-title">{{ t.title }}</h1>
           <p class="treehole-subtitle">{{ t.subtitle }}</p>
         </div>
-        <button class="write-btn disabled" disabled title="尚未开放">
+        <button class="write-btn disabled" disabled :title="t.closeHint">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
           </svg>
@@ -18,6 +18,16 @@
       <div v-if="stats.total > 0" class="treehole-stats">
         <span class="stat-item"><strong>{{ stats.total }}</strong> {{ t.totalMessages }}</span>
         <span v-if="stats.todayCount > 0" class="stat-item stat-today"><strong>{{ stats.todayCount }}</strong> {{ t.todayNew }}</span>
+      </div>
+
+      <!-- 踩一踩（QQ空间早期风格） -->
+      <div class="treehole-step">
+        <button class="step-btn" :class="{ stepped: steppedToday }" :disabled="stepping || steppedToday" @click="doStep">
+          <span class="step-icon">👣</span>
+          <span>{{ steppedToday ? t.stepDone : t.stepBtn }}</span>
+        </button>
+        <span class="step-total" :title="t.stepTotalTitle">{{ stepsTotal }} {{ t.stepUnit }}</span>
+        <span v-if="recentSteps.length" class="step-recent">{{ t.recentSteps }}<span class="step-names">{{ recentSteps.join('、') }}</span></span>
       </div>
 
       <!-- 匿名性说明 -->
@@ -33,6 +43,13 @@
         </button>
         <div v-if="privacyOpen" class="privacy-content">
           <div class="privacy-row">
+            <div class="privacy-icon login">🔐</div>
+            <div class="privacy-text">
+              <strong>{{ t.privacyLoginTitle }}</strong>
+              <p>{{ t.privacyLoginDesc }}</p>
+            </div>
+          </div>
+          <div class="privacy-row">
             <div class="privacy-icon anon">🕵️</div>
             <div class="privacy-text">
               <strong>{{ t.privacyAnonTitle }}</strong>
@@ -40,10 +57,10 @@
             </div>
           </div>
           <div class="privacy-row">
-            <div class="privacy-icon login">👤</div>
+            <div class="privacy-icon real">👤</div>
             <div class="privacy-text">
-              <strong>{{ t.privacyLoginTitle }}</strong>
-              <p>{{ t.privacyLoginDesc }}</p>
+              <strong>{{ t.privacyRealTitle }}</strong>
+              <p>{{ t.privacyRealDesc }}</p>
             </div>
           </div>
           <div class="privacy-row">
@@ -76,7 +93,7 @@
       <div v-else-if="!loading && !loadError && messages.length === 0" class="state-center empty-state">
         <div class="empty-icon">🌱</div>
         <p class="state-text">{{ t.empty }}</p>
-        <button class="empty-action-btn" @click="openForm">{{ t.writeFirst }}</button>
+        <button class="empty-action-btn" disabled :title="t.closeHint">{{ t.writeFirst }}</button>
       </div>
 
       <!-- 错误状态（但已有数据时不打断浏览） -->
@@ -99,6 +116,41 @@
             <span class="message-time">{{ formatTime(msg.created_at) }}</span>
           </div>
           <p class="message-content">{{ msg.content }}</p>
+
+          <!-- 评论区 -->
+          <div class="comment-section">
+            <div v-if="msg.commentTotal > 0" class="comment-list">
+              <div v-for="c in msg.comments" :key="c.id" class="comment-item">
+                <span class="comment-nick">{{ c.anonymous === 1 ? t.anonymous : (c.user_name || t.anonymous) }}</span>
+                <span class="comment-text">{{ c.content }}</span>
+                <button
+                  v-if="canDeleteComment(c)"
+                  class="comment-del"
+                  title="删除评论"
+                  @click="deleteComment(msg, c)"
+                >✕</button>
+              </div>
+              <button v-if="msg.commentTotal > msg.comments.length" class="comment-more" @click="openCommentModal(msg)">
+                {{ t.viewAllComments }}（{{ msg.commentTotal }}）
+              </button>
+            </div>
+            <!-- 评论输入 -->
+            <div v-if="isAuthenticated" class="comment-input-row">
+              <input
+                v-model="commentDrafts[msg.id].text"
+                class="comment-input"
+                :placeholder="t.commentPlaceholder"
+                maxlength="200"
+                @keyup.enter="submitComment(msg)"
+              />
+              <label class="comment-realname-toggle" :title="t.realnameShow">
+                <input type="checkbox" v-model="commentDrafts[msg.id].realname" />
+                <span>{{ commentDrafts[msg.id].realname ? (currentUser?.name || '👤') : '🕵️' }}</span>
+              </label>
+              <button class="comment-submit" :disabled="!commentDrafts[msg.id].text.trim()" @click="submitComment(msg)">{{ t.commentSubmit }}</button>
+            </div>
+            <button v-else class="comment-login" @click="goLogin">{{ t.needLoginTip }}</button>
+          </div>
         </div>
       </TransitionGroup>
 
@@ -140,9 +192,10 @@
                 ></textarea>
                 <div class="char-count" :class="{ 'char-warn': form.content.length > 450 }">{{ form.content.length }}/500</div>
               </div>
+              <div class="form-anon-hint">{{ t.formAnonHint }}</div>
               <label v-if="isAuthenticated" class="realname-toggle">
                 <input type="checkbox" v-model="form.realname" />
-                <span>实名显示（将显示你的真名 {{ currentUser?.name || '' }}）</span>
+                <span>{{ t.realnameShow }}{{ form.realname && currentUser?.name ? '：' + currentUser.name : '' }}</span>
               </label>
               <Transition name="fade">
                 <div v-if="formError" class="form-error">{{ formError }}</div>
@@ -160,6 +213,38 @@
       </Transition>
     </Teleport>
 
+    <!-- 查看全部评论弹窗 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="commentModal" class="modal-overlay" @click.self="commentModal = null">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">{{ t.viewAllComments }}（{{ commentModal.msg.commentTotal || 0 }}）</h3>
+              <button class="modal-close" @click="commentModal = null" aria-label="关闭">✕</button>
+            </div>
+            <div class="modal-body comment-modal-body">
+              <div class="comment-modal-msg">
+                <span class="comment-modal-nick">{{ commentModal.msg.nickname || t.anonymous }}</span>
+                <p>{{ commentModal.msg.content }}</p>
+              </div>
+              <div v-if="commentLoading" class="loading-inline">
+                <div class="spinner spinner-sm"></div>
+                <span>{{ t.loading }}</span>
+              </div>
+              <div v-else-if="commentModalAll.length" class="comment-modal-list">
+                <div v-for="c in commentModalAll" :key="c.id" class="comment-item">
+                  <span class="comment-nick">{{ c.anonymous === 1 ? t.anonymous : (c.user_name || t.anonymous) }}</span>
+                  <span class="comment-text">{{ c.content }}</span>
+                  <button v-if="canDeleteComment(c)" class="comment-del" title="删除评论" @click="deleteCommentFromModal(c)">✕</button>
+                </div>
+              </div>
+              <div v-else class="comment-empty">{{ t.commentEmpty }}</div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- 提交成功提示 -->
     <Teleport to="body">
       <Transition name="toast">
@@ -171,11 +256,21 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- 通用提示（踩一踩等） -->
+    <Teleport to="body">
+      <Transition name="toast">
+        <div v-if="toastMsg" class="toast toast-info">
+          <span>👣</span>
+          {{ toastMsg }}
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useAuth } from '../composables/useAuth.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
@@ -195,15 +290,19 @@ const i18n = {
     totalMessages: '条留言',
     todayNew: '条今日新增',
     privacyTitle: '匿名性说明',
-    privacyAnonTitle: '真匿名：不登录也能留言',
-    privacyAnonDesc: '无需注册登录即可留言，管理员仅能看到IP哈希（不可逆），无法追溯到具体个人。你的身份真正受到保护。',
-    privacyLoginTitle: '登录留言：可选实名',
-    privacyLoginDesc: '登录后留言可选择实名或匿名。匿名留言前台不显示身份，但管理员后台可见，用于处理恶意留言。',
+    privacyLoginTitle: '需登录才能留言',
+    privacyLoginDesc: '必须用班级账号登录后才能留言，防止非本班同学随意发言；未登录的同学只能浏览。',
+    privacyAnonTitle: '匿名留言：身份不可反查',
+    privacyAnonDesc: '选择匿名后，你的留言将以「匿名同学」展示；后台仅存有一串不可逆的匿名标识（哈希），管理员无法反查到你的身份。',
+    privacyRealTitle: '实名留言：显示真名',
+    privacyRealDesc: '选择实名后，留言将显示你的真实姓名，方便大家知道是谁在说话。',
     privacyLimitTitle: '频率限制',
     privacyLimitDesc: '同一IP/用户每分钟最多留言3条，防止刷屏和恶意灌水。',
     privacyModTitle: '内容管理',
     privacyModDesc: '管理员可删除违法、违规、辱骂等不当留言。请友善表达，共同维护树洞环境。',
     formTitle: '写下你的心声',
+    formAnonHint: '默认以「匿名同学」发布；勾选下方选项则显示真名',
+    realnameShow: '实名显示',
     nicknameLabel: '昵称',
     optional: '选填',
     nicknamePlaceholder: '不填则显示为匿名同学',
@@ -214,6 +313,24 @@ const i18n = {
     submitting: '提交中...',
     submitSuccess: '留言提交成功！',
     loadErrorText: '加载失败，请检查网络后重试',
+    needLogin: '请先登录',
+    needLoginTip: '登录后才能留言',
+    closeHint: '留言尚未开放，敬请期待',
+    stepBtn: '踩一踩',
+    stepDone: '今日已踩',
+    stepUnit: '次来访',
+    stepTotalTitle: '累计被踩次数',
+    recentSteps: '最近踩过',
+    stepSuccess: '踩一踩成功！',
+    stepAlready: '今天已经踩过啦，明天再来吧',
+    commentPlaceholder: '说点什么…',
+    commentSubmit: '评论',
+    viewAllComments: '查看全部评论',
+    commentEmpty: '暂无评论，来抢沙发',
+    commentOk: '评论成功',
+    commentDeleted: '评论已删除',
+    commentFail: '评论失败，请重试',
+    commentDeleteFail: '删除失败',
   },
   en: {
     title: 'Anonymous Tree Hole',
@@ -229,15 +346,19 @@ const i18n = {
     totalMessages: 'messages',
     todayNew: 'new today',
     privacyTitle: 'Privacy & Anonymity',
-    privacyAnonTitle: 'Truly Anonymous: No Login Required',
-    privacyAnonDesc: 'Post without registering. Admins only see an irreversible IP hash—your identity is truly protected.',
-    privacyLoginTitle: 'Logged-in Posts: Optional Real Name',
-    privacyLoginDesc: 'When logged in, choose real name or anonymous. Anonymous posts are visible to admins only for moderation.',
+    privacyLoginTitle: 'Login Required to Post',
+    privacyLoginDesc: 'You must log in with your class account to post, so outsiders cannot leave messages. Browsing stays open to everyone.',
+    privacyAnonTitle: 'Anonymous: Identity Not Traceable',
+    privacyAnonDesc: 'Choose anonymous and your post shows as "Anonymous". Admins only see an irreversible anonymous hash—your identity cannot be traced back.',
+    privacyRealTitle: 'Real Name: Shows Your Name',
+    privacyRealDesc: 'Choose real name and your post will show your actual name, so everyone knows who is speaking.',
     privacyLimitTitle: 'Rate Limiting',
     privacyLimitDesc: 'Max 3 messages per minute per IP/user to prevent spam.',
     privacyModTitle: 'Content Moderation',
     privacyModDesc: 'Admins may remove illegal, abusive, or inappropriate posts. Please be kind.',
     formTitle: 'Write Your Thoughts',
+    formAnonHint: 'Posted as "Anonymous" by default; tick the option below to show your real name',
+    realnameShow: 'Show my real name',
     nicknameLabel: 'Nickname',
     optional: 'optional',
     nicknamePlaceholder: 'Leave empty for anonymous',
@@ -248,6 +369,24 @@ const i18n = {
     submitting: 'Submitting...',
     submitSuccess: 'Message submitted!',
     loadErrorText: 'Failed to load. Please check your connection and retry.',
+    needLogin: 'Please log in',
+    needLoginTip: 'Log in to post',
+    closeHint: 'Posting is not open yet. Stay tuned!',
+    stepBtn: 'Step In',
+    stepDone: 'Stepped Today',
+    stepUnit: 'visits',
+    stepTotalTitle: 'Total steps received',
+    recentSteps: 'Recently stepped by',
+    stepSuccess: 'Stepped in!',
+    stepAlready: 'You already stepped in today. Come back tomorrow!',
+    commentPlaceholder: 'Say something…',
+    commentSubmit: 'Comment',
+    viewAllComments: 'View all comments',
+    commentEmpty: 'No comments yet. Be the first!',
+    commentOk: 'Comment posted!',
+    commentDeleted: 'Comment deleted',
+    commentFail: 'Failed to post. Try again.',
+    commentDeleteFail: 'Failed to delete',
   },
   th: {
     title: 'กระบอกไม้ไผ่ นิรนาม',
@@ -263,15 +402,19 @@ const i18n = {
     totalMessages: 'ข้อความ',
     todayNew: 'ใหม่วันนี้',
     privacyTitle: 'คำอธิบายความเป็นส่วนตัว',
-    privacyAnonTitle: 'นิรนามแท้: ไม่ต้องเข้าสู่ระบบ',
-    privacyAnonDesc: 'โพสต์ได้โดยไม่ต้องลงทะเบียน ผู้ดูแลเห็นแค่แฮช IP ที่ไม่สามารถย้อนกลับได้—ตัวตนของคุณได้รับการปกป้องอย่างแท้จริง',
-    privacyLoginTitle: 'โพสต์เมื่อเข้าสู่ระบบ: ใส่ชื่อจริงได้',
-    privacyLoginDesc: 'เมื่อเข้าสู่ระบบแล้ว สามารถเลือกใส่ชื่อจริงหรือนิรนามได้ โพสต์นิรนามผู้ดูแลเห็นได้เพื่อการดูแลเนื้อหา',
+    privacyLoginTitle: 'ต้องเข้าสู่ระบบเพื่อโพสต์',
+    privacyLoginDesc: 'ต้องเข้าสู่ระบบด้วยบัญชีห้องเรียนก่อนโพสต์ เพื่อป้องกันคนนอกห้องโพสต์ ผู้ที่ยังไม่เข้าสู่ระบบดูได้อย่างเดียว',
+    privacyAnonTitle: 'โพสต์นิรนาม: ย้อนรอยตัวตนไม่ได้',
+    privacyAnonDesc: 'เมื่อเลือกนิรนาม โพสต์จะแสดงเป็น "นักเรียนนิรนาม" ผู้ดูแลเห็นเพียงแฮชนิรนามที่ไม่สามารถย้อนกลับได้—ไม่สามารถระบุตัวตนคุณได้',
+    privacyRealTitle: 'โพสต์ใส่ชื่อจริง: แสดงชื่อจริง',
+    privacyRealDesc: 'เมื่อเลือกใส่ชื่อจริง โพสต์จะแสดงชื่อจริงของคุณ เพื่อให้ทุกคนรู้ว่าใครเป็นคนโพสต์',
     privacyLimitTitle: 'จำกัดความถี่',
     privacyLimitDesc: 'สูงสุด 3 ข้อความต่อนาทีต่อ IP/ผู้ใช้ เพื่อป้องกันสแปม',
     privacyModTitle: 'การดูแลเนื้อหา',
     privacyModDesc: 'ผู้ดูแลสามารถลบโพสต์ที่ผิดกฎหมาย หยาบคาย หรือไม่เหมาะสมได้ กรุณาแสดงความเห็นอย่างมีมารยาท',
     formTitle: 'เขียนสิ่งที่อยากพูด',
+    formAnonHint: 'โพสต์เป็น "นักเรียนนิรนาม" โดยค่าเริ่มต้น; เลือกช่องด้านล่างเพื่อแสดงชื่อจริง',
+    realnameShow: 'แสดงชื่อจริง',
     nicknameLabel: 'ชื่อเล่น',
     optional: 'ไม่บังคับ',
     nicknamePlaceholder: 'เว้นว่างเพื่อเป็นนิรนาม',
@@ -282,14 +425,32 @@ const i18n = {
     submitting: 'กำลังส่ง...',
     submitSuccess: 'ส่งข้อความสำเร็จ!',
     loadErrorText: 'โหลดไม่สำเร็จ กรุณาตรวจสอบเครือข่ายแล้วลองอีกครั้ง',
+    needLogin: 'กรุณาเข้าสู่ระบบ',
+    needLoginTip: 'ต้องเข้าสู่ระบบเพื่อโพสต์',
+    closeHint: 'ยังไม่เปิดให้โพสต์ โปรดรอติดตาม!',
+    stepBtn: 'ก้าวเข้ามา',
+    stepDone: 'ก้าวแล้ววันนี้',
+    stepUnit: 'ครั้ง',
+    stepTotalTitle: 'จำนวนครั้งที่ถูกก้าว',
+    recentSteps: 'ผู้ก้าวล่าสุด',
+    stepSuccess: 'ก้าวเข้ามาสำเร็จ!',
+    stepAlready: 'ก้าวแล้ววันนี้ กลับมาพรุ่งนี้ใหม่นะ!',
+    commentPlaceholder: 'แสดงความคิดเห็น…',
+    commentSubmit: 'แสดงความเห็น',
+    viewAllComments: 'ดูความคิดเห็นทั้งหมด',
+    commentEmpty: 'ยังไม่มีความคิดเห็น เป็นคนแรกเลย!',
+    commentOk: 'แสดงความเห็นสำเร็จ!',
+    commentDeleted: 'ลบความคิดเห็นแล้ว',
+    commentFail: 'ส่งไม่สำเร็จ ลองอีกครั้ง',
+    commentDeleteFail: 'ลบไม่สำเร็จ',
   },
 }
 
-const { t } = useLang(i18n)
+const { t, lang } = useLang(i18n)
 
 const API_BASE = '/api/treehole'
 const isMock = import.meta.env.DEV
-const { currentUser, isAuthenticated } = useAuth()
+const { currentUser, isAuthenticated, getToken } = useAuth()
 
 // ========== Mock 数据层（开发环境用 localStorage 模拟） ==========
 const MOCK_KEY = 'mint4_treehole_mock'
@@ -324,7 +485,8 @@ function mockPostMessage(body) {
   const all = getMockMessages()
   const newMsg = {
     id: 'mock-' + Date.now(),
-    nickname: body.nickname || null,
+    nickname: body.realname ? 'mock-user' : '匿名',
+    anonymous: body.realname ? 0 : 1,
     content: body.content,
     created_at: new Date().toISOString(),
   }
@@ -334,6 +496,27 @@ function mockPostMessage(body) {
     ok: true,
     json: () => Promise.resolve({ message: '留言提交成功', data: newMsg }),
   })
+}
+function mockStep() {
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ message: '踩一踩成功', stepped: true, stepsTotal: 1, recentSteps: ['mock-user'] }),
+  })
+}
+function mockPostComment(messageId, text, realname) {
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({
+      message: '评论成功',
+      data: { id: 'mock-c-' + Date.now(), message_id: messageId, user_id: realname ? 'mock-user' : null, user_name: realname ? 'mock-user' : null, anonymous: realname ? 0 : 1, content: text, created_at: new Date().toISOString() },
+    }),
+  })
+}
+function mockGetComments(messageId) {
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({ data: [] }) })
+}
+function mockDeleteComment() {
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({ message: '评论已删除', ok: true }) })
 }
 
 // 状态
@@ -346,6 +529,102 @@ const hasMore = ref(true)
 const stats = ref({ total: 0, todayCount: 0 })
 const newMessageId = ref(null)
 
+// 踩一踩状态
+const stepsTotal = ref(0)
+const recentSteps = ref([])
+const steppedToday = ref(false)
+const stepping = ref(false)
+
+// 评论区状态
+const commentDrafts = reactive({})
+const commentModal = ref(null)
+const commentModalAll = ref([])
+const commentLoading = ref(false)
+const commenting = ref(false)
+function ensureDraft(id) {
+  if (!commentDrafts[id]) commentDrafts[id] = { text: '', realname: false }
+  return commentDrafts[id]
+}
+function canDeleteComment(c) {
+  if (!currentUser.value) return false
+  if (currentUser.value.role) return true // 班委可删任何评论
+  return !!c.user_id && c.user_id === currentUser.value.id // 实名评论者本人
+}
+async function submitComment(msg) {
+  const draft = ensureDraft(msg.id)
+  const text = draft.text.trim()
+  if (!text || commenting.value) return
+  commenting.value = true
+  try {
+    const res = isMock
+      ? await mockPostComment(msg.id, text, draft.realname)
+      : await fetchWithRetry(`${API_BASE}/${msg.id}/comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify({ content: text, realname: draft.realname }),
+        })
+    const data = await res.json()
+    if (res.ok) {
+      const newComment = { ...data.data, anonymous: (data.data.anonymous != null) ? data.data.anonymous : (draft.realname ? 0 : 1) }
+      if (!msg.comments) msg.comments = []
+      msg.comments.push(newComment)
+      if (msg.comments.length > 3) msg.comments.shift()
+      msg.commentTotal = (msg.commentTotal || 0) + 1
+      draft.text = ''
+      showToast(t.value.commentOk)
+    } else if (res.status === 401) {
+      goLogin()
+    } else {
+      showToast(data.error || t.value.commentFail)
+    }
+  } catch (e) {
+    showToast(t.value.commentFail)
+  } finally {
+    commenting.value = false
+  }
+}
+async function deleteComment(msg, c) {
+  const res = isMock
+    ? await mockDeleteComment()
+    : await fetchWithRetry(`${API_BASE}/${msg.id}/comment?commentId=${c.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+      })
+  if (res.ok) {
+    msg.comments = (msg.comments || []).filter(x => x.id !== c.id)
+    msg.commentTotal = Math.max(0, (msg.commentTotal || 0) - 1)
+    commentModalAll.value = commentModalAll.value.filter(x => x.id !== c.id)
+    showToast(t.value.commentDeleted)
+  } else {
+    const data = await res.json().catch(() => ({}))
+    showToast(data.error || t.value.commentDeleteFail)
+  }
+}
+async function deleteCommentFromModal(c) {
+  const msg = commentModal.value?.msg
+  if (!msg) return
+  await deleteComment(msg, c)
+  if (commentModal.value && commentModal.value.msg.commentTotal === 0) {
+    commentModal.value = null
+  }
+}
+async function openCommentModal(msg) {
+  commentModal.value = { msg }
+  commentModalAll.value = []
+  commentLoading.value = true
+  try {
+    const res = isMock
+      ? await mockGetComments(msg.id)
+      : await fetchWithRetry(`${API_BASE}/${msg.id}/comments`)
+    const data = await res.json()
+    commentModalAll.value = data.data || []
+  } catch (e) {
+    commentModalAll.value = []
+  } finally {
+    commentLoading.value = false
+  }
+}
+
 // 表单
 const showForm = ref(false)
 const submitting = ref(false)
@@ -353,6 +632,15 @@ const formError = ref('')
 const form = ref({ realname: false, content: '' })
 const showSuccess = ref(false)
 const textareaRef = ref(null)
+
+// 通用 toast（踩一踩等）
+const toastMsg = ref('')
+let toastTimer = null
+function showToast(msg) {
+  toastMsg.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastMsg.value = '' }, 2500)
+}
 
 // 无限滚动
 const sentinelRef = ref(null)
@@ -390,8 +678,13 @@ async function loadMessages() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = data.data || []
+    ;(data.data || []).forEach(m => ensureDraft(m.id))
     hasMore.value = data.pagination?.page < data.pagination?.totalPages
     stats.value = data.stats || { total: 0, todayCount: 0 }
+    if (data.stats) {
+      stepsTotal.value = data.stats.stepsTotal || 0
+      recentSteps.value = data.stats.recentSteps || []
+    }
   } catch (e) {
     console.error('加载留言失败:', e)
     loadError.value = true
@@ -411,6 +704,7 @@ async function loadMore() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     messages.value = [...messages.value, ...(data.data || [])]
+    ;(data.data || []).forEach(m => ensureDraft(m.id))
     page.value = nextPage
     hasMore.value = data.pagination?.page < data.pagination?.totalPages
   } catch (e) {
@@ -422,6 +716,54 @@ async function loadMore() {
 
 function retryLoad() {
   loadMessages()
+}
+
+function goLogin() {
+  // 全站登录/注册页为 /auth/（含三语镜像），非 /login/
+  window.location.href = lang.value === 'zh' ? '/auth/' : `/${lang.value}/auth/`
+}
+
+function onWriteClick() {
+  if (!isAuthenticated.value) {
+    goLogin()
+    return
+  }
+  openForm()
+}
+
+async function doStep() {
+  if (!isAuthenticated.value) {
+    goLogin()
+    return
+  }
+  if (stepping.value || steppedToday.value) return
+  stepping.value = true
+  try {
+    const res = isMock
+      ? await mockStep()
+      : await fetchWithRetry(`${API_BASE}/step`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        })
+    const data = await res.json()
+    if (res.ok) {
+      steppedToday.value = true
+      stepsTotal.value = (data.stepsTotal != null) ? data.stepsTotal : stepsTotal.value + 1
+      if (Array.isArray(data.recentSteps)) recentSteps.value = data.recentSteps
+      showToast(t.value.stepSuccess)
+    } else if (res.status === 409) {
+      steppedToday.value = true
+      showToast(data.error || t.value.stepAlready)
+    } else if (res.status === 401) {
+      goLogin()
+    } else {
+      showToast(data.error || t.value.stepAlready)
+    }
+  } catch (e) {
+    showToast(t.value.stepAlready)
+  } finally {
+    stepping.value = false
+  }
 }
 
 function openForm() {
@@ -444,18 +786,23 @@ async function submitMessage() {
   formError.value = ''
   try {
     const body = {
-      nickname: (form.value.realname && currentUser.value?.name) ? currentUser.value.name : undefined,
       content: form.value.content.trim(),
+      realname: form.value.realname,
     }
     const res = isMock
       ? await mockPostMessage(body)
       : await fetchWithRetry(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
           body: JSON.stringify(body),
         })
     const data = await res.json()
     if (!res.ok) {
+      if (res.status === 401) {
+        closeForm()
+        goLogin()
+        return
+      }
       if (res.status === 429) {
         throw new Error(data.error || '提交太频繁，请稍后再试')
       }
@@ -464,6 +811,9 @@ async function submitMessage() {
     // 提交成功
     const newMsg = data.data
     newMessageId.value = newMsg.id
+    newMsg.comments = []
+    newMsg.commentTotal = 0
+    ensureDraft(newMsg.id)
     // 如果当前在第一页，直接插入到列表顶部
     if (page.value === 1) {
       messages.value = [newMsg, ...messages.value].slice(0, 20)
@@ -571,6 +921,45 @@ function formatTime(isoString) {
 .stat-item strong { color: var(--c-text-primary); font-weight: 700; }
 .stat-today strong { color: var(--c-accent); }
 
+/* 踩一踩 */
+.treehole-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 8px 16px;
+  background: var(--c-bg-secondary);
+  border-radius: 12px;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+.step-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--c-accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+}
+.step-btn:hover:not(:disabled) { opacity: 0.85; }
+.step-btn:active:not(:disabled) { transform: scale(0.97); }
+.step-btn.stepped {
+  background: var(--c-bg-card);
+  color: var(--c-text-tertiary);
+  border: 1px solid var(--c-border);
+  cursor: default;
+}
+.step-icon { font-size: 14px; }
+.step-total { font-size: 13px; font-weight: 700; color: var(--c-accent); }
+.step-recent { font-size: 12px; color: var(--c-text-secondary); }
+.step-names { color: var(--c-text-primary); font-weight: 500; }
+
 /* 匿名性说明 */
 .privacy-notice {
   margin-top: 16px;
@@ -627,6 +1016,7 @@ function formatTime(isoString) {
 }
 .privacy-icon.anon { background: rgba(94, 196, 172, 0.15); }
 .privacy-icon.login { background: rgba(0, 122, 255, 0.12); }
+.privacy-icon.real { background: rgba(0, 122, 255, 0.12); }
 .privacy-icon.limit { background: rgba(255, 149, 0, 0.12); }
 .privacy-icon.mod { background: rgba(255, 59, 48, 0.1); }
 .privacy-text { flex: 1; min-width: 0; }
@@ -747,6 +1137,120 @@ function formatTime(isoString) {
   white-space: pre-wrap;
 }
 
+/* 评论区 */
+.comment-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--c-border);
+}
+.comment-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.comment-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.comment-nick {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--c-accent);
+  font-size: 12px;
+}
+.comment-text { color: var(--c-text-primary); word-break: break-word; }
+.comment-del {
+  flex-shrink: 0;
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--c-text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.comment-del:hover { color: #ff3b30; background: rgba(255,59,48,0.08); }
+.comment-more {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: var(--c-accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 2px;
+}
+.comment-more:hover { text-decoration: underline; }
+.comment-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.comment-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-bg-card);
+  color: var(--c-text-primary);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.comment-input:focus { border-color: var(--c-accent); }
+.comment-realname-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  flex-shrink: 0;
+}
+.comment-realname-toggle input { display: none; }
+.comment-realname-toggle span {
+  padding: 4px 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-bg-secondary);
+  white-space: nowrap;
+}
+.comment-submit {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: var(--c-accent);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.comment-submit:disabled { opacity: 0.4; cursor: default; }
+.comment-login {
+  border: none;
+  background: none;
+  color: var(--c-accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 0;
+}
+.comment-login:hover { text-decoration: underline; }
+/* 查看全部评论弹窗 */
+.comment-modal-body { max-height: 60vh; overflow-y: auto; }
+.comment-modal-msg {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: var(--c-bg-secondary);
+  border-radius: 8px;
+}
+.comment-modal-nick { font-size: 12px; font-weight: 600; color: var(--c-accent); }
+.comment-modal-msg p { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--c-text-primary); }
+.comment-modal-list { display: flex; flex-direction: column; gap: 8px; }
+.comment-empty { text-align: center; color: var(--c-text-tertiary); font-size: 13px; padding: 20px 0; }
+
 /* 列表动画 */
 .list-enter-active { transition: all 0.3s ease; }
 .list-enter-from { opacity: 0; transform: translateY(-10px); }
@@ -856,6 +1360,12 @@ function formatTime(isoString) {
   border-color: var(--c-accent);
 }
 .form-textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+.form-anon-hint {
+  margin: -6px 0 14px;
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+  line-height: 1.5;
+}
 .char-count {
   text-align: right;
   font-size: 12px;
@@ -952,6 +1462,11 @@ function formatTime(isoString) {
   background: var(--c-bg-card);
   color: #34c759;
   border: 1px solid rgba(52, 199, 89, 0.3);
+}
+.toast-info {
+  background: var(--c-bg-card);
+  color: var(--c-text-primary);
+  border: 1px solid var(--c-border);
 }
 .toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
 .toast-enter-from, .toast-leave-to {

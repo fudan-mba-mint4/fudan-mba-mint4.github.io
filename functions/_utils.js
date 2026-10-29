@@ -23,9 +23,31 @@ CREATE TABLE IF NOT EXISTS treehole_messages (
   content TEXT NOT NULL,
   is_deleted INTEGER DEFAULT 0,
   ip_hash TEXT,
+  user_id TEXT,
+  anonymous INTEGER DEFAULT 1,
+  anon_hash TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_treehole_created_at ON treehole_messages (created_at DESC);
+CREATE TABLE IF NOT EXISTS treehole_steps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL UNIQUE,
+  user_name TEXT NOT NULL,
+  step_count INTEGER DEFAULT 1,
+  last_stepped_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE TABLE IF NOT EXISTS treehole_comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
+  user_name TEXT,
+  anonymous INTEGER DEFAULT 1,
+  content TEXT NOT NULL,
+  ip_hash TEXT,
+  is_deleted INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_treehole_comments_msg ON treehole_comments (message_id, created_at);
 
 CREATE TABLE IF NOT EXISTS poll_votes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -448,6 +470,16 @@ export function generateToken() {
 export async function hashIp(ip) {
   const encoder = new TextEncoder()
   const data = encoder.encode(ip + 'mint4_ip_salt')
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+// 树洞匿名标识哈希（不可逆）：匿名留言时对 user_id 加盐哈希。
+// 普通管理员在后台只能看到这串标识（用于识别同一人多条匿名留言），无法反查身份。
+export async function anonHashOf(id) {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(String(id) + 'mint4_anon_salt')
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')

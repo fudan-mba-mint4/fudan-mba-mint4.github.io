@@ -976,7 +976,10 @@
               </div>
               <div class="treehole-item-content" @click="toggleExpand(msg.id)">
                 <div class="treehole-item-header">
-                  <span class="treehole-item-nickname">{{ msg.nickname || '匿名' }}</span>
+                  <span class="treehole-item-nickname">{{ msg.anonymous === 1 ? '匿名同学' : (msg.nickname || '匿名') }}</span>
+                  <span v-if="msg.anonymous === 1" class="treehole-anon-badge" title="匿名留言，普通管理员仅可见不可逆匿名标识">🕵️ 匿名</span>
+                  <span v-else class="treehole-real-badge" title="实名留言">👤 实名</span>
+                  <span v-if="isTreeholeGod && msg.anonymous === 1" class="treehole-item-realname" title="真实发布者（仅主理人可见）">{{ msg.user_name || '未知' }}</span>
                   <span class="treehole-item-time">{{ formatTreeholeTime(msg.created_at) }}</span>
                   <span class="treehole-item-ip" title="IP哈希（前16位，用于识别恶意刷号）">IP: {{ msg.ip_hash || '未知' }}</span>
                   <span v-if="msg.is_deleted" class="treehole-item-deleted-badge">已删除</span>
@@ -987,6 +990,9 @@
                 <div v-if="expandedId === msg.id" class="treehole-item-detail">
                   <div class="detail-row"><span class="detail-label">留言ID：</span><span class="detail-value">#{{ msg.id }}</span></div>
                   <div class="detail-row"><span class="detail-label">精确时间：</span><span class="detail-value">{{ new Date(msg.created_at).toLocaleString('zh-CN') }}</span></div>
+                  <div class="detail-row"><span class="detail-label">发布方式：</span><span class="detail-value">{{ msg.anonymous === 1 ? '匿名（前台显示「匿名同学」）' : '实名' }}</span></div>
+                  <div v-if="msg.anonymous === 1" class="detail-row"><span class="detail-label">匿名标识：</span><span class="detail-value mono">{{ msg.anon_hash ? msg.anon_hash.slice(0, 16) + '…（不可逆，无法反查身份）' : '无' }}</span></div>
+                  <div v-if="isTreeholeGod" class="detail-row"><span class="detail-label">真实发布者：</span><span class="detail-value">{{ msg.user_name || '未知' }}</span></div>
                   <div class="detail-row"><span class="detail-label">IP哈希：</span><span class="detail-value mono">{{ msg.ip_hash || '未知' }}</span></div>
                   <div class="detail-row"><span class="detail-label">状态：</span><span class="detail-value" :class="msg.is_deleted ? 'text-red' : 'text-green'">{{ msg.is_deleted ? '已删除' : '正常显示' }}</span></div>
                   <div class="detail-row"><span class="detail-label">完整内容：</span></div>
@@ -1399,6 +1405,9 @@ const treeholePagination = ref({ page: 1, limit: 20, total: 0, totalPages: 0 })
 const treeholeStats = ref({ total: 0, active_count: 0, deleted_count: 0, today_count: 0 })
 const expandedId = ref(null)
 let searchDebounceTimer = null
+
+// 上帝视角：仅网站最高权限者（雷振宇）一人可见每条留言的真实发布者；其余任何人仅见匿名标识
+const isTreeholeGod = computed(() => currentUser.value?.name === '雷振宇')
 
 // ===== Cloudflare 后端 admin API（封装见 utils/admin/api.js）=====
 // Authorization 使用当前登录班委的个人 token（getToken），原样 Bearer 带上。
@@ -2798,6 +2807,9 @@ watch(currentType, (val) => {
 .treehole-item-content { flex: 1; min-width: 0; cursor: pointer; }
 .treehole-item-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 .treehole-item-nickname { font-size: 13px; font-weight: 600; color: var(--c-accent); }
+.treehole-anon-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(94,196,172,0.15); color: var(--c-accent); }
+.treehole-real-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(0,122,255,0.12); color: #0a84ff; }
+.treehole-item-realname { font-size: 12px; font-weight: 600; color: #ff9500; background: rgba(255,149,0,0.12); padding: 2px 8px; border-radius: 6px; }
 .treehole-item-time { font-size: 12px; color: var(--c-text-tertiary); }
 .treehole-item-ip { font-size: 11px; color: var(--c-text-tertiary); font-family: monospace; }
 .treehole-item-deleted-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(255,59,48,0.15); color: #ff3b30; }
