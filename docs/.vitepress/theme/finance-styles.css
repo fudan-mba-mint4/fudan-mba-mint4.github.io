@@ -281,12 +281,12 @@
 .detail-row .fp-select { text-overflow: ellipsis; white-space: nowrap; }
 .dt-qty, .dt-price, .dt-sub { text-align: center; }
 .dt-sub { font-weight: 600; color: var(--c-text-secondary); }
-.detail-total { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
-.mini-add { border: 1.5px dashed var(--c-accent); background: none; color: var(--c-accent); border-radius: 10px; padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.detail-total { display: grid; grid-template-columns: 2fr 64px 88px 86px 1.8fr 1.4fr 30px; gap: 8px; align-items: center; margin-top: 14px; }
+.mini-add { border: 1.5px dashed var(--c-accent); background: none; color: var(--c-accent); border-radius: 10px; padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; grid-column: 1; justify-self: start; }
 .mini-add:hover { background: var(--c-accent); color: #fff; }
 .mini-del { border: none; background: rgba(255,59,48,.1); color: #c92a2a; width: 24px; height: 24px; border-radius: 8px; font-size: 15px; cursor: pointer; line-height: 1; }
 .mini-del:disabled { opacity: .35; cursor: not-allowed; }
-.dt-total { font-size: 13px; color: var(--c-text-secondary); }
+.dt-total { font-size: 13px; color: var(--c-text-secondary); grid-column: 4; justify-self: center; white-space: nowrap; }
 .dt-total b { color: var(--c-accent); font-size: 15px; }
 .redline-box { border: 1.5px dashed rgba(255,159,10,.5); background: rgba(255,159,10,.05); border-radius: 12px; padding: 12px 14px; }
 .redline-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--c-text-primary); margin-bottom: 6px; cursor: pointer; }
@@ -302,7 +302,7 @@
 .dim { color: var(--c-text-tertiary); font-size: 12px; }
 
 /* 预算表单布局管控：工具栏/表单行不换行，输入框均分 */
-.budget-toolbar { flex-wrap: nowrap; }
+.budget-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: nowrap; }
 .budget-tabs { flex-shrink: 1; min-width: 0; }
 .budget-tab { white-space: nowrap; padding: 6px 12px; font-size: 13px; }
 .budget-toolbar .btn-oppose { flex: 0 0 auto; white-space: nowrap; padding: 7px 12px; }
