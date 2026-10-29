@@ -300,3 +300,17 @@
 .return-reason { margin-top: 8px; font-size: 13px; color: #b45309; background: rgba(255,159,10,.08); border-radius: 10px; padding: 8px 12px; }
 .bc-actions { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
 .dim { color: var(--c-text-tertiary); font-size: 12px; }
+
+/* 预算表单布局管控：工具栏/表单行不换行，输入框均分 */
+.budget-toolbar { flex-wrap: nowrap; }
+.budget-tabs { flex-shrink: 1; min-width: 0; }
+.budget-tab { white-space: nowrap; padding: 6px 12px; font-size: 13px; }
+.budget-toolbar .btn-oppose { flex: 0 0 auto; white-space: nowrap; padding: 7px 12px; }
+.budget-form-card .form-row { flex-wrap: nowrap; }
+.budget-form-card .form-row .fp-input, .budget-form-card .form-row .fp-select { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 640px) {
+  .budget-tab { padding: 5px 9px; font-size: 12px; }
+  .budget-toolbar .btn-oppose { padding: 6px 10px; font-size: 12px; }
+  .budget-form-card .form-row { gap: 8px; }
+  .budget-form-card .form-row .f-label { font-size: 12px; }
+}

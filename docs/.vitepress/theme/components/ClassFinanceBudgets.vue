@@ -179,12 +179,12 @@ watch(() => router.route?.query?.focus, (v) => {
             <option value="">请选择</option>
             <option v-for="g in GROUP_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
-          <label class="f-label" style="margin-left:12px">{{ t.formApplicant }}</label>
-          <input v-model="form.applicant" class="fp-input" style="flex:1" />
         </div>
         <div class="form-row">
+          <label class="f-label">{{ t.formApplicant }}</label>
+          <input v-model="form.applicant" class="fp-input" placeholder="申请人" />
           <label class="f-label">{{ t.formContact }}</label>
-          <input v-model="form.contact" class="fp-input" placeholder="手机 / 微信" />
+          <input v-model="form.contact" class="fp-input" placeholder="手机 / 微信（选填）" />
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.formEventType }} *</label>
