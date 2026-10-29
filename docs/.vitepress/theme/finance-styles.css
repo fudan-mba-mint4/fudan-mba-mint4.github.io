@@ -320,3 +320,14 @@
   .budget-form-card .form-row { gap: 8px; }
   .budget-form-card .form-row .f-label { font-size: 12px; }
 }
+
+/* 草稿状态样式 */
+.bc-status.draft { background: rgba(255,159,10,.15); color: #b45309; }
+.budget-card.draft { border-style: dashed; border-color: rgba(255,159,10,.55); }
+
+/* 预算表单输入管控：label 统一宽度、输入框等高 */
+.budget-form-card .f-label { min-width: 96px; }
+.budget-form-card .fp-input, .budget-form-card .fp-select { height: 40px; box-sizing: border-box; }
+.budget-form-card .form-actions { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.budget-form-card .form-actions .oppose-msg { flex: 1 1 auto; min-width: 0; font-size: 12px; }
+.budget-form-card .form-actions .btn-oppose, .budget-form-card .form-actions .btn-ghost { flex-shrink: 0; white-space: nowrap; }

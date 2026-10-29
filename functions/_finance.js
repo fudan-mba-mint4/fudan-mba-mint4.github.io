@@ -165,6 +165,7 @@ export const BUDGET_STATUS = {
   SUBMITTED: 'submitted', // 待审批（发起人已提交，等程枭审核）
   RETURNED: 'returned',   // 已退回（程枭退回，发起人可改后重交）
   OPEN: 'open',           // 公示中（程枭公开，3 天投票期）
+  DRAFT: 'draft',         // 草稿（发起人保存未提交）
   PASSED: 'passed',       // 公示通过（可执行/可关联报销）
   REJECTED: 'rejected',   // 反对 ≥1/3，驳回终止（不可动用）
   SPENT: 'spent',         // 已执行

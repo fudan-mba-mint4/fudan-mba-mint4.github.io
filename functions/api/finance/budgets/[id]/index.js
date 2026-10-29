@@ -41,47 +41,59 @@ export async function onRequest(context) {
     const p = rows[0]
     if (!p) return corsResponse({ error: '未找到该预算公示' }, 404)
     if (String(p.applicant_id || '') !== String(auth.user.id)) return corsResponse({ error: '只能修改自己提交的预算公示' }, 403)
-    if (p.status !== 'returned') return corsResponse({ error: '仅被退回的预算公示可修改重新提交' }, 400)
+    if (!['returned', 'draft'].includes(p.status)) return corsResponse({ error: '仅草稿或被退回的预算公示可修改' }, 400)
 
     const body = await parseBody(request)
-    if (!body.title || !String(body.title).trim()) return corsResponse({ error: '请填写活动/事项名称' }, 400)
-    const amount = Number(body.amount)
-    if (!amount || amount <= 0) return corsResponse({ error: '预算总上限金额需大于 0' }, 400)
-    if (!GROUP_OPTIONS.includes(body.groupName)) return corsResponse({ error: '请选择申请小组/部门' }, 400)
-    if (!EVENT_TYPE_OPTIONS.includes(body.eventType)) return corsResponse({ error: '请选择事项性质' }, 400)
-    if (!ACTIVITY_TYPE_OPTIONS.includes(body.activityType)) return corsResponse({ error: '请选择活动类型' }, 400)
-    if (!PAY_TARGET_OPTIONS.includes(body.payTarget)) return corsResponse({ error: '请选择资金支付对象' }, 400)
+    const saveDraft = body.saveDraft === true
+    if (!saveDraft) {
+      if (!body.title || !String(body.title).trim()) return corsResponse({ error: '请填写活动/事项名称' }, 400)
+      const amount = Number(body.amount)
+      if (!amount || amount <= 0) return corsResponse({ error: '预算总上限金额需大于 0' }, 400)
+      if (!GROUP_OPTIONS.includes(body.groupName)) return corsResponse({ error: '请选择申请小组/部门' }, 400)
+      if (!EVENT_TYPE_OPTIONS.includes(body.eventType)) return corsResponse({ error: '请选择事项性质' }, 400)
+      if (!ACTIVITY_TYPE_OPTIONS.includes(body.activityType)) return corsResponse({ error: '请选择活动类型' }, 400)
+      if (!PAY_TARGET_OPTIONS.includes(body.payTarget)) return corsResponse({ error: '请选择资金支付对象' }, 400)
 
+      const redlines = {
+        r1: body.redlines?.r1 === true, r2: body.redlines?.r2 === true, r3: body.redlines?.r3 === true,
+      }
+      if (!redlines.r1 || !redlines.r2 || !redlines.r3) {
+        return corsResponse({ error: '请逐项确认财务红线核对（3 项均为「已确认」才能提交）' }, 400)
+      }
+    }
     const redlines = {
       r1: body.redlines?.r1 === true, r2: body.redlines?.r2 === true, r3: body.redlines?.r3 === true,
     }
-    if (!redlines.r1 || !redlines.r2 || !redlines.r3) {
-      return corsResponse({ error: '请逐项确认财务红线核对（3 项均为「已确认」才能提交）' }, 400)
-    }
     const items = parseItems(body.detailItems)
-    if (items.length === 0) return corsResponse({ error: '请填写至少一条预算明细' }, 400)
-    const bannedCat = items.find(i => /餐饮与茶歇|住宿费/.test(i.category || ''))
-    if (bannedCat) {
-      return corsResponse({ error: `明细分类「${bannedCat.category}」属于聚餐/旅行类费用，由参加人 AA，严禁使用班费，请删除该行或改分类` }, 400)
+    if (!saveDraft && items.length === 0) return corsResponse({ error: '请填写至少一条预算明细' }, 400)
+    if (!saveDraft) {
+      const bannedCat = items.find(i => /餐饮与茶歇|住宿费/.test(i.category || ''))
+      if (bannedCat) {
+        return corsResponse({ error: `明细分类「${bannedCat.category}」属于聚餐/旅行类费用，由参加人 AA，严禁使用班费，请删除该行或改分类` }, 400)
+      }
+      const amount = Number(body.amount)
+      const itemsTotal = items.reduce((s, i) => s + (Number(i.amount) || 0), 0)
+      if (itemsTotal > amount * 1.000001) {
+        return corsResponse({ error: `明细合计 ¥${itemsTotal.toFixed(2)} 超过预算上限 ¥${amount.toFixed(2)}，请调整` }, 400)
+      }
     }
-    const itemsTotal = items.reduce((s, i) => s + (Number(i.amount) || 0), 0)
-    if (itemsTotal > amount * 1.000001) {
-      return corsResponse({ error: `明细合计 ¥${itemsTotal.toFixed(2)} 超过预算上限 ¥${amount.toFixed(2)}，请调整` }, 400)
-    }
+    const amount = Number(body.amount) || 0
 
     await sql`
       UPDATE budget_proposals
-      SET activity_id = ${body.activityId || null}, title = ${String(body.title).trim()},
+      SET activity_id = ${body.activityId || null}, title = ${String(body.title || '').trim()},
           description = ${String(body.description || '')}, detail_items = ${JSON.stringify(items)},
-          amount = ${amount}, group_name = ${body.groupName}, contact = ${String(body.contact || '')},
-          event_type = ${body.eventType}, activity_type = ${body.activityType}, pay_target = ${body.payTarget},
-          redlines = ${JSON.stringify(redlines)}, returned_reason = '', status = 'submitted'
+          amount = ${amount}, group_name = ${body.groupName || ''}, contact = ${String(body.contact || '')},
+          event_type = ${body.eventType || ''}, activity_type = ${body.activityType || ''}, pay_target = ${body.payTarget || ''},
+          redlines = ${JSON.stringify(redlines)}, returned_reason = '', status = ${saveDraft ? 'draft' : 'submitted'}
       WHERE id = ${id}
     `
-    await logHistory(sql, { type: 'finance', action: 'resubmit', refId: id,
-      description: `重新提交预算公示（已修改）：${String(body.title).trim()}`, operator: auth.user.name })
+    await logHistory(sql, { type: 'finance', action: saveDraft ? 'save_draft' : 'resubmit', refId: id,
+      description: saveDraft ? `更新草稿：${String(body.title || '').trim() || '(未命名)'}` : `重新提交预算公示（已修改）：${String(body.title).trim()}`, operator: auth.user.name })
     await purgePublicCache('finance-v2-public')
-    return corsResponse({ message: '已修改并重新提交，等待会计审核', status: 'submitted' })
+    return corsResponse(saveDraft
+      ? { message: '草稿已更新', status: 'draft' }
+      : { message: '已修改并重新提交，等待会计审核', status: 'submitted' })
   } catch (err) {
     console.error('finance/budgets/[id] 错误:', err)
     await purgePublicCache('finance-v2-public')

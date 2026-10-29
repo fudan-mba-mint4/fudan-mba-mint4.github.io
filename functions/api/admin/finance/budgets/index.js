@@ -31,7 +31,7 @@ export async function onRequest(context) {
         if (!voteMap[v.proposal_id]) voteMap[v.proposal_id] = []
         voteMap[v.proposal_id].push(v)
       })
-      const out = budgets.map(b => {
+      const out = budgets.filter(b => b.status !== 'draft').map(b => {
         let items = []
         try { items = JSON.parse(b.detail_items || '[]') } catch (e) {}
         let redlines = {}

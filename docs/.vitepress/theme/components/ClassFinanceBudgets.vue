@@ -32,7 +32,7 @@ const FEE_CATEGORY_OPTIONS = [
 /* ===== 发起/重交表单 ===== */
 function emptyForm() {
   return {
-    editingId: null,
+    editingId: null, fromDraft: false, isDraft: false,
     title: '', groupName: '', applicant: currentUser?.value?.name || '', contact: '',
     eventType: '', activityType: '', payTarget: '', amount: null, description: '', activityId: '',
     detailItems: [{ item: '', qty: 1, unitPrice: null, amount: null, category: '', note: '' }],
@@ -46,7 +46,9 @@ const itemsTotal = computed(() => form.value.detailItems.reduce((s, it) => s + r
 const formCanSubmit = computed(() => {
   const f = form.value
   if (!f.title.trim() || !(Number(f.amount) > 0) || !f.groupName || !f.eventType || !f.activityType || !f.payTarget) return false
-  if (!form.value.detailItems.some(it => it.item.trim() && rowTotal(it) > 0)) return false
+  // 明细每一行都须完整：支出项目、数量>0、单价>0、费用性质分类（备注选填）
+  if (!form.value.detailItems.length) return false
+  if (!form.value.detailItems.every(it => it.item.trim() && Number(it.qty) > 0 && Number(it.unitPrice) > 0 && it.category)) return false
   if (!f.redlines.r1 || !f.redlines.r2 || !f.redlines.r3) return false
   return true
 })
@@ -58,9 +60,10 @@ function removeItemRow(i) {
 }
 function openForm(b) {
   if (b) {
-    // 重交：回填被退回的公示
+    // 回填：草稿（继续填写）或被退回（修改重交）的公示
+    const fromDraft = b.status === 'draft'
     form.value = {
-      editingId: b.id, title: b.title, groupName: b.groupName || '', applicant: b.proposer || currentUser?.value?.name || '',
+      editingId: b.id, fromDraft, isDraft: fromDraft, title: b.title, groupName: b.groupName || '', applicant: b.proposer || currentUser?.value?.name || '',
       contact: b.contact || '', eventType: b.eventType || '', activityType: b.activityType || '',
       payTarget: b.payTarget || '', amount: b.amount, description: b.description || '', activityId: b.activityId || '',
       detailItems: (b.detailItems && b.detailItems.length ? b.detailItems : [{ item: '', qty: 1, unitPrice: null, amount: null, category: '', note: '' }])
@@ -101,6 +104,40 @@ async function submitForm() {
       f.msg = json.message || t.value.successSubmittedBudget
       showForm.value = false
       form.value = emptyForm()
+      await loadFinance()
+    } else f.msg = json.error || t.value.loadFailed
+  } catch (e) { f.msg = t.value.loadFailed }
+  finally { f.submitting = false }
+}
+
+async function saveDraftForm() {
+  const f = form.value
+  if (f.submitting) return
+  f.submitting = true
+  f.msg = ''
+  try {
+    const detailItems = f.detailItems.map(it => ({
+      item: it.item.trim(), qty: Number(it.qty) || 1, unitPrice: Number(it.unitPrice) || 0,
+      amount: rowTotal(it), category: it.category, note: it.note.trim(),
+    })).filter(it => it.item || it.category || Number(it.unitPrice) > 0 || it.note)
+    const payload = {
+      id: f.editingId || undefined,
+      title: f.title.trim(), amount: Number(f.amount) || 0, groupName: f.groupName,
+      applicant: f.applicant.trim() || currentUser?.value?.name, contact: f.contact.trim(),
+      eventType: f.eventType, activityType: f.activityType, payTarget: f.payTarget,
+      description: f.description.trim(), activityId: f.activityId || null,
+      detailItems, redlines: f.redlines, saveDraft: true,
+    }
+    const res = await fetch(f.editingId ? `/api/finance/budgets/${f.editingId}` : '/api/finance/budgets', {
+      method: f.editingId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken.value}` },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (res.ok) {
+      f.msg = json.message || t.value.draftSaved
+      f.isDraft = true
+      if (!f.editingId && json.id) f.editingId = json.id // 新草稿生成后绑定 id，后续再存走 PUT
       await loadFinance()
     } else f.msg = json.error || t.value.loadFailed
   } catch (e) { f.msg = t.value.loadFailed }
@@ -252,8 +289,9 @@ watch(() => router.route?.query?.focus, (v) => {
         </div>
         <div class="form-actions">
           <span v-if="form.msg" class="oppose-msg">{{ form.msg }}</span>
+          <button class="btn-ghost" :disabled="form.submitting" @click="saveDraftForm">{{ t.saveDraft }}</button>
           <button class="btn-oppose primary" :disabled="!formCanSubmit || form.submitting" @click="submitForm">
-            {{ form.submitting ? t.submitting : (form.editingId ? t.resubmit : t.submitBudget) }}
+            {{ form.submitting ? t.submitting : (form.isDraft ? t.submitBudget : (form.editingId ? t.resubmit : t.submitBudget)) }}
           </button>
           <button class="btn-ghost" @click="showForm = false; form = emptyForm()">{{ t.close }}</button>
         </div>
@@ -269,7 +307,7 @@ watch(() => router.route?.query?.focus, (v) => {
               <span class="bc-days" v-if="b.status === 'open'">{{ t.exposeDaysLeft.replace('{n}', daysLeft(b)) }}</span>
             </div>
             <div class="bc-title">
-              {{ b.title }}
+              {{ b.title || '（未命名草稿）' }}
               <span v-if="b.proposalNo" class="bc-no">{{ b.proposalNo }}</span>
             </div>
             <div class="bc-meta">
@@ -293,6 +331,7 @@ watch(() => router.route?.query?.focus, (v) => {
             </div>
             <div class="bc-actions">
               <button v-if="b.status === 'returned'" class="btn-oppose primary" @click="openForm(b)">{{ t.resubmit }}</button>
+              <button v-if="b.status === 'draft'" class="btn-oppose primary" @click="openForm(b)">{{ t.continueEdit }}</button>
               <span v-if="b.status === 'open'" class="oppose-hint">{{ t.inProgress }}</span>
             </div>
           </div>

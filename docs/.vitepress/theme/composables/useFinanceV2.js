@@ -70,9 +70,10 @@ export const financeI18n = {
     redline1: '本预算不含聚餐、旅行类活动的餐饮费、住宿费（此类费用参加人 AA，严禁使用班费）',
     redline2: '本预算已包含所有相关的公共支出（宣传物料、策划费、摄影摄像等）',
     redline3: '同一活动的多笔支出已全部合并在此公示中（严禁拆分规避公示）',
-    redlineConfirm: '已确认', submitBudget: '提交公示（待会计审批）',
+    redlineConfirm: '已确认', submitBudget: '提交公示',
     successSubmittedBudget: '预算公示已提交，待会计审核',
-    statusSubmitted: '待审批', statusReturned: '已退回', returnedReason: '退回原因',
+    statusSubmitted: '待审批', statusReturned: '已退回', statusDraft: '草稿（未提交）', returnedReason: '退回原因',
+    saveDraft: '保存草稿', draftSaved: '草稿已保存', continueEdit: '继续填写',
     resubmit: '修改并重新提交', mySubmitEmpty: '你还没有提交过预算公示',
     endorsementTitle: '签字背书（大额无发票时必填）', endorserName: '背书班委姓名',
     endorserHint: '≥¥{n} 且无发票时：付款凭证 + 盖章收据/小票 + 经办人与 1 名班委签字背书',
@@ -150,9 +151,10 @@ export const financeI18n = {
     redline1: 'No dining/lodging for group meals or trips (paid by attendees, class funds forbidden)',
     redline2: 'All related public expenses included (materials, planning, photo/video, etc.)',
     redline3: 'All expenses of the same activity merged into this disclosure (no splitting to evade review)',
-    redlineConfirm: 'Confirmed', submitBudget: 'Submit (pending accountant review)',
+    redlineConfirm: 'Confirmed', submitBudget: 'Submit',
     successSubmittedBudget: 'Budget submitted, pending accountant review',
-    statusSubmitted: 'Pending', statusReturned: 'Returned', returnedReason: 'Return reason',
+    statusSubmitted: 'Pending', statusReturned: 'Returned', statusDraft: 'Draft', returnedReason: 'Return reason',
+    saveDraft: 'Save draft', draftSaved: 'Draft saved', continueEdit: 'Continue editing',
     resubmit: 'Edit & resubmit', mySubmitEmpty: 'No budget submissions yet',
     endorsementTitle: 'Endorsement (required when ≥¥{n} without invoice)', endorserName: 'Endorsing committee name',
     endorserHint: '≥¥{n} without invoice: payment proof + stamped receipt + endorser (applicant + 1 committee)',
@@ -230,9 +232,10 @@ export const financeI18n = {
     redline1: 'ไม่มีค่าอาหาร/ที่พักของมื้อรวมหรือทริป (ผู้เข้าร่วมจ่ายเอง ห้ามใช้เงินชั้นเรียน)',
     redline2: 'รวมค่าใช้จ่ายสาธารณะที่เกี่ยวข้องทั้งหมดแล้ว',
     redline3: 'รวมค่าใช้จ่ายทั้งหมดของกิจกรรมเดียวในนี้ (ห้ามแยกเพื่อเลี่ยงการตรวจสอบ)',
-    redlineConfirm: 'ยืนยันแล้ว', submitBudget: 'ส่ง (รอการอนุมัติ)',
+    redlineConfirm: 'ยืนยันแล้ว', submitBudget: 'ส่ง',
     successSubmittedBudget: 'ส่งงบประมาณแล้ว รอการตรวจสอบ',
-    statusSubmitted: 'รออนุมัติ', statusReturned: 'ถูกส่งกลับ', returnedReason: 'เหตุผลที่ส่งกลับ',
+    statusSubmitted: 'รออนุมัติ', statusReturned: 'ถูกส่งกลับ', statusDraft: 'ร่าง', returnedReason: 'เหตุผลที่ส่งกลับ',
+    saveDraft: 'บันทึกร่าง', draftSaved: 'บันทึกร่างแล้ว', continueEdit: 'แก้ไขต่อ',
     resubmit: 'แก้ไขแล้วส่งใหม่', mySubmitEmpty: 'ยังไม่มีงบประมาณที่ส่ง',
     endorsementTitle: 'การรับรอง (บังคับเมื่อ ≥{n} ไม่มีใบกำกับ)', endorserName: 'ชื่อกรรมการผู้รับรอง',
     endorserHint: '≥{n} ไม่มีใบกำกับ: หลักฐานชำระ + ใบเสร็จ + ผู้ยื่นกับกรรมการ 1 คนรับรอง',
@@ -367,7 +370,7 @@ export function useFinanceV2() {
   const gotoBudget = (id) => { if (id) router.push({ path: '/finance/budgets/', query: { focus: id } }) }
   const gotoReimb = (id) => { if (id) router.push({ path: '/finance/reimb/', query: { focus: id } }) }
 
-  const budgetStatusText = (b) => b.status === 'passed' ? t.value.budgetPassed : b.status === 'rejected' ? t.value.budgetRejected : b.status === 'cancelled' ? t.value.budgetCancelled : b.status === 'submitted' ? t.value.statusSubmitted : b.status === 'returned' ? t.value.statusReturned : t.value.budgetSpent
+  const budgetStatusText = (b) => b.status === 'passed' ? t.value.budgetPassed : b.status === 'rejected' ? t.value.budgetRejected : b.status === 'cancelled' ? t.value.budgetCancelled : b.status === 'submitted' ? t.value.statusSubmitted : b.status === 'returned' ? t.value.statusReturned : b.status === 'draft' ? t.value.statusDraft : t.value.budgetSpent
   const passedBudgets = computed(() => budgets.value.filter(b => b.status === 'passed'))
   const openBudgets = computed(() => {
     const now = Date.now()

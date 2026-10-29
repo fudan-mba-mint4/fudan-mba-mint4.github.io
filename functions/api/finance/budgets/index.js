@@ -99,7 +99,7 @@ export async function onRequest(context) {
 
       const list = budgets.filter(b => {
         if (mineOnly) return String(b.applicant_id || '') === String(auth.user.id) || String(b.created_by || '') === auth.user.name
-        return !['submitted', 'returned'].includes(b.status)
+        return !['submitted', 'returned', 'draft'].includes(b.status)
       })
       const out = list.map(b => {
         let items = []
@@ -130,53 +130,67 @@ export async function onRequest(context) {
 
     if (request.method === 'POST') {
       const body = await parseBody(request)
-      if (!body.title || !String(body.title).trim()) return corsResponse({ error: '请填写活动/事项名称' }, 400)
-      const amount = Number(body.amount)
-      if (!amount || amount <= 0) return corsResponse({ error: '预算总上限金额需大于 0' }, 400)
-      if (!GROUP_OPTIONS.includes(body.groupName)) return corsResponse({ error: '请选择申请小组/部门' }, 400)
-      if (!EVENT_TYPE_OPTIONS.includes(body.eventType)) return corsResponse({ error: '请选择事项性质' }, 400)
-      if (!ACTIVITY_TYPE_OPTIONS.includes(body.activityType)) return corsResponse({ error: '请选择活动类型' }, 400)
-      if (!PAY_TARGET_OPTIONS.includes(body.payTarget)) return corsResponse({ error: '请选择资金支付对象' }, 400)
+      const saveDraft = body.saveDraft === true
+      if (!saveDraft) {
+        if (!body.title || !String(body.title).trim()) return corsResponse({ error: '请填写活动/事项名称' }, 400)
+        const amount = Number(body.amount)
+        if (!amount || amount <= 0) return corsResponse({ error: '预算总上限金额需大于 0' }, 400)
+        if (!GROUP_OPTIONS.includes(body.groupName)) return corsResponse({ error: '请选择申请小组/部门' }, 400)
+        if (!EVENT_TYPE_OPTIONS.includes(body.eventType)) return corsResponse({ error: '请选择事项性质' }, 400)
+        if (!ACTIVITY_TYPE_OPTIONS.includes(body.activityType)) return corsResponse({ error: '请选择活动类型' }, 400)
+        if (!PAY_TARGET_OPTIONS.includes(body.payTarget)) return corsResponse({ error: '请选择资金支付对象' }, 400)
 
-      // 财务红线核对：三项必须全部确认
+        // 财务红线核对：三项必须全部确认
+        const redlines = {
+          r1: body.redlines?.r1 === true, r2: body.redlines?.r2 === true, r3: body.redlines?.r3 === true,
+        }
+        if (!redlines.r1 || !redlines.r2 || !redlines.r3) {
+          return corsResponse({ error: '请逐项确认财务红线核对（3 项均为「已确认」才能提交）' }, 400)
+        }
+      }
       const redlines = {
         r1: body.redlines?.r1 === true, r2: body.redlines?.r2 === true, r3: body.redlines?.r3 === true,
       }
-      if (!redlines.r1 || !redlines.r2 || !redlines.r3) {
-        return corsResponse({ error: '请逐项确认财务红线核对（3 项均为「已确认」才能提交）' }, 400)
-      }
       // 明细中若出现聚餐正餐/旅行住宿类费用分类 → 硬性拦截（班费管理制度：此类费用由参加人 AA，严禁使用班费）
       const items = parseItems(body.detailItems)
-      if (items.length === 0) return corsResponse({ error: '请填写至少一条预算明细' }, 400)
-      const bannedCat = items.find(i => /餐饮与茶歇|住宿费/.test(i.category || ''))
-      if (bannedCat) {
-        return corsResponse({ error: `明细分类「${bannedCat.category}」属于聚餐/旅行类费用，由参加人 AA，严禁使用班费，请删除该行或改分类` }, 400)
+      if (!saveDraft && items.length === 0) return corsResponse({ error: '请填写至少一条预算明细' }, 400)
+      if (!saveDraft) {
+        const bannedCat = items.find(i => /餐饮与茶歇|住宿费/.test(i.category || ''))
+        if (bannedCat) {
+          return corsResponse({ error: `明细分类「${bannedCat.category}」属于聚餐/旅行类费用，由参加人 AA，严禁使用班费，请删除该行或改分类` }, 400)
+        }
+        const itemsTotal = items.reduce((s, i) => s + (Number(i.amount) || 0), 0)
+        if (itemsTotal > Number(body.amount) * 1.000001) {
+          return corsResponse({ error: `明细合计 ¥${itemsTotal.toFixed(2)} 超过预算上限 ¥${Number(body.amount).toFixed(2)}，请调整` }, 400)
+        }
       }
-      const itemsTotal = items.reduce((s, i) => s + (Number(i.amount) || 0), 0)
-      if (itemsTotal > amount * 1.000001) {
-        return corsResponse({ error: `明细合计 ¥${itemsTotal.toFixed(2)} 超过预算上限 ¥${amount.toFixed(2)}，请调整` }, 400)
-      }
+      const amount = Number(body.amount) || 0
 
       const id = newId('bp')
+      const status = saveDraft ? 'draft' : 'submitted'
       try {
         await sql`
           INSERT INTO budget_proposals (id, activity_id, title, description, detail_items, amount, proposer, proposer_id, applicant_id, group_name, contact, event_type, activity_type, pay_target, redlines, status, created_by)
-          VALUES (${id}, ${body.activityId || null}, ${String(body.title).trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName}, ${String(body.contact || '')}, ${body.eventType}, ${body.activityType}, ${body.payTarget}, ${JSON.stringify(redlines)}, 'submitted', ${auth.user.name})
+          VALUES (${id}, ${body.activityId || null}, ${String(body.title || '').trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName || ''}, ${String(body.contact || '')}, ${body.eventType || ''}, ${body.activityType || ''}, ${body.payTarget || ''}, ${JSON.stringify(redlines)}, ${status}, ${auth.user.name})
         `
       } catch (e) {
         if (isMissingTableError(e)) { await ensureTables(env); await sql`
           INSERT INTO budget_proposals (id, activity_id, title, description, detail_items, amount, proposer, proposer_id, applicant_id, group_name, contact, event_type, activity_type, pay_target, redlines, status, created_by)
-          VALUES (${id}, ${body.activityId || null}, ${String(body.title).trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName}, ${body.eventType}, ${body.activityType}, ${body.payTarget}, ${JSON.stringify(redlines)}, 'submitted', ${auth.user.name})
+          VALUES (${id}, ${body.activityId || null}, ${String(body.title || '').trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName || ''}, ${String(body.contact || '')}, ${body.eventType || ''}, ${body.activityType || ''}, ${body.payTarget || ''}, ${JSON.stringify(redlines)}, ${status}, ${auth.user.name})
         ` }
         else throw e
       }
 
-      await logHistory(sql, { type: 'finance', action: 'submit', refId: id,
-        description: `提交预算公示（待审批）：${String(body.title).trim()}`, operator: auth.user.name })
-      await notify(sql, { type: 'finance', title: '新的预算公示待审批',
-        body: `${auth.user.name} 提交了预算公示「${String(body.title).trim()}」（¥${amount}），请到财务后台审核资料并公开`, modulePath: '/admin/', operator: auth.user.name })
+      if (!saveDraft) {
+        await logHistory(sql, { type: 'finance', action: 'submit', refId: id,
+          description: `提交预算公示（待审批）：${String(body.title).trim()}`, operator: auth.user.name })
+        await notify(sql, { type: 'finance', title: '新的预算公示待审批',
+          body: `${auth.user.name} 提交了预算公示「${String(body.title).trim()}」（¥${amount}），请到财务后台审核资料并公开`, modulePath: '/admin/', operator: auth.user.name })
+      }
       await purgePublicCache('finance-v2-public')
-      return corsResponse({ message: '预算公示已提交，待会计（程枭）审核', id }, 201)
+      return corsResponse(saveDraft
+        ? { message: '草稿已保存，可随时继续填写', id, status: 'draft' }
+        : { message: '预算公示已提交，待会计（程枭）审核', id }, saveDraft ? 200 : 201)
     }
 
     return corsResponse({ error: '不支持的请求方法' }, 405)
