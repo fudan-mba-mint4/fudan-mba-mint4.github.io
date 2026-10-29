@@ -76,6 +76,46 @@ function openForm(b) {
   }
   showForm.value = true
 }
+/* 灰色提交点击：标记不合规字段红框抖动 */
+function collectInvalidFields() {
+  const f = form.value, bad = []
+  const byField = k => document.querySelector(`.budget-form-card [data-field="${k}"]`)
+  if (!f.title.trim()) bad.push(byField('title'))
+  if (!f.groupName) bad.push(byField('group'))
+  if (!f.applicant.trim()) bad.push(byField('applicant'))
+  if (!f.eventType) bad.push(byField('eventType'))
+  if (!f.payTarget) bad.push(byField('payTarget'))
+  if (!f.activityType) bad.push(byField('activityType'))
+  if (!(Number(f.amount) > 0)) bad.push(byField('amount'))
+  const rows = [...document.querySelectorAll('.budget-form-card .detail-row')]
+  if (!rows.length) {
+    const h = document.querySelector('.budget-form-card .detail-table-head')
+    if (h) bad.push(h)
+  }
+  rows.forEach((row, i) => {
+    const it = f.detailItems[i] || {}
+    if (!(it.item || '').trim()) bad.push(row.querySelector('.dt-item'))
+    if (!(Number(it.qty) > 0)) bad.push(row.querySelector('.dt-qty'))
+    if (!(Number(it.unitPrice) > 0)) bad.push(row.querySelector('.dt-price'))
+    if (!it.category) bad.push(row.querySelector('.dt-cat'))
+  })
+  if (!f.redlines.r1 || !f.redlines.r2 || !f.redlines.r3) {
+    document.querySelectorAll('.budget-form-card .redline-box').forEach(b => bad.push(b))
+  }
+  return bad.filter(Boolean)
+}
+function trySubmit() {
+  if (formCanSubmit.value) { submitForm(); return }
+  const bad = collectInvalidFields()
+  bad.forEach(el => {
+    el.classList.remove('field-invalid')
+    void el.offsetWidth
+    el.classList.add('field-invalid')
+  })
+  const first = bad[0]
+  if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  setTimeout(() => bad.forEach(el => el.classList.remove('field-invalid')), 1500)
+}
 async function submitForm() {
   const f = form.value
   if (!formCanSubmit.value || f.submitting) return
@@ -208,36 +248,36 @@ watch(() => router.route?.query?.focus, (v) => {
         <p class="oppose-hint">{{ t.proposeHint }}</p>
         <div class="form-row">
           <label class="f-label">{{ t.formActivityName }} <i class="req">*</i></label>
-          <input v-model="form.title" class="fp-input" placeholder="如：9月班级聚餐预算" />
+          <input v-model="form.title" class="fp-input" data-field="title" placeholder="如：9月班级聚餐预算" />
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.formGroup }} <i class="req">*</i></label>
-          <select v-model="form.groupName" class="fp-select">
+          <select v-model="form.groupName" class="fp-select" data-field="group">
             <option value="">请选择</option>
             <option v-for="g in GROUP_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.formApplicant }} <i class="req">*</i></label>
-          <input v-model="form.applicant" class="fp-input" placeholder="申请人" />
+          <input v-model="form.applicant" class="fp-input" data-field="applicant" placeholder="申请人" />
           <label class="f-label">{{ t.formContact }}</label>
           <input v-model="form.contact" class="fp-input" placeholder="手机 / 微信（选填）" />
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.formEventType }} <i class="req">*</i></label>
-          <select v-model="form.eventType" class="fp-select">
+          <select v-model="form.eventType" class="fp-select" data-field="eventType">
             <option value="">请选择</option>
             <option v-for="g in EVENT_TYPE_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
           <label class="f-label" style="margin-left:12px">{{ t.formPayTarget }} <i class="req">*</i></label>
-          <select v-model="form.payTarget" class="fp-select">
+          <select v-model="form.payTarget" class="fp-select" data-field="payTarget">
             <option value="">请选择</option>
             <option v-for="g in PAY_TARGET_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.formActivityType }} <i class="req">*</i></label>
-          <select v-model="form.activityType" class="fp-select">
+          <select v-model="form.activityType" class="fp-select" data-field="activityType">
             <option value="">请选择</option>
             <option v-for="g in ACTIVITY_TYPE_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
@@ -276,7 +316,7 @@ watch(() => router.route?.query?.focus, (v) => {
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.formBudgetAmount }} <i class="req">*</i></label>
-          <input v-model.number="form.amount" type="number" step="0.01" min="0" class="fp-input" placeholder="预算总上限（元），须 ≥ 明细合计" />
+          <input v-model.number="form.amount" type="number" step="0.01" min="0" class="fp-input" data-field="amount" placeholder="预算总上限（元），须 ≥ 明细合计" />
           <span v-if="itemsTotal > 0" class="dim" :style="itemsTotal > Number(form.amount || 0) ? 'color:#c92a2a;font-weight:600' : ''">
             明细合计 ¥{{ formatAmount(itemsTotal) }}{{ itemsTotal > Number(form.amount || 0) ? '（超过上限，无法提交）' : '' }}
           </span>
@@ -290,7 +330,7 @@ watch(() => router.route?.query?.focus, (v) => {
         <div class="form-actions">
           <span v-if="form.msg" class="oppose-msg">{{ form.msg }}</span>
           <button class="btn-ghost" :disabled="form.submitting" @click="saveDraftForm">{{ t.saveDraft }}</button>
-          <button class="btn-oppose primary" :disabled="!formCanSubmit || form.submitting" @click="submitForm">
+          <button class="btn-oppose primary" :class="{ 'btn-disabled': !formCanSubmit }" :disabled="form.submitting" @click="trySubmit">
             {{ form.submitting ? t.submitting : (form.isDraft ? t.submitBudget : (form.editingId ? t.resubmit : t.submitBudget)) }}
           </button>
           <button class="btn-ghost" @click="showForm = false; form = emptyForm()">{{ t.close }}</button>

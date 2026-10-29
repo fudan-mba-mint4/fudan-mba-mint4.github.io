@@ -338,3 +338,15 @@
 /* 金额行：label 不被输入框遮挡 */
 .budget-form-card .f-label { flex-shrink: 0; }
 .budget-form-card .form-row .dim { flex-shrink: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 灰色提交按钮点击 → 不合规字段红框抖动 */
+.budget-form-card .btn-disabled { opacity: .45; cursor: not-allowed; }
+.budget-form-card .field-invalid { border-color: #e5484d !important; box-shadow: 0 0 0 2px rgba(229,72,77,.18); animation: field-shake .45s ease; }
+@keyframes field-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}
+.budget-form-card .redline-box { border: 1px solid transparent; border-radius: 6px; }
+.budget-form-card .redline-box.field-invalid { border-color: #e5484d; animation: field-shake .45s ease; }
