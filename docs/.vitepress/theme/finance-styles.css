@@ -331,3 +331,10 @@
 .budget-form-card .form-actions { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
 .budget-form-card .form-actions .oppose-msg { flex: 1 1 auto; min-width: 0; font-size: 12px; }
 .budget-form-card .form-actions .btn-oppose, .budget-form-card .form-actions .btn-ghost { flex-shrink: 0; white-space: nowrap; }
+
+/* 必填红星 */
+.budget-form-card .f-label .req, .detail-table-head .req { color: #e5484d; font-style: normal; font-weight: 700; margin-left: 1px; }
+
+/* 金额行：label 不被输入框遮挡 */
+.budget-form-card .f-label { flex-shrink: 0; }
+.budget-form-card .form-row .dim { flex-shrink: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

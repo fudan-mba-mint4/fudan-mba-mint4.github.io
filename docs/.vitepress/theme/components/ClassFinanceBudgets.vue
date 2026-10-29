@@ -45,7 +45,7 @@ const rowTotal = (it) => Math.round(((Number(it.qty) || 0) * (Number(it.unitPric
 const itemsTotal = computed(() => form.value.detailItems.reduce((s, it) => s + rowTotal(it), 0))
 const formCanSubmit = computed(() => {
   const f = form.value
-  if (!f.title.trim() || !(Number(f.amount) > 0) || !f.groupName || !f.eventType || !f.activityType || !f.payTarget) return false
+  if (!f.title.trim() || !f.applicant.trim() || !(Number(f.amount) > 0) || !f.groupName || !f.eventType || !f.activityType || !f.payTarget) return false
   // 明细每一行都须完整：支出项目、数量>0、单价>0、费用性质分类（备注选填）
   if (!form.value.detailItems.length) return false
   if (!form.value.detailItems.every(it => it.item.trim() && Number(it.qty) > 0 && Number(it.unitPrice) > 0 && it.category)) return false
@@ -207,36 +207,36 @@ watch(() => router.route?.query?.focus, (v) => {
         <h4 class="form-title">{{ t.proposeTitle }}</h4>
         <p class="oppose-hint">{{ t.proposeHint }}</p>
         <div class="form-row">
-          <label class="f-label">{{ t.formActivityName }} *</label>
+          <label class="f-label">{{ t.formActivityName }} <i class="req">*</i></label>
           <input v-model="form.title" class="fp-input" placeholder="如：9月班级聚餐预算" />
         </div>
         <div class="form-row">
-          <label class="f-label">{{ t.formGroup }} *</label>
+          <label class="f-label">{{ t.formGroup }} <i class="req">*</i></label>
           <select v-model="form.groupName" class="fp-select">
             <option value="">请选择</option>
             <option v-for="g in GROUP_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
         </div>
         <div class="form-row">
-          <label class="f-label">{{ t.formApplicant }}</label>
+          <label class="f-label">{{ t.formApplicant }} <i class="req">*</i></label>
           <input v-model="form.applicant" class="fp-input" placeholder="申请人" />
           <label class="f-label">{{ t.formContact }}</label>
           <input v-model="form.contact" class="fp-input" placeholder="手机 / 微信（选填）" />
         </div>
         <div class="form-row">
-          <label class="f-label">{{ t.formEventType }} *</label>
+          <label class="f-label">{{ t.formEventType }} <i class="req">*</i></label>
           <select v-model="form.eventType" class="fp-select">
             <option value="">请选择</option>
             <option v-for="g in EVENT_TYPE_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
-          <label class="f-label" style="margin-left:12px">{{ t.formPayTarget }} *</label>
+          <label class="f-label" style="margin-left:12px">{{ t.formPayTarget }} <i class="req">*</i></label>
           <select v-model="form.payTarget" class="fp-select">
             <option value="">请选择</option>
             <option v-for="g in PAY_TARGET_OPTIONS" :key="g" :value="g">{{ g }}</option>
           </select>
         </div>
         <div class="form-row">
-          <label class="f-label">{{ t.formActivityType }} *</label>
+          <label class="f-label">{{ t.formActivityType }} <i class="req">*</i></label>
           <select v-model="form.activityType" class="fp-select">
             <option value="">请选择</option>
             <option v-for="g in ACTIVITY_TYPE_OPTIONS" :key="g" :value="g">{{ g }}</option>
@@ -251,9 +251,9 @@ watch(() => router.route?.query?.focus, (v) => {
           <label class="f-label">{{ t.formDetailTitle }}</label>
           <div class="detail-scroll">
             <div class="detail-table-head">
-              <span class="dt-item">{{ t.itemName }}</span><span class="dt-qty">{{ t.qty }}</span>
-              <span class="dt-price">{{ t.unitPrice }}</span><span class="dt-sub">{{ t.itemAmount }}</span>
-              <span class="dt-cat">{{ t.itemCategory }}</span><span class="dt-note">{{ t.itemNote }}</span>
+              <span class="dt-item">{{ t.itemName }} <i class="req">*</i></span><span class="dt-qty">{{ t.qty }} <i class="req">*</i></span>
+              <span class="dt-price">{{ t.unitPrice }} <i class="req">*</i></span><span class="dt-sub">{{ t.itemAmount }}</span>
+              <span class="dt-cat">{{ t.itemCategory }} <i class="req">*</i></span><span class="dt-note">{{ t.itemNote }}</span>
               <span class="dt-del"></span>
             </div>
             <div v-for="(it, i) in form.detailItems" :key="i" class="detail-row">
@@ -275,14 +275,14 @@ watch(() => router.route?.query?.focus, (v) => {
           </div>
         </div>
         <div class="form-row">
-          <label class="f-label">{{ t.formBudgetAmount }} *</label>
+          <label class="f-label">{{ t.formBudgetAmount }} <i class="req">*</i></label>
           <input v-model.number="form.amount" type="number" step="0.01" min="0" class="fp-input" placeholder="预算总上限（元），须 ≥ 明细合计" />
           <span v-if="itemsTotal > 0" class="dim" :style="itemsTotal > Number(form.amount || 0) ? 'color:#c92a2a;font-weight:600' : ''">
             明细合计 ¥{{ formatAmount(itemsTotal) }}{{ itemsTotal > Number(form.amount || 0) ? '（超过上限，无法提交）' : '' }}
           </span>
         </div>
         <div class="form-row col redline-box">
-          <label class="f-label">{{ t.redlineTitle }}</label>
+          <label class="f-label">{{ t.redlineTitle }} <i class="req">*</i></label>
           <label class="redline-item"><input type="checkbox" v-model="form.redlines.r1" /><span>{{ t.redline1 }}</span></label>
           <label class="redline-item"><input type="checkbox" v-model="form.redlines.r2" /><span>{{ t.redline2 }}</span></label>
           <label class="redline-item"><input type="checkbox" v-model="form.redlines.r3" /><span>{{ t.redline3 }}</span></label>
