@@ -17,9 +17,9 @@ const showForm = ref(false)
 const GROUP_OPTIONS = ['体验组', '记忆组', '学术组', '生活组', '财务组', '其他项目组']
 const EVENT_TYPE_OPTIONS = ['常规事项（例行性、可预见）', '非常规事项（临时发生、额外增加）']
 const ACTIVITY_TYPE_OPTIONS = [
-  '纯会务/赋能类（讲座、分享、企业参访等）',
-  '联谊/凝聚类（聚餐、旅行、团建、聚劲周等）',
-  '日常运营类（常规宣传物料、班级公共用品、教师慰问等，无需填写具体活动）',
+  '纯会务/赋能类-讲座', '纯会务/赋能类-分享', '纯会务/赋能类-企业参访',
+  '联谊/凝聚类-聚餐', '联谊/凝聚类-旅行', '联谊/凝聚类-团建', '联谊/凝聚类-聚劲周',
+  '日常运营类-常规宣传物料', '日常运营类-班级公共用品', '日常运营类-教师慰问',
 ]
 const PAY_TARGET_OPTIONS = ['淘宝商家', '场地租赁方', '个人垫付报销', '其他']
 const FEE_CATEGORY_OPTIONS = [
@@ -185,8 +185,6 @@ watch(() => router.route?.query?.focus, (v) => {
         <div class="form-row">
           <label class="f-label">{{ t.formContact }}</label>
           <input v-model="form.contact" class="fp-input" placeholder="手机 / 微信" />
-          <label class="f-label" style="margin-left:12px">{{ t.formBudgetAmount }} *</label>
-          <input v-model.number="form.amount" type="number" step="0.01" min="0" class="fp-input" style="flex:1" placeholder="0.00" />
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.formEventType }} *</label>
@@ -236,6 +234,13 @@ watch(() => router.route?.query?.focus, (v) => {
             <button type="button" class="mini-add" @click="addItemRow">{{ t.addItem }}</button>
             <span class="dt-total">{{ t.total }}：<b>¥{{ formatAmount(itemsTotal) }}</b></span>
           </div>
+        </div>
+        <div class="form-row">
+          <label class="f-label">{{ t.formBudgetAmount }} *</label>
+          <input v-model.number="form.amount" type="number" step="0.01" min="0" class="fp-input" placeholder="预算总上限（元），须 ≥ 明细合计" />
+          <span v-if="itemsTotal > 0" class="dim" :style="itemsTotal > Number(form.amount || 0) ? 'color:#c92a2a;font-weight:600' : ''">
+            明细合计 ¥{{ formatAmount(itemsTotal) }}{{ itemsTotal > Number(form.amount || 0) ? '（超过上限，无法提交）' : '' }}
+          </span>
         </div>
         <div class="form-row col redline-box">
           <label class="f-label">{{ t.redlineTitle }}</label>

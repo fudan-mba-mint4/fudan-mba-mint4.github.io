@@ -13,9 +13,9 @@ import { purgePublicCache } from '../../../_cache.js'
 export const GROUP_OPTIONS = ['体验组', '记忆组', '学术组', '生活组', '财务组', '其他项目组']
 export const EVENT_TYPE_OPTIONS = ['常规事项（例行性、可预见）', '非常规事项（临时发生、额外增加）']
 export const ACTIVITY_TYPE_OPTIONS = [
-  '纯会务/赋能类（讲座、分享、企业参访等）',
-  '联谊/凝聚类（聚餐、旅行、团建、聚劲周等）',
-  '日常运营类（常规宣传物料、班级公共用品、教师慰问等，无需填写具体活动）',
+  '纯会务/赋能类-讲座', '纯会务/赋能类-分享', '纯会务/赋能类-企业参访',
+  '联谊/凝聚类-聚餐', '联谊/凝聚类-旅行', '联谊/凝聚类-团建', '联谊/凝聚类-聚劲周',
+  '日常运营类-常规宣传物料', '日常运营类-班级公共用品', '日常运营类-教师慰问',
 ]
 export const PAY_TARGET_OPTIONS = ['淘宝商家', '场地租赁方', '个人垫付报销', '其他']
 export const FEE_CATEGORY_OPTIONS = [
