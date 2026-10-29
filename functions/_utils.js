@@ -254,15 +254,25 @@ CREATE INDEX IF NOT EXISTS idx_finance_tx_activity ON finance_tx (activity_id);
 
 CREATE TABLE IF NOT EXISTS budget_proposals (
   id TEXT PRIMARY KEY,
+  proposal_no TEXT DEFAULT '',      -- 公示编号 MF4-BM-YYYYMMDD-XX（财务小组统一编号，自动生成）
   activity_id TEXT,
   title TEXT NOT NULL,
   description TEXT DEFAULT '',
-  detail_items TEXT DEFAULT '[]',  -- 预算明细 JSON [{item, amount}]
+  detail_items TEXT DEFAULT '[]',  -- 预算明细 JSON [{item, qty, unitPrice, amount, category, note}]
   amount REAL NOT NULL,            -- 预算上限
   proposer TEXT DEFAULT '',        -- 申请人真名
   proposer_id INTEGER,
+  applicant_id TEXT DEFAULT '',    -- 发起人 user_id（前台全员可发起）
+  group_name TEXT DEFAULT '',      -- 申请小组/部门（体验组/记忆组/学术组/生活组/财务组/其他项目组）
+  contact TEXT DEFAULT '',         -- 联系方式（选填）
+  event_type TEXT DEFAULT '',      -- 事项性质：常规事项 / 非常规事项
+  activity_type TEXT DEFAULT '',   -- 活动类型（含括号说明的全称）
+  pay_target TEXT DEFAULT '',      -- 资金支付对象：淘宝商家/场地租赁方/个人垫付报销/其他
+  redlines TEXT DEFAULT '',        -- 财务红线核对确认 JSON {r1:bool, r2:bool, r3:bool}
+  returned_reason TEXT DEFAULT '', -- 程枭退回原因（status=returned 时展示）
+  sync_time TEXT,                  -- 微信群同步链接时间（程枭公开时自动记为当天，可改）
   expose_type TEXT DEFAULT 'normal', -- normal / emergency（紧急·事后补公示）
-  status TEXT DEFAULT 'open',      -- open / passed / rejected / spent / cancelled
+  status TEXT DEFAULT 'submitted', -- submitted(待审批) / returned(已退回) / open(公示中) / passed(已通过) / rejected(已否决) / spent(已执行) / cancelled(已取消)
   expose_start TEXT,
   expose_end TEXT,
   created_by TEXT,

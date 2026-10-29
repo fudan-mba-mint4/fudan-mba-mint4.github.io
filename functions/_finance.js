@@ -142,6 +142,35 @@ export async function nextVoucherNo(sql, now = new Date()) {
   return `${prefix}001`
 }
 
+// 生成预算公示编号 MF4-BM-YYYYMMDD-XX（财务小组统一编号，当天顺序号）
+export async function nextProposalNo(sql, now = new Date()) {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const datePart = `${y}${m}${d}`
+  const prefix = `MF4-BM-${datePart}-`
+  try {
+    const rows = await sql`SELECT proposal_no FROM budget_proposals WHERE proposal_no LIKE ${prefix + '%'} ORDER BY proposal_no DESC LIMIT 1`
+    const last = rows[0]?.proposal_no
+    if (last) {
+      const n = parseInt(last.split('-').pop(), 10) || 0
+      return `${prefix}${String(n + 1).padStart(2, '0')}`
+    }
+  } catch (e) { /* 无编号列（旧库）→ 兜底 */ }
+  return `${prefix}01`
+}
+
+// 预算公示流程状态
+export const BUDGET_STATUS = {
+  SUBMITTED: 'submitted', // 待审批（发起人已提交，等程枭审核）
+  RETURNED: 'returned',   // 已退回（程枭退回，发起人可改后重交）
+  OPEN: 'open',           // 公示中（程枭公开，3 天投票期）
+  PASSED: 'passed',       // 公示通过（可执行/可关联报销）
+  REJECTED: 'rejected',   // 反对 ≥1/3，驳回终止（不可动用）
+  SPENT: 'spent',         // 已执行
+  CANCELLED: 'cancelled', // 已取消
+}
+
 // 计算到某时限的工作日判断（简单口径：自然日，文案提示按“工作日”由前端显示）
 export function dueMs(days, fromIso) {
   const from = fromIso ? new Date(fromIso).getTime() : Date.now()

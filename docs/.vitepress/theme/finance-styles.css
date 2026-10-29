@@ -270,3 +270,36 @@
 /* 临时示例数据横幅 */
 .demo-banner { display: flex; align-items: center; gap: 8px; margin: 4px 0 18px; padding: 10px 14px; border-radius: 12px; background: rgba(255, 159, 10, .12); border: 1px solid rgba(255, 159, 10, .45); color: #b26a00; font-size: 13px; font-weight: 500; }
 .dark .demo-banner { background: rgba(255, 176, 46, .1); border-color: rgba(255, 176, 46, .4); color: #ffb02e; }
+
+/* ===== 预算公示 v2：全员发起 → 会计审批 ===== */
+.budget-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.budget-tabs { display: flex; gap: 4px; background: var(--c-bg-elevated); border-radius: 14px; padding: 4px; }
+.budget-tab { border: none; background: none; padding: 7px 16px; border-radius: 11px; font-size: 13px; font-weight: 600; color: var(--c-text-secondary); cursor: pointer; font-family: inherit; transition: all .2s; }
+.budget-tab.active { background: var(--c-accent); color: #fff; }
+.budget-form-card { background: var(--c-bg-secondary); border: 1px solid var(--c-border); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+.form-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.f-label { font-size: 13px; font-weight: 600; color: var(--c-text-secondary); white-space: nowrap; }
+.form-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.detail-table-head, .detail-row { display: grid; grid-template-columns: 2fr 64px 88px 86px 1.6fr 1.2fr 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.detail-table-head span { font-size: 12px; color: var(--c-text-tertiary); font-weight: 600; }
+.dt-qty, .dt-price, .dt-sub { text-align: center; }
+.dt-sub { font-weight: 600; color: var(--c-text-secondary); }
+.detail-total { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.mini-add { border: 1.5px dashed var(--c-accent); background: none; color: var(--c-accent); border-radius: 10px; padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.mini-add:hover { background: var(--c-accent); color: #fff; }
+.mini-del { border: none; background: rgba(255,59,48,.1); color: #c92a2a; width: 24px; height: 24px; border-radius: 8px; font-size: 15px; cursor: pointer; line-height: 1; }
+.mini-del:disabled { opacity: .35; cursor: not-allowed; }
+.dt-total { font-size: 13px; color: var(--c-text-secondary); }
+.dt-total b { color: var(--c-accent); font-size: 15px; }
+.redline-box { border: 1.5px dashed rgba(255,159,10,.5); background: rgba(255,159,10,.05); border-radius: 12px; padding: 12px 14px; }
+.redline-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--c-text-primary); margin-bottom: 6px; cursor: pointer; }
+.redline-item input { margin-top: 3px; accent-color: var(--c-accent); }
+.bc-no { font-size: 11px; font-weight: 600; color: var(--c-text-tertiary); margin-left: 8px; border: 1px solid var(--c-border); border-radius: 8px; padding: 1px 7px; vertical-align: 2px; }
+.budget-card.mine { border-style: dashed; }
+.budget-card.returned { border-color: rgba(255,159,10,.6); }
+.budget-card.submitted { border-color: rgba(94,92,230,.4); }
+.bc-status.submitted { background: rgba(94,92,230,.12); color: var(--c-accent); }
+.bc-status.returned { background: rgba(255,159,10,.15); color: #b45309; }
+.return-reason { margin-top: 8px; font-size: 13px; color: #b45309; background: rgba(255,159,10,.08); border-radius: 10px; padding: 8px 12px; }
+.bc-actions { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+.dim { color: var(--c-text-tertiary); font-size: 12px; }

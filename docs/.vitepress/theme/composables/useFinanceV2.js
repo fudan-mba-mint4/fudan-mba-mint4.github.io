@@ -33,7 +33,7 @@ export const financeI18n = {
     budgetPassed: '已通过', budgetRejected: '已否决', budgetCancelled: '已取消', budgetSpent: '已执行',
     reimbTitle: '报销', reimbDesc: '线上提交凭证 → 财务审批 → 线下打款 → 入账公示',
     newReimb: '新建报销', submit: '提交', submitting: '提交中…',
-    reimbFormTitle: '新建报销单', reimbActivity: '关联活动', reimbBudget: '关联预算（选填）',
+    reimbFormTitle: '新建报销单', reimbActivity: '关联活动', reimbBudget: '关联预算公示',
     reimbDate: '消费日期', reimbAmount: '报销金额（元）', reimbCategory: '支出大类', reimbDesc: '事项描述',
     reimbVouchers: '报销凭证', requiredHint: '金额 ≥ {n} 元必传：{list}', requiredHintSmall: '金额 < {n} 元必传：{list}',
     uploadVoucher: '上传', uploaded: '已上传', remove: '移除',
@@ -56,6 +56,24 @@ export const financeI18n = {
     reasonsTitle: '反对留言（匿名公开）', noReasons: '暂无反对留言',
     emergencyTag: '紧急·事后补公示', voteReasonHint: '反对理由（可选，将匿名公开，不可撤回）',
     statusNeedRevision: '待补正', needRevise: '修改重新提交',
+    /* v2 预算公示：全员发起 → 会计审批 → 公开投票 */
+    tabAllBudgets: '全部公示', tabMyBudgets: '我提交的公示',
+    newBudgetPropose: '发起公示', proposeTitle: '发起预算公示（支出前公示 3 天征集反对）',
+    proposeHint: '提交后由会计（程枭）审核资料，齐全后公开进入 3 天全员投票期',
+    formActivityName: '活动/事项名称', formGroup: '申请小组/部门', formApplicant: '申请人',
+    formContact: '联系方式（选填）', formEventType: '事项性质', formActivityType: '活动类型',
+    formPayTarget: '资金支付对象', formBudgetAmount: '预算总上限金额（元）',
+    formDetailTitle: '预算明细清单', itemName: '支出项目', qty: '数量', unitPrice: '单价(元)',
+    itemAmount: '小计(元)', itemCategory: '费用性质分类', itemNote: '备注/明细说明',
+    addItem: '+ 添加一行', removeItem: '删除本行', total: '合计',
+    redlineTitle: '财务红线核对（3 项必须逐项确认）',
+    redline1: '本预算不含聚餐、旅行类活动的餐饮费、住宿费（此类费用参加人 AA，严禁使用班费）',
+    redline2: '本预算已包含所有相关的公共支出（宣传物料、策划费、摄影摄像等）',
+    redline3: '同一活动的多笔支出已全部合并在此公示中（严禁拆分规避公示）',
+    redlineConfirm: '已确认', submitBudget: '提交公示（待会计审批）',
+    successSubmittedBudget: '预算公示已提交，待会计审核',
+    statusSubmitted: '待审批', statusReturned: '已退回', returnedReason: '退回原因',
+    resubmit: '修改并重新提交', mySubmitEmpty: '你还没有提交过预算公示',
     endorsementTitle: '签字背书（大额无发票时必填）', endorserName: '背书班委姓名',
     endorserHint: '≥¥{n} 且无发票时：付款凭证 + 盖章收据/小票 + 经办人与 1 名班委签字背书',
     tabWorkbench: '财务工作台', workbenchDesc: '按登录角色显示待办（会计/出纳视图不同）',
@@ -119,6 +137,24 @@ export const financeI18n = {
     reasonsTitle: 'Against comments (anonymous)', noReasons: 'No comments yet',
     emergencyTag: 'Emergency · post-disclosure', voteReasonHint: 'Reason (optional, shown anonymously, final)',
     statusNeedRevision: 'Revision needed', needRevise: 'Edit & resubmit',
+    /* v2 budget: everyone submits → accountant approves → public vote */
+    tabAllBudgets: 'All budgets', tabMyBudgets: 'My submissions',
+    newBudgetPropose: 'Submit a budget', proposeTitle: 'New budget disclosure (≥3 days before spending)',
+    proposeHint: 'After submission, accountant (程枭) reviews; once complete it goes public for a 3-day vote',
+    formActivityName: 'Activity / item name', formGroup: 'Applying group / dept', formApplicant: 'Applicant',
+    formContact: 'Contact (optional)', formEventType: 'Nature of item', formActivityType: 'Activity type',
+    formPayTarget: 'Payee', formBudgetAmount: 'Budget cap (¥)',
+    formDetailTitle: 'Budget breakdown', itemName: 'Item', qty: 'Qty', unitPrice: 'Unit price',
+    itemAmount: 'Subtotal', itemCategory: 'Category', itemNote: 'Notes',
+    addItem: '+ Add row', removeItem: 'Remove row', total: 'Total',
+    redlineTitle: 'Finance red-line checklist (all 3 must be confirmed)',
+    redline1: 'No dining/lodging for group meals or trips (paid by attendees, class funds forbidden)',
+    redline2: 'All related public expenses included (materials, planning, photo/video, etc.)',
+    redline3: 'All expenses of the same activity merged into this disclosure (no splitting to evade review)',
+    redlineConfirm: 'Confirmed', submitBudget: 'Submit (pending accountant review)',
+    successSubmittedBudget: 'Budget submitted, pending accountant review',
+    statusSubmitted: 'Pending', statusReturned: 'Returned', returnedReason: 'Return reason',
+    resubmit: 'Edit & resubmit', mySubmitEmpty: 'No budget submissions yet',
     endorsementTitle: 'Endorsement (required when ≥¥{n} without invoice)', endorserName: 'Endorsing committee name',
     endorserHint: '≥¥{n} without invoice: payment proof + stamped receipt + endorser (applicant + 1 committee)',
     tabWorkbench: 'Finance Workbench', workbenchDesc: 'To-dos by role (accountant / cashier views differ)',
@@ -182,6 +218,24 @@ export const financeI18n = {
     reasonsTitle: 'ความคิดเห็นคัดค้าน (ไม่ระบุชื่อ)', noReasons: 'ยังไม่มีความคิดเห็น',
     emergencyTag: 'ฉุกเฉิน · เปิดเผยหลังใช้จ่าย', voteReasonHint: 'เหตุผล (ไม่บังคับ เปิดเผยไม่ระบุชื่อ แก้ไขไม่ได้)',
     statusNeedRevision: 'รอแก้ไข', needRevise: 'แก้ไขแล้วส่งใหม่',
+    /* v2 งบประมาณ: ทุกคนส่ง → บัญชีอนุมัติ → โหวตสาธารณะ */
+    tabAllBudgets: 'งบประมาณทั้งหมด', tabMyBudgets: 'รายการที่ฉันส่ง',
+    newBudgetPropose: 'ส่งงบประมาณ', proposeTitle: 'เปิดเผยงบประมาณใหม่ (≥3 วันก่อนใช้จ่าย)',
+    proposeHint: 'ส่งแล้ว บัญชี (程枭) ตรวจเอกสาร แล้วเปิดสาธารณะโหวต 3 วัน',
+    formActivityName: 'ชื่อกิจกรรม/รายการ', formGroup: 'กลุ่ม/แผนกที่ยื่น', formApplicant: 'ผู้ยื่น',
+    formContact: 'ติดต่อ (ไม่บังคับ)', formEventType: 'ลักษณะรายการ', formActivityType: 'ประเภทกิจกรรม',
+    formPayTarget: 'ผู้รับเงิน', formBudgetAmount: 'วงเงินสูงสุด (หยวน)',
+    formDetailTitle: 'รายละเอียดงบประมาณ', itemName: 'รายการ', qty: 'จำนวน', unitPrice: 'ราคาหน่วย',
+    itemAmount: 'รวมย่อย', itemCategory: 'หมวดค่าใช้จ่าย', itemNote: 'หมายเหตุ',
+    addItem: '+ เพิ่มแถว', removeItem: 'ลบแถว', total: 'รวม',
+    redlineTitle: 'เช็กลิสต์红线การเงิน (ยืนยันทั้ง 3 ข้อ)',
+    redline1: 'ไม่มีค่าอาหาร/ที่พักของมื้อรวมหรือทริป (ผู้เข้าร่วมจ่ายเอง ห้ามใช้เงินชั้นเรียน)',
+    redline2: 'รวมค่าใช้จ่ายสาธารณะที่เกี่ยวข้องทั้งหมดแล้ว',
+    redline3: 'รวมค่าใช้จ่ายทั้งหมดของกิจกรรมเดียวในนี้ (ห้ามแยกเพื่อเลี่ยงการตรวจสอบ)',
+    redlineConfirm: 'ยืนยันแล้ว', submitBudget: 'ส่ง (รอการอนุมัติ)',
+    successSubmittedBudget: 'ส่งงบประมาณแล้ว รอการตรวจสอบ',
+    statusSubmitted: 'รออนุมัติ', statusReturned: 'ถูกส่งกลับ', returnedReason: 'เหตุผลที่ส่งกลับ',
+    resubmit: 'แก้ไขแล้วส่งใหม่', mySubmitEmpty: 'ยังไม่มีงบประมาณที่ส่ง',
     endorsementTitle: 'การรับรอง (บังคับเมื่อ ≥{n} ไม่มีใบกำกับ)', endorserName: 'ชื่อกรรมการผู้รับรอง',
     endorserHint: '≥{n} ไม่มีใบกำกับ: หลักฐานชำระ + ใบเสร็จ + ผู้ยื่นกับกรรมการ 1 คนรับรอง',
     tabWorkbench: 'แผงงานการเงิน', workbenchDesc: 'งานตามบทบาท (มุมมองบัญชี/แคชเชียร์ต่างกัน)',
@@ -212,6 +266,20 @@ export function useFinanceV2() {
   const nowTs = ref(Date.now())
   const { data: activitiesData } = useData('/data/activities.json', { dbUrl: '/api/activities-db' })
 
+  // 「我提交的公示」：独立接口（含未公开的 submitted/returned）
+  const myBudgets = ref([])
+  async function loadMyBudgets() {
+    if (!isAuthenticated.value || !getToken()) { myBudgets.value = []; return }
+    try {
+      const res = await fetchWithRetry('/api/finance/budgets?mine=1', {
+        headers: { Authorization: `Bearer ${getToken()}` }, signal: AbortSignal.timeout(8000),
+      })
+      if (!res.ok) return
+      const j = await res.json()
+      myBudgets.value = j.budgets || []
+    } catch (e) { /* 静默 */ }
+  }
+
   async function loadFinance() {
     loading.value = true
     error.value = false
@@ -221,6 +289,7 @@ export function useFinanceV2() {
       if (!res.ok) throw new Error('HTTP ' + res.status)
       financeData.value = await res.json()
       nowTs.value = Date.now()
+      await loadMyBudgets()
       markRead('finance', (financeData.value?.transactions || []).map(t => String(t.id)))
     } catch (e) {
       error.value = true
@@ -301,7 +370,7 @@ export function useFinanceV2() {
   const gotoBudget = (id) => { if (id) router.push({ path: '/finance/budgets/', query: { focus: id } }) }
   const gotoReimb = (id) => { if (id) router.push({ path: '/finance/reimb/', query: { focus: id } }) }
 
-  const budgetStatusText = (b) => b.status === 'passed' ? t.value.budgetPassed : b.status === 'rejected' ? t.value.budgetRejected : b.status === 'cancelled' ? t.value.budgetCancelled : t.value.budgetSpent
+  const budgetStatusText = (b) => b.status === 'passed' ? t.value.budgetPassed : b.status === 'rejected' ? t.value.budgetRejected : b.status === 'cancelled' ? t.value.budgetCancelled : b.status === 'submitted' ? t.value.statusSubmitted : b.status === 'returned' ? t.value.statusReturned : t.value.budgetSpent
   const passedBudgets = computed(() => budgets.value.filter(b => b.status === 'passed'))
   const openBudgets = computed(() => {
     const now = Date.now()
@@ -367,6 +436,7 @@ export function useFinanceV2() {
   return {
     currentLang, t, currentUser, authToken, isAuthenticated, getToken, router,
     financeData, loading, error, nowTs, loadFinance,
+    myBudgets, loadMyBudgets,
     transactions, budgets, reimbursements, reconcilations, canViewAllReimb,
     workbench, myVotesMap, config, myVote, votedByMe,
     totalIncome, totalExpense, balance, balanceMap, months, activitiesWithTx,

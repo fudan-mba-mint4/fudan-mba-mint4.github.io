@@ -566,8 +566,9 @@
           </div>
           <div class="form-group"><label>关联公示 <span v-if="finForm.type === 'expense'" class="required">*</span>（支出必选）</label>
             <select v-model="finForm.proposalId">
-              <option value="">{{ finForm.type === 'expense' ? '请选择本次支出的预算公示' : '不关联公示（如班费缴纳/期初入账）' }}</option>
-              <option v-for="b in finBudgets" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ b.amount }}<template v-if="b.status !== 'passed'">（{{ b.status }}）</template></option>
+              <option value="">{{ finForm.type === 'expense' ? '请选择本次支出的预算公示（仅已通过可选）' : '不关联公示（如班费缴纳/期初入账）' }}</option>
+              <option v-for="b in finBudgets.filter(x => x.status === 'passed')" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ b.amount }}{{ b.proposalNo ? '（' + b.proposalNo + '）' : '' }}</option>
+              <option v-for="b in finBudgets.filter(x => x.status !== 'passed')" :key="'x' + b.id" value="" disabled>{{ b.title }} · ¥{{ b.amount }}（{{ b.status }}，未通过不可关联）</option>
             </select>
           </div>
           <div class="form-actions">
@@ -597,8 +598,8 @@
         </div>
 
         <div v-show="finTab === 'budgets'">
-        <!-- 动作栏：公示统计（可筛选）+ 发公示 -->
-        <ModuleBar :stats="budgetStats" :active="budgetFilter" add-label="＋ 发公示" @toggle="toggleBudgetFilter" @add="openBudgetForm" />
+        <!-- 动作栏：公示统计（可筛选）+ 发公示（仅会计可见） -->
+        <ModuleBar :stats="budgetStats" :active="budgetFilter" :add-label="isAccountantView ? '＋ 发公示' : ''" @toggle="toggleBudgetFilter" @add="openBudgetForm" />
         <!-- 公示到期提醒（到期前 24h） -->
         <p v-if="budgetExpiringCount" class="budget-expiring">⏰ 有 {{ budgetExpiringCount }} 条公示将在 24 小时内到期，请注意跟进</p>
         <!-- 发布预算表单（展开式） -->
@@ -651,23 +652,86 @@
             <div class="existing-info">
               <span class="existing-title">
                 <span :class="'bc-' + b.status">[{{ b.status }}]</span> {{ b.title }} · ¥{{ b.amount }}
+                <span v-if="b.proposalNo" class="bc-no">{{ b.proposalNo }}</span>
                 <span v-if="b.exposeType === 'emergency'" class="emergency-tag">紧急·事后补公示</span>
               </span>
               <span class="existing-meta">
-                赞成 {{ b.forCount ?? 0 }} · 反对 {{ b.againstCount ?? 0 }} · 未表态 {{ b.uncommitted ?? 0 }} · 否决线 {{ b.vetoCount ?? '—' }} · 公示至 {{ (b.exposeEnd || '').slice(0, 10) }}
+                <template v-if="['submitted','returned'].includes(b.status)">
+                  {{ b.groupName || '—' }} · 申请人 {{ b.proposer || '—' }}{{ b.contact ? ' · ' + b.contact : '' }}
+                  · {{ b.eventType || '' }}<template v-if="b.activityType"> · {{ b.activityType }}</template>
+                  <template v-if="b.payTarget"> · 支付对象:{{ b.payTarget }}</template>
+                  <span v-if="b.status === 'returned' && b.returnedReason" class="budget-return-note">退回原因：{{ b.returnedReason }}</span>
+                </template>
+                <template v-else>
+                  赞成 {{ b.forCount ?? 0 }} · 反对 {{ b.againstCount ?? 0 }} · 未表态 {{ b.uncommitted ?? 0 }} · 否决线 {{ b.vetoCount ?? '—' }} · 公示至 {{ (b.exposeEnd || '').slice(0, 10) }}
+                </template>
               </span>
+              <details v-if="b.detailItems && b.detailItems.length" class="budget-objections">
+                <summary>预算明细（{{ b.detailItems.length }}）<template v-if="['submitted','returned'].includes(b.status)"> · 红线: {{ b.redlines?.r1 && b.redlines?.r2 && b.redlines?.r3 ? '已确认' : '未勾选!' }}</template></summary>
+                <div v-for="(it, i) in b.detailItems" :key="i" class="obj-row">{{ it.item }}<template v-if="it.qty > 1"> ×{{ it.qty }}</template> · ¥{{ it.amount }}<template v-if="it.category"> · {{ it.category }}</template><template v-if="it.note"> · {{ it.note }}</template></div>
+              </details>
               <details v-if="b.reasons && b.reasons.length" class="budget-objections">
                 <summary>查看反对留言（匿名 {{ b.reasons.length }} 条）</summary>
                 <div v-for="(o, i) in b.reasons" :key="i" class="obj-row">💬 {{ o.reason || '（无理由）' }}</div>
               </details>
             </div>
             <div class="reimb-actions">
-              <button v-if="b.status === 'open'" type="button" class="existing-del ok" @click="settleBudget(b)">结算</button>
-              <button v-if="b.status === 'open'" type="button" class="existing-del" @click="cancelBudget(b)">取消</button>
+              <template v-if="isAccountantView">
+                <button v-if="['submitted','returned'].includes(b.status)" type="button" class="existing-del ok" @click="openBudgetApprove(b)">公开</button>
+                <button v-if="b.status === 'submitted'" type="button" class="existing-del" @click="openBudgetReturn(b)">退回</button>
+                <button v-if="b.status === 'open'" type="button" class="existing-del ok" @click="settleBudget(b)">结算</button>
+                <button v-if="b.status === 'open'" type="button" class="existing-del" @click="cancelBudget(b)">取消</button>
+              </template>
+              <span v-else class="dim">只读（审批仅会计程枭）</span>
             </div>
           </div>
         </div>
 
+        </div>
+
+        <!-- 公开确认弹层（页面内，非系统弹窗） -->
+        <div v-if="budgetApproveConfirm" class="modal-mask" @click.self="closeBudgetApprove">
+          <div class="modal">
+            <div class="modal-head"><span class="modal-title">公开公示：{{ budgetApproveConfirm.title }}</span><button class="modal-close" @click="closeBudgetApprove">×</button></div>
+            <div class="modal-body">
+              <p class="modal-tip">公开后进入 3 天全员投票期：</p>
+              <ul class="modal-tip" style="padding-left:18px;margin:4px 0">
+                <li>自动生成公示编号 MF4-BM-YYYYMMDD-XX 与投票截止时间；</li>
+                <li>同步通知全班同学到前台投票；</li>
+                <li>请确认该笔预算资料已齐全（红线 3 项确认、明细合计 ≤ 预算上限）。</li>
+              </ul>
+              <div class="form-actions">
+                <button class="submit-btn" :disabled="submitting" @click="doBudgetApprove">确认公开</button>
+                <button class="existing-del" @click="closeBudgetApprove">取消</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 退回原因弹层 -->
+        <div v-if="budgetReturn" class="modal-mask" @click.self="closeBudgetReturn">
+          <div class="modal">
+            <div class="modal-head"><span class="modal-title">退回公示：{{ budgetReturn.title }}</span><button class="modal-close" @click="closeBudgetReturn">×</button></div>
+            <div class="modal-body">
+              <p class="modal-tip">请说明缺少的资料 / 需修改的内容。发起人会收到站内通知，修改后重新提交。</p>
+              <textarea v-model="budgetReturn.reason" rows="3" class="input-textarea" placeholder="如：缺少活动人数说明、明细备注不完整"></textarea>
+              <div class="form-actions">
+                <button class="submit-btn" :disabled="submitting || !budgetReturn.reason.trim()" @click="doBudgetReturn">确认退回</button>
+                <button class="existing-del" @click="closeBudgetReturn">取消</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 公开成功提醒：同步微信群公告 -->
+        <div v-if="budgetApproved" class="modal-mask" @click.self="budgetApproved = null">
+          <div class="modal">
+            <div class="modal-head"><span class="modal-title">✅ 已公开：{{ budgetApproved.title }}</span><button class="modal-close" @click="budgetApproved = null">×</button></div>
+            <div class="modal-body">
+              <p class="modal-tip">公示编号：<b>{{ budgetApproved.proposalNo }}</b>，已进入 3 天全员投票期。</p>
+              <p class="modal-tip" style="font-weight:600;color:var(--c-text-primary)">📣 请把公示链接同步到班级微信群，让全班同学去投票：</p>
+              <p class="voucher-link"><a :href="budgetApproved.url" target="_blank" rel="noopener">{{ budgetApproved.url }}</a></p>
+              <div class="form-actions"><button class="submit-btn" @click="budgetApproved = null">知道了</button></div>
+            </div>
+          </div>
         </div>
 
         <div v-show="finTab === 'reimb'">
@@ -681,7 +745,7 @@
                 <span :class="'bc-' + r.status">[{{ r.status }}]</span> {{ r.applicant }} · {{ r.description }} · ¥{{ r.amount }}
               </span>
               <span class="existing-meta">
-                消费 {{ (r.expenseDate || '').slice(0, 10) }} · 提交 {{ (r.createdAt || '').slice(0, 10) }}{{ r.auditNote ? ' · 审批意见: ' + r.auditNote : '' }}
+                消费 {{ (r.expenseDate || '').slice(0, 10) }} · 提交 {{ (r.createdAt || '').slice(0, 10) }}<template v-if="r.proposalId"> · 关联公示: {{ finBudgetTitle(r.proposalId) }}</template>{{ r.auditNote ? ' · 审批意见: ' + r.auditNote : '' }}
               </span>
               <details v-if="r.vouchers && r.vouchers.length" class="budget-objections">
                 <summary>查看凭证（{{ r.vouchers.length }}）</summary>
@@ -1030,7 +1094,7 @@
               <span class="history-type">{{ record.typeName }}</span>
               <span class="history-operator">{{ record.operator }}</span>
             </div>
-            <div class="history-desc">{{ record.description }}</div>
+            <div class="history-desc" :class="{ expanded: record.expanded }" :title="record.description" @click="record.expanded = !record.expanded">{{ record.description }}</div>
             <div class="history-time">{{ shortTime(record.time) }}</div>
             <div v-if="record.error" class="history-error">{{ record.error }}</div>
           </div>
@@ -2029,20 +2093,67 @@ const budgetExpiringCount = computed(() => {
     return end > now && end <= now + 24 * 3600 * 1000
   }).length
 })
-const budgetEndedCount = computed(() => finBudgets.value.filter(b => !['open', 'passed'].includes(b.status)).length)
+const budgetEndedCount = computed(() => finBudgets.value.filter(b => !['open', 'passed', 'submitted', 'returned'].includes(b.status)).length)
 const filteredFinBudgets = computed(() => {
   const f = budgetFilter.value
   if (!f) return finBudgets.value
-  if (f === 'ended') return finBudgets.value.filter(b => !['open', 'passed'].includes(b.status))
+  if (f === 'ended') return finBudgets.value.filter(b => !['open', 'passed', 'submitted', 'returned'].includes(b.status))
   return finBudgets.value.filter(b => b.status === f)
 })
 function toggleBudgetFilter(s) { budgetFilter.value = budgetFilter.value === s ? '' : s }
 const budgetStats = computed(() => [
   { key: '', label: '全部', count: finBudgets.value.length },
+  { key: 'submitted', label: '待审批', count: budgetKindCount('submitted') },
   { key: 'open', label: '公示中', count: budgetKindCount('open') },
   { key: 'passed', label: '已通过', count: budgetKindCount('passed') },
+  { key: 'returned', label: '已退回', count: budgetKindCount('returned') },
   { key: 'ended', label: '已结束', count: budgetEndedCount },
 ])
+
+// ===== 预算公示 v2 审批：公开 / 退回（仅会计程枭，其他主理人只读）=====
+const isAccountantView = computed(() => (currentUser.value?.name || '') === '程枭')
+const budgetReturn = ref(null) // { id, title, reason }
+const budgetApproved = ref(null) // { title, proposalNo, url }
+const budgetApproveConfirm = ref(null) // { id, title }
+function openBudgetApprove(b) { budgetApproveConfirm.value = { id: b.id, title: b.title } }
+function closeBudgetApprove() { budgetApproveConfirm.value = null }
+async function doBudgetApprove() {
+  const c = budgetApproveConfirm.value
+  if (!c) return
+  submitting.value = true
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets/${c.id}`, {
+      method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ action: 'approve' }),
+    })
+    const j = await res.json().catch(() => ({}))
+    await throwIfNotOk(res, '公开公示')
+    invalidateResource('/api/finance-v2')
+    await loadFinanceTransactions()
+    loadTodoBadges()
+    budgetApproveConfirm.value = null
+    budgetApproved.value = { title: c.title, proposalNo: j.proposalNo || '', url: `${window.location.origin}/finance/budgets/` }
+  } catch (e) { alert('公开失败: ' + e.message) }
+  submitting.value = false
+}
+function openBudgetReturn(b) { budgetReturn.value = { id: b.id, title: b.title, reason: '' } }
+function closeBudgetReturn() { budgetReturn.value = null }
+async function doBudgetReturn() {
+  const r = budgetReturn.value
+  if (!r || !r.reason.trim()) { alert('请填写退回原因（告知发起人缺什么资料）'); return }
+  submitting.value = true
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets/${r.id}`, {
+      method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ action: 'return', reason: r.reason.trim() }),
+    })
+    await throwIfNotOk(res, '退回公示')
+    invalidateResource('/api/finance-v2')
+    await loadFinanceTransactions()
+    loadTodoBadges()
+    budgetReturn.value = null
+    showToast('已退回，发起人可修改后重新提交')
+  } catch (e) { alert('退回失败: ' + e.message) }
+  submitting.value = false
+}
 
 // ===== 课程资料 / 班费：当前内容列表与单条删除（flatten/build 纯函数见 utils/admin/utils.js） =====
 async function loadCourseFiles() {
@@ -2739,7 +2850,9 @@ watch(currentType, (val) => {
 .badge-reverted { background: rgba(142,142,147,0.18); color: #8e8e93; }
 .history-type { font-size: 12px; font-weight: 600; color: var(--c-text-secondary); }
 .history-operator { font-size: 12px; color: var(--c-text-tertiary); margin-left: auto; }
-.history-desc { font-size: 13px; font-weight: 500; margin-bottom: 3px; line-height: 1.4; word-break: break-word; }
+.history-desc { font-size: 13px; font-weight: 500; margin-bottom: 3px; line-height: 1.4; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; transition: background .15s; border-radius: 6px; padding: 2px 4px; margin-left: -4px; }
+.history-desc:hover { background: var(--c-bg-elevated); }
+.history-desc.expanded { -webkit-line-clamp: unset; display: block; }
 .history-time { font-size: 11px; color: var(--c-text-tertiary); }
 .history-error { font-size: 11px; color: #ff3b30; margin-top: 3px; }
 .revert-btn { font-size: 12px; width: 26px; height: 26px; flex: none; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all 0.2s ease; line-height: 1; }
@@ -2907,6 +3020,12 @@ watch(currentType, (val) => {
 .bc-submitted { color: #b45309; } .bc-approved { color: var(--c-accent); }
 .bc-paid { color: #2f9e44; } .bc-rejected { color: #ff3b30; }
 .bc-need_revision { color: #b45309; }
+.bc-returned { color: #b45309; }
+.budget-return-note { display: block; margin-top: 4px; color: #b45309; font-weight: 600; }
+.bc-no { font-size: 11px; font-weight: 600; color: var(--c-text-tertiary); margin-left: 6px; border: 1px solid var(--c-border); border-radius: 6px; padding: 0 6px; }
+/* 下拉/选择框：固定宽度，框内截断，点开下拉可看全部选项 */
+.module-form select, .data-form select, .existing-list select { max-width: 100%; }
+.module-form .form-group select, .data-form .form-group select { width: 100%; text-overflow: ellipsis; }
 /* 财务 v2：参数配置 / 监督视图 */
 .fin-config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 .fin-config-grid .form-group { display: flex; flex-direction: column; gap: 6px; }

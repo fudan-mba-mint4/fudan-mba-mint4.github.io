@@ -32,6 +32,27 @@ function checkVouchers(vouchers, amount, config, endorsement) {
   return { ok: true, missing: [], needEndorsement: false }
 }
 
+// 校验报销关联的预算公示：必须已通过（passed），且金额不超过公示预算上限（超预算部分不予支付，制度第五章）
+async function verifyProposal(sql, proposalId, amount, env) {
+  if (!proposalId || !String(proposalId).trim()) {
+    return { ok: false, error: '报销必须关联一个已通过的预算公示（先公示后花钱，制度第十八条）' }
+  }
+  let rows
+  try { rows = await sql`SELECT * FROM budget_proposals WHERE id = ${String(proposalId).trim()} LIMIT 1` }
+  catch (e) {
+    if (isMissingTableError(e)) { await ensureTables(env); rows = await sql`SELECT * FROM budget_proposals WHERE id = ${String(proposalId).trim()} LIMIT 1` }
+    else throw e
+  }
+  const p = rows[0]
+  if (!p) return { ok: false, error: '未找到关联的预算公示' }
+  if (p.status !== 'passed') return { ok: false, error: `只能关联「已通过」的预算公示（当前状态：${p.status}）` }
+  const cap = Number(p.amount) || 0
+  if (amount > cap * 1.000001) {
+    return { ok: false, error: `报销金额 ¥${amount.toFixed(2)} 超过公示预算上限 ¥${cap.toFixed(2)}，超出部分不予支付（需重新公示并通过）` }
+  }
+  return { ok: true, proposal: p }
+}
+
 export async function onRequest(context) {
   const { request, env } = context
   if (request.method === 'OPTIONS') return optionsResponse()
@@ -64,6 +85,8 @@ export async function onRequest(context) {
       if (!amount || amount <= 0) return corsResponse({ error: '报销金额需大于 0' }, 400)
       if (!body.description || !String(body.description).trim()) return corsResponse({ error: '请填写报销事项' }, 400)
       if (!body.expenseDate) return corsResponse({ error: '请选择消费日期' }, 400)
+      const vp = await verifyProposal(sql, body.proposalId, amount, env)
+      if (!vp.ok) return corsResponse({ error: vp.error }, 400)
       const vouchers = Array.isArray(body.vouchers) ? body.vouchers : []
       if (vouchers.length === 0) return corsResponse({ error: '请上传报销凭证' }, 400)
       for (const v of vouchers) {
@@ -95,6 +118,8 @@ export async function onRequest(context) {
     if (!amount || amount <= 0) return corsResponse({ error: '报销金额需大于 0' }, 400)
     if (!body.description || !String(body.description).trim()) return corsResponse({ error: '请填写报销事项' }, 400)
     if (!body.expenseDate) return corsResponse({ error: '请选择消费日期' }, 400)
+    const vp = await verifyProposal(sql, body.proposalId, amount, env)
+    if (!vp.ok) return corsResponse({ error: vp.error }, 400)
 
     const vouchers = Array.isArray(body.vouchers) ? body.vouchers : []
     if (vouchers.length === 0) return corsResponse({ error: '请上传报销凭证' }, 400)

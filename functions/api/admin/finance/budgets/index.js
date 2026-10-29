@@ -34,11 +34,17 @@ export async function onRequest(context) {
       const out = budgets.map(b => {
         let items = []
         try { items = JSON.parse(b.detail_items || '[]') } catch (e) {}
+        let redlines = {}
+        try { redlines = JSON.parse(b.redlines || '{}') } catch (e) {}
         const vlist = voteMap[b.id] || []
         const stats = voteStats(vlist, config)
         return {
-          id: b.id, activityId: b.activity_id, title: b.title, description: b.description || '',
-          detailItems: items, amount: b.amount, proposer: b.proposer || '',
+          id: b.id, proposalNo: b.proposal_no || '', activityId: b.activity_id, title: b.title,
+          description: b.description || '', detailItems: items, amount: b.amount,
+          proposer: b.proposer || '', groupName: b.group_name || '', contact: b.contact || '',
+          eventType: b.event_type || '', activityType: b.activity_type || '', payTarget: b.pay_target || '',
+          redlines, returnedReason: b.returned_reason || '',
+          applicantId: b.applicant_id || '', createdBy: b.created_by || '',
           exposeType: b.expose_type || 'normal',
           status: b.status, exposeStart: b.expose_start, exposeEnd: b.expose_end,
           createdAt: b.created_at, settledAt: b.settled_at,
@@ -53,8 +59,12 @@ export async function onRequest(context) {
     }
 
     if (request.method === 'POST') {
-      if (!isAccountant(auth.user, roles)) return corsResponse({ error: '仅会计可发布预算公示' }, 403)
+      if (!isAccountant(auth.user, roles)) return corsResponse({ error: '仅会计可发布紧急补公示' }, 403)
       const body = await parseBody(request)
+      // v2 流程：常规公示由前台任何注册同学发起 → 会计审核后公开；此处仅保留「紧急·事后补公示」能力
+      if (body.exposeType !== 'emergency') {
+        return corsResponse({ error: '常规预算公示请在「预算公示」页由同学发起提交，会计审核资料后公开；此处仅用于紧急·事后补公示' }, 400)
+      }
       if (!body.title || !String(body.title).trim()) return corsResponse({ error: '请填写公示标题（事项）' }, 400)
       const amount = Number(body.amount)
       if (!amount || amount <= 0) return corsResponse({ error: '预算上限需大于 0' }, 400)

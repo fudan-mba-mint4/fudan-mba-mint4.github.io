@@ -13,6 +13,7 @@
 import { getSql, corsResponse, optionsResponse, getAuthUser, ensureTables, isMissingTableError } from '../../_utils.js'
 import { getPublicCache, setPublicCache } from '../../_cache.js'
 import { getFinanceConfig, getFinanceRoles, isAccountant, isCashier, isFinanceSupervisor, isFinanceStaff, voteStats, anonymousReasons } from '../../_finance.js'
+import { autoSettleExpired } from '../finance/budgets/index.js'
 
 // 未登录响应为纯公开数据：CDN 边缘缓存 30 秒（登录响应含私有数据不缓存）
 const PUBLIC_KEY = 'finance-v2-public'
@@ -21,10 +22,16 @@ const PUBLIC_TTL = 30
 function mapBudget(row) {
   let items = []
   try { items = JSON.parse(row.detail_items || '[]') } catch (e) {}
+  let redlines = {}
+  try { redlines = JSON.parse(row.redlines || '{}') } catch (e) {}
   return {
-    id: row.id, activityId: row.activity_id, title: row.title,
+    id: row.id, proposalNo: row.proposal_no || '', activityId: row.activity_id, title: row.title,
     description: row.description || '', detailItems: items,
     amount: row.amount, proposer: row.proposer || '',
+    groupName: row.group_name || '', contact: row.contact || '',
+    eventType: row.event_type || '', activityType: row.activity_type || '', payTarget: row.pay_target || '',
+    redlines, returnedReason: row.returned_reason || '',
+    applicantId: row.applicant_id || '', createdBy: row.created_by || '',
     exposeType: row.expose_type || 'normal',
     status: row.status, exposeStart: row.expose_start, exposeEnd: row.expose_end,
     createdAt: row.created_at, settledAt: row.settled_at, isDemo: row.is_demo || 0,
@@ -37,10 +44,12 @@ export async function onRequest(context) {
   if (request.method !== 'GET') return corsResponse({ error: '不支持的请求方法' }, 405)
   try {
     const sql = getSql(env)
+    // 惰性自动结算：open 且公示期已过 → 自动出结果（通过/否决）并通知
+    await autoSettleExpired(sql, env, await getFinanceConfig(env))
     let tx, budgets, reimb, votes, reconciles
     try {
       tx = await sql`SELECT * FROM finance_tx ORDER BY date DESC, id DESC`
-      budgets = await sql`SELECT * FROM budget_proposals ORDER BY created_at DESC`
+      budgets = await sql`SELECT * FROM budget_proposals WHERE status NOT IN ('submitted', 'returned') ORDER BY created_at DESC`
       reimb = await sql`SELECT * FROM reimbursements ORDER BY created_at DESC`
       votes = await sql`SELECT proposal_id, user_id, choice, reason, created_at FROM budget_votes`
       reconciles = await sql`SELECT * FROM reconcilations ORDER BY date DESC, created_at DESC`
@@ -48,7 +57,7 @@ export async function onRequest(context) {
       if (isMissingTableError(e)) {
         await ensureTables(env)
         tx = await sql`SELECT * FROM finance_tx ORDER BY date DESC, id DESC`
-        budgets = await sql`SELECT * FROM budget_proposals ORDER BY created_at DESC`
+        budgets = await sql`SELECT * FROM budget_proposals WHERE status NOT IN ('submitted', 'returned') ORDER BY created_at DESC`
         reimb = await sql`SELECT * FROM reimbursements ORDER BY created_at DESC`
         votes = await sql`SELECT proposal_id, user_id, choice, reason, created_at FROM budget_votes`
         reconciles = await sql`SELECT * FROM reconcilations ORDER BY date DESC, created_at DESC`

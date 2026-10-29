@@ -171,6 +171,7 @@ CREATE INDEX IF NOT EXISTS idx_finance_tx_activity ON finance_tx (activity_id);
 
 CREATE TABLE IF NOT EXISTS budget_proposals (
   id TEXT PRIMARY KEY,
+  proposal_no TEXT DEFAULT '',
   activity_id TEXT,
   title TEXT NOT NULL,
   description TEXT DEFAULT '',
@@ -178,12 +179,23 @@ CREATE TABLE IF NOT EXISTS budget_proposals (
   amount REAL NOT NULL,
   proposer TEXT DEFAULT '',
   proposer_id INTEGER,
-  status TEXT DEFAULT 'open',
+  applicant_id TEXT DEFAULT '',
+  group_name TEXT DEFAULT '',
+  contact TEXT DEFAULT '',
+  event_type TEXT DEFAULT '',
+  activity_type TEXT DEFAULT '',
+  pay_target TEXT DEFAULT '',
+  redlines TEXT DEFAULT '',
+  returned_reason TEXT DEFAULT '',
+  sync_time TEXT,
+  expose_type TEXT DEFAULT 'normal',
+  status TEXT DEFAULT 'submitted',
   expose_start TEXT,
   expose_end TEXT,
   created_by TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  settled_at TEXT
+  settled_at TEXT,
+  is_demo INTEGER DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_budget_proposals_status ON budget_proposals (status);
 

@@ -62,7 +62,7 @@ const requiredHintText = computed(() => {
 })
 const reimbCanSubmit = computed(() => {
   const f = reimbForm.value
-  if (!f.expenseDate || !(Number(f.amount) > 0) || !f.description.trim()) return false
+  if (!f.proposalId || !f.expenseDate || !(Number(f.amount) > 0) || !f.description.trim()) return false
   const have = new Set(f.vouchers.map(v => v.type))
   if (!requiredVouchers.value.every(v => have.has(v))) return false
   if (needsEndorsement.value && !String(f.endorserName || '').trim()) return false
@@ -217,10 +217,10 @@ watch(() => router.route?.query?.focus, (v) => {
             </select>
           </div>
           <div class="form-row">
-            <label class="f-label">{{ t.reimbBudget }}</label>
-            <select v-model="reimbForm.proposalId" class="fp-select">
-              <option value="">—</option>
-              <option v-for="b in passedBudgets" :key="b.id" :value="b.id">{{ b.title }}</option>
+            <label class="f-label">{{ t.reimbBudget }} *</label>
+            <select v-model="reimbForm.proposalId" class="fp-select" required>
+              <option value="">请选择已通过的预算公示（先公示后花钱）</option>
+              <option v-for="b in passedBudgets" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ formatAmount(b.amount) }}{{ b.proposalNo ? '（' + b.proposalNo + '）' : '' }}</option>
             </select>
           </div>
           <div class="form-row">
