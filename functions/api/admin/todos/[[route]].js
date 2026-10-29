@@ -1,7 +1,7 @@
 // 后台待办红点计数
-// GET /api/admin/todos：按当前班委可见模块返回各模块「未处理事项」计数
+// GET /api/admin/todos：按当前班委可见模块返回各模块「未处理事项」计数（口径=凡需班委处理的事项）
 //  - activities: 待排期活动数（status=planning）
-//  - finance: 待审批报销数（reimbursements.submitted）＋ 公示将到期数（budget_proposals.open 且 24h 内到期）
+//  - finance: 待审批报销（submitted）＋ 待打款报销（approved）＋ 待审批公示（budget_proposals.submitted）＋ 公示将到期数（open 且 24h 内到期）
 //  - coins: 待审核申报数（coin_claims.pending），仅薄荷币可见角色
 // 仅登录且是班委可读；可见范围与前端 MODULE_ROLE_MAP / _utils.js MODULE_ROLES 保持一致
 import { getSql, corsResponse, optionsResponse, requireCommittee, COMMITTEE_ROLES, MODULE_ROLES, COIN_AUDITORS } from '../../../_utils.js'
@@ -35,14 +35,23 @@ export async function onRequest(context) {
     }
 
     if (visible.has('finance')) {
-      const reimb = await sql`SELECT COUNT(*) AS c FROM reimbursements WHERE status='submitted'`
+      // 待审批报销（会计程枭）+ 待打款报销（出纳李浩鹏）
+      const reimb = await sql`
+        SELECT COUNT(*) AS c FROM reimbursements
+        WHERE status IN ('submitted','approved')
+      `
+      // 待审批公示（会计程枭审批公开）
+      const budgetsPending = await sql`
+        SELECT COUNT(*) AS c FROM budget_proposals WHERE status='submitted'
+      `
+      // 公示将到期（open 且 24h 内，需投票/结算）
       const expiring = await sql`
         SELECT COUNT(*) AS c FROM budget_proposals
         WHERE status='open' AND expose_end IS NOT NULL
           AND expose_end >= strftime('%Y-%m-%dT%H:%M:%fZ','now')
           AND expose_end <= strftime('%Y-%m-%dT%H:%M:%fZ','now','+1 day')
       `
-      todos.finance = Number(reimb[0]?.c || 0) + Number(expiring[0]?.c || 0)
+      todos.finance = Number(reimb[0]?.c || 0) + Number(budgetsPending[0]?.c || 0) + Number(expiring[0]?.c || 0)
     }
 
     if (visible.has('coins')) {
