@@ -25,6 +25,15 @@ export const FEE_CATEGORY_OPTIONS = [
   '软件与工具订阅', '保险与医疗物资', '其他额外支出',
 ]
 
+// 活动方案附件规范化（选填）：仅接受 budgets/ 前缀的上传链接；非法/未传 → ''
+export function normalizeAttachment(att) {
+  if (!att || typeof att !== 'object') return ''
+  const name = String(att.name || '').trim()
+  const url = String(att.url || '').trim()
+  if (!name || !url || !/^https?:\/\/[^/]+\/budgets\//.test(url)) return ''
+  return JSON.stringify({ name, url, size: Number(att.size) || 0, type: String(att.type || '') })
+}
+
 // 惰性自动结算：open 且已过 expose_end → 结算出结果（反对≥1/3 → rejected 否则 passed），通知程枭
 export async function autoSettleExpired(sql, env, config) {
   let settled = []
@@ -117,6 +126,7 @@ export async function onRequest(context) {
           applicantId: b.applicant_id || '', createdBy: b.created_by || '',
           exposeType: b.expose_type || 'normal',
           status: b.status, exposeStart: b.expose_start, exposeEnd: b.expose_end,
+          attachment: b.attachment || '',
           createdAt: b.created_at, settledAt: b.settled_at,
           forCount: stats.forCount, againstCount: stats.againstCount,
           uncommitted: stats.uncommitted, total: stats.total,
@@ -165,18 +175,20 @@ export async function onRequest(context) {
         }
       }
       const amount = Number(body.amount) || 0
+      // 活动方案附件（选填）：{name,url,size,type} 或 null/undefined；仅接受 budgets/ 前缀的 R2 链接
+      const attachment = normalizeAttachment(body.attachment)
 
       const id = newId('bp')
       const status = saveDraft ? 'draft' : 'submitted'
       try {
         await sql`
-          INSERT INTO budget_proposals (id, activity_id, title, description, detail_items, amount, proposer, proposer_id, applicant_id, group_name, contact, event_type, activity_type, pay_target, redlines, status, created_by)
-          VALUES (${id}, ${body.activityId || null}, ${String(body.title || '').trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName || ''}, ${String(body.contact || '')}, ${body.eventType || ''}, ${body.activityType || ''}, ${body.payTarget || ''}, ${JSON.stringify(redlines)}, ${status}, ${auth.user.name})
+          INSERT INTO budget_proposals (id, activity_id, title, description, detail_items, amount, proposer, proposer_id, applicant_id, group_name, contact, event_type, activity_type, pay_target, redlines, status, attachment, created_by)
+          VALUES (${id}, ${body.activityId || null}, ${String(body.title || '').trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName || ''}, ${String(body.contact || '')}, ${body.eventType || ''}, ${body.activityType || ''}, ${body.payTarget || ''}, ${JSON.stringify(redlines)}, ${status}, ${attachment}, ${auth.user.name})
         `
       } catch (e) {
         if (isMissingTableError(e)) { await ensureTables(env); await sql`
-          INSERT INTO budget_proposals (id, activity_id, title, description, detail_items, amount, proposer, proposer_id, applicant_id, group_name, contact, event_type, activity_type, pay_target, redlines, status, created_by)
-          VALUES (${id}, ${body.activityId || null}, ${String(body.title || '').trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName || ''}, ${String(body.contact || '')}, ${body.eventType || ''}, ${body.activityType || ''}, ${body.payTarget || ''}, ${JSON.stringify(redlines)}, ${status}, ${auth.user.name})
+          INSERT INTO budget_proposals (id, activity_id, title, description, detail_items, amount, proposer, proposer_id, applicant_id, group_name, contact, event_type, activity_type, pay_target, redlines, status, attachment, created_by)
+          VALUES (${id}, ${body.activityId || null}, ${String(body.title || '').trim()}, ${String(body.description || '')}, ${JSON.stringify(items)}, ${amount}, ${String(body.proposer || auth.user.name)}, ${auth.user.id}, ${String(auth.user.id)}, ${body.groupName || ''}, ${String(body.contact || '')}, ${body.eventType || ''}, ${body.activityType || ''}, ${body.payTarget || ''}, ${JSON.stringify(redlines)}, ${status}, ${attachment}, ${auth.user.name})
         ` }
         else throw e
       }

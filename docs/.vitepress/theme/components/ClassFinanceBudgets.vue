@@ -1,6 +1,8 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
+import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import { readFileAsBase64 } from '../utils/admin/utils.js'
 import '../finance-styles.css'
 
 const {
@@ -37,6 +39,7 @@ function emptyForm() {
     eventType: '', activityType: '', payTarget: '', amount: null, description: '', activityId: '',
     detailItems: [{ item: '', qty: 1, unitPrice: null, amount: null, category: '', note: '' }],
     redlines: { r1: false, r2: false, r3: false },
+    attachment: null, attachMsg: '', attachErr: false, attachUploading: false,
     msg: '', submitting: false,
   }
 }
@@ -69,12 +72,97 @@ function openForm(b) {
       detailItems: (b.detailItems && b.detailItems.length ? b.detailItems : [{ item: '', qty: 1, unitPrice: null, amount: null, category: '', note: '' }])
         .map(it => ({ item: it.item || '', qty: Number(it.qty) || 1, unitPrice: it.unitPrice, amount: Number(it.amount) || 0, category: it.category || '', note: it.note || '' })),
       redlines: b.redlines || { r1: false, r2: false, r3: false },
+      attachment: parseAttachment(b.attachment),
+      attachMsg: '', attachErr: false, attachUploading: false,
       msg: '', submitting: false,
     }
   } else {
     form.value = emptyForm()
   }
   showForm.value = true
+}
+// 附件兼容解析：历史数据 attachment 为空 / 非法 JSON 均视为无附件
+function parseAttachment(att) {
+  if (!att) return null
+  if (typeof att === 'string') {
+    try {
+      const o = JSON.parse(att)
+      return o && o.url ? o : null
+    } catch { return null }
+  }
+  return att && att.url ? att : null
+}
+const attInput = ref(null)
+const formatSize = (n) => { const v = Number(n) || 0; return v >= 1048576 ? (v / 1048576).toFixed(1) + ' MB' : v >= 1024 ? (v / 1024).toFixed(0) + ' KB' : v + ' B' }
+const extFromName = (name) => { const m = /\.([a-z0-9]+)$/i.exec(name || ''); return m ? m[1].toLowerCase() : 'bin' }
+// 复用课程资料图片压缩算法：>1MB 压到最大边长 1920px、质量 0.82、转 JPEG（gif 动图不压缩直传）
+async function compressImage(file) {
+  if (file.size <= 1024 * 1024) return file
+  return new Promise((resolve) => {
+    const img = new Image()
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        let w = img.width, h = img.height
+        const maxDim = 1920
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h)
+          w = Math.round(w * ratio); h = Math.round(h * ratio)
+        }
+        canvas.width = w; canvas.height = h
+        ctx.drawImage(img, 0, 0, w, h)
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
+            resolve(compressed)
+          } else resolve(file)
+        }, 'image/jpeg', 0.82)
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+async function onAttFile(e) {
+  const file = e.target.files && e.target.files[0]
+  if (!file) return
+  if (file.size > 20 * 1024 * 1024) { form.value.attachMsg = '文件不能超过 20MB'; form.value.attachErr = true; return }
+  form.value.attachUploading = true
+  form.value.attachMsg = t.value.attachUploading
+  form.value.attachErr = false
+  try {
+    // 图片复用课程资料压缩算法（>1MB 压到 1920px/质量0.82/JPEG），PDF/Word/PPT/Excel 文档直传
+    let upFile = file
+    if (/^image\//.test(file.type) && !/gif/i.test(file.type) && file.size > 1024 * 1024) {
+      upFile = await compressImage(file)
+    }
+    const key = `budgets/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extFromName(upFile.name)}`
+    const dataBase64 = await readFileAsBase64(upFile)
+    // 复用课程资料大文件上传策略：base64 直传 + 单次超时放宽 120s + 少重试，避免慢网络反复重传
+    const res = await fetchWithRetry('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken.value}` },
+      body: JSON.stringify({ key, contentType: upFile.type || file.type || 'application/octet-stream', dataBase64 }),
+    }, { timeoutMs: 120000, retries: 2 })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(json.error || '上传失败')
+    form.value.attachment = { name: file.name, url: json.url, size: upFile.size, type: upFile.type || file.type || '' }
+    form.value.attachMsg = t.value.attachUploaded
+    form.value.attachErr = false
+  } catch (err) {
+    form.value.attachMsg = (err && err.message) || t.value.loadFailed
+    form.value.attachErr = true
+  } finally {
+    form.value.attachUploading = false
+    if (attInput.value) attInput.value.value = ''
+  }
+}
+function removeAttachment() {
+  form.value.attachment = null
+  form.value.attachMsg = ''
+  form.value.attachErr = false
 }
 /* 灰色提交点击：标记不合规字段红框抖动 */
 function collectInvalidFields() {
@@ -133,6 +221,7 @@ async function submitForm() {
       eventType: f.eventType, activityType: f.activityType, payTarget: f.payTarget,
       description: f.description.trim(), activityId: f.activityId || null,
       detailItems, redlines: f.redlines,
+      attachment: f.attachment ? { name: f.attachment.name, url: f.attachment.url, size: f.attachment.size, type: f.attachment.type || '' } : null,
     }
     const res = await fetch(f.editingId ? `/api/finance/budgets/${f.editingId}` : '/api/finance/budgets', {
       method: f.editingId ? 'PUT' : 'POST',
@@ -149,6 +238,38 @@ async function submitForm() {
   } catch (e) { f.msg = t.value.loadFailed }
   finally { f.submitting = false }
 }
+
+/* ===== 前台公示详情弹窗（与程枭后台详情同字段同展示） ===== */
+const fcDetail = ref(null)
+function openFcDetail(b) { fcDetail.value = b }
+function closeFcDetail() { fcDetail.value = null }
+const fcItemsTotal = computed(() => {
+  const items = fcDetail.value?.detailItems || []
+  return Math.round(items.reduce((s, it) => s + (Number(it.amount) || 0), 0) * 100) / 100
+})
+const fcDiff = computed(() => Math.round((Number(fcDetail.value?.amount || 0) - fcItemsTotal.value) * 100) / 100)
+const fcRedlinesOk = computed(() => { const r = fcDetail.value?.redlines || {}; return !!(r.r1 && r.r2 && r.r3) })
+const fcUnchecked = computed(() => { const r = fcDetail.value?.redlines || {}; return [r.r1, r.r2, r.r3].filter(v => !v).length })
+const fcStatusLabel = computed(() => {
+  const s = fcDetail.value?.status
+  if (s === 'open') return t.value.inProgress
+  if (s === 'passed') return t.value.statusApproved
+  if (s === 'rejected') return t.value.statusRejected
+  if (s === 'spent') return t.value.statusPaid
+  return s || ''
+})
+const formatShortTime = (iso) => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d)) return String(iso).slice(0, 16).replace('T', ' ')
+  return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+// 投票/结算后列表刷新时同步弹窗对象
+watch([openBudgets, pendingSettleBudgets, doneBudgets], () => {
+  if (!fcDetail.value) return
+  const fresh = [...openBudgets.value, ...pendingSettleBudgets.value, ...doneBudgets.value].find(x => x.id === fcDetail.value.id)
+  if (fresh) fcDetail.value = fresh
+})
 
 async function saveDraftForm() {
   const f = form.value
@@ -167,6 +288,7 @@ async function saveDraftForm() {
       eventType: f.eventType, activityType: f.activityType, payTarget: f.payTarget,
       description: f.description.trim(), activityId: f.activityId || null,
       detailItems, redlines: f.redlines, saveDraft: true,
+      attachment: f.attachment ? { name: f.attachment.name, url: f.attachment.url, size: f.attachment.size, type: f.attachment.type || '' } : null,
     }
     const res = await fetch(f.editingId ? `/api/finance/budgets/${f.editingId}` : '/api/finance/budgets', {
       method: f.editingId ? 'PUT' : 'POST',
@@ -188,13 +310,21 @@ async function saveDraftForm() {
 const voteForm = ref({ id: null, choice: '', reason: '', submitting: false, msg: '', showReason: false })
 function startVote(b, choice) {
   if (choice === 'for') {
-    if (!confirm(t.value.voteConfirm)) return
-    voteForm.value = { id: b.id, choice: 'for', reason: '', submitting: true, msg: '', showReason: false }
-    submitVote()
+    // 赞成：先弹页面内确认层（不用系统 confirm）
+    voteConfirm.value = { id: b.id, choice: 'for', show: true }
   } else {
     voteForm.value = { id: b.id, choice: 'against', reason: '', submitting: false, msg: '', showReason: true }
   }
 }
+const voteConfirm = ref({ id: null, choice: '', show: false })
+function confirmVoteYes() {
+  const c = voteConfirm.value
+  voteConfirm.value = { id: null, choice: '', show: false }
+  if (!c.id) return
+  voteForm.value = { id: c.id, choice: 'for', reason: '', submitting: true, msg: '', showReason: false }
+  submitVote()
+}
+function cancelVoteConfirm() { voteConfirm.value = { id: null, choice: '', show: false } }
 function cancelVoteInput() { voteForm.value = { id: null, choice: '', reason: '', submitting: false, msg: '', showReason: false } }
 async function submitVote() {
   const f = voteForm.value
@@ -321,6 +451,19 @@ watch(() => router.route?.query?.focus, (v) => {
             明细合计 ¥{{ formatAmount(itemsTotal) }}{{ itemsTotal > Number(form.amount || 0) ? '（超过上限，无法提交）' : '' }}
           </span>
         </div>
+        <div class="form-row col">
+          <label class="f-label">{{ t.formAttachment }}</label>
+          <div class="att-row">
+            <template v-if="form.attachment">
+              <span class="att-file">📎 <a :href="form.attachment.url" target="_blank" rel="noopener">{{ form.attachment.name }}</a>（{{ formatSize(form.attachment.size) }}）</span>
+              <button type="button" class="mini-del" @click="removeAttachment" :disabled="form.attachUploading">×</button>
+            </template>
+            <template v-else>
+              <input ref="attInput" type="file" class="fp-input att-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,image/*" @change="onAttFile" />
+              <span v-if="form.attachMsg" class="dim" :class="{ 'att-err': form.attachErr }">{{ form.attachMsg }}</span>
+            </template>
+          </div>
+        </div>
         <div class="form-row col redline-box">
           <label class="f-label">{{ t.redlineTitle }} <i class="req">*</i></label>
           <label class="redline-item"><input type="checkbox" v-model="form.redlines.r1" /><span>{{ t.redline1 }}</span></label>
@@ -354,18 +497,6 @@ watch(() => router.route?.query?.focus, (v) => {
               <span>{{ t.formGroup }}: {{ b.groupName || '—' }}</span>
               <span class="bc-amount">{{ t.budgetUpper }}: <b>¥{{ formatAmount(b.amount) }}</b></span>
             </div>
-            <details class="bc-detail" v-if="b.detailItems && b.detailItems.length">
-              <summary>{{ t.items }}</summary>
-              <table class="mini-table">
-                <tbody>
-                  <tr v-for="(it, i) in b.detailItems" :key="i">
-                    <td>{{ it.item }}{{ it.qty > 1 ? ' ×' + it.qty : '' }}</td>
-                    <td class="num">¥{{ formatAmount(it.amount) }}</td>
-                    <td class="dim">{{ it.category }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </details>
             <div v-if="b.status === 'returned' && b.returnedReason" class="return-reason">
               ⚠️ {{ t.returnedReason }}：{{ b.returnedReason }}
             </div>
@@ -394,18 +525,8 @@ watch(() => router.route?.query?.focus, (v) => {
               <span>{{ t.formGroup }}: {{ b.groupName || '—' }} · {{ t.proposer }}: {{ b.proposer || '—' }}</span>
               <span class="bc-amount">{{ t.budgetUpper }}: <b>¥{{ formatAmount(b.amount) }}</b></span>
             </div>
-            <details class="bc-detail" v-if="b.detailItems && b.detailItems.length">
-              <summary>{{ t.items }}</summary>
-              <table class="mini-table">
-                <tbody>
-                  <tr v-for="(it, i) in b.detailItems" :key="i">
-                    <td>{{ it.item }}{{ it.qty > 1 ? ' ×' + it.qty : '' }}</td>
-                    <td class="num">¥{{ formatAmount(it.amount) }}</td>
-                    <td class="dim">{{ it.category }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </details>
+            <div v-if="parseAttachment(b.attachment)" class="bc-attach"><span class="att-file">📎 <a :href="parseAttachment(b.attachment).url" target="_blank" rel="noopener">{{ parseAttachment(b.attachment).name }}</a><template v-if="parseAttachment(b.attachment).size">（{{ formatSize(parseAttachment(b.attachment).size) }}）</template></span></div>
+            <div class="bc-actions" style="margin-top:10px"><button type="button" class="fc-detail-btn" @click="openFcDetail(b)">📄 {{ t.viewDetail }}</button></div>
             <div class="bc-vote">
               <div class="vote-row">
                 <span class="vote-count">{{ t.forCount.replace('{n}', b.forCount) }} · {{ t.againstCount.replace('{n}', b.againstCount) }} · {{ t.uncommitted.replace('{n}', b.uncommitted) }}</span>
@@ -448,6 +569,8 @@ watch(() => router.route?.query?.focus, (v) => {
               <span>{{ t.formGroup }}: {{ b.groupName || '—' }} · {{ t.proposer }}: {{ b.proposer || '—' }}</span>
               <span class="bc-amount">{{ t.budgetUpper }}: <b>¥{{ formatAmount(b.amount) }}</b></span>
             </div>
+            <div v-if="parseAttachment(b.attachment)" class="bc-attach"><span class="att-file">📎 <a :href="parseAttachment(b.attachment).url" target="_blank" rel="noopener">{{ parseAttachment(b.attachment).name }}</a><template v-if="parseAttachment(b.attachment).size">（{{ formatSize(parseAttachment(b.attachment).size) }}）</template></span></div>
+            <div class="bc-actions" style="margin-top:10px"><button type="button" class="fc-detail-btn" @click="openFcDetail(b)">📄 {{ t.viewDetail }}</button></div>
             <div class="vote-row">
               <span class="vote-count">{{ t.forCount.replace('{n}', b.forCount) }} · {{ t.againstCount.replace('{n}', b.againstCount) }}</span>
               <span class="expose-ended">{{ t.exposeEnded }}</span>
@@ -468,6 +591,8 @@ watch(() => router.route?.query?.focus, (v) => {
               <span>{{ t.formGroup }}: {{ b.groupName || '—' }} · {{ t.proposer }}: {{ b.proposer || '—' }}</span>
               <span class="bc-amount">{{ t.budgetUpper }}: <b>¥{{ formatAmount(b.amount) }}</b></span>
             </div>
+            <div v-if="parseAttachment(b.attachment)" class="bc-attach"><span class="att-file">📎 <a :href="parseAttachment(b.attachment).url" target="_blank" rel="noopener">{{ parseAttachment(b.attachment).name }}</a><template v-if="parseAttachment(b.attachment).size">（{{ formatSize(parseAttachment(b.attachment).size) }}）</template></span></div>
+            <div class="bc-actions" style="margin-top:10px"><button type="button" class="fc-detail-btn" @click="openFcDetail(b)">📄 {{ t.viewDetail }}</button></div>
             <div v-if="b.exposeType === 'emergency'" class="emergency-tag">{{ t.emergencyTag }}</div>
           </div>
         </div>
@@ -475,5 +600,93 @@ watch(() => router.route?.query?.focus, (v) => {
         <div v-if="!openBudgets.length && !pendingSettleBudgets.length && !doneBudgets.length" class="empty-state"><p>{{ t.noRecords }}</p></div>
       </template>
     </template>
+  </div>
+
+  <!-- 前台公示详情弹窗：字段与程枭后台一致，公开后可查看并投票 -->
+  <div v-if="fcDetail" class="modal-mask" @click.self="closeFcDetail">
+    <div class="modal fc-detail-modal">
+      <div class="modal-head">
+        <span class="modal-title">{{ t.detailTitle }}</span>
+        <button class="modal-close" @click="closeFcDetail">×</button>
+      </div>
+      <div class="bd-head">
+        <span class="bc-status">{{ fcStatusLabel }}</span>
+        <span class="existing-title" style="font-weight:600">{{ fcDetail.title }}</span>
+        <span v-if="fcDetail.proposalNo" class="bc-no">{{ fcDetail.proposalNo }}</span>
+        <span v-if="fcDetail.exposeType === 'emergency'" class="emergency-tag">{{ t.emergencyTag }}</span>
+        <span class="bd-amount">{{ t.budgetUpper }}: <b>¥{{ formatAmount(fcDetail.amount) }}</b></span>
+      </div>
+      <div class="bd-grid">
+        <div class="bd-field"><span class="bd-label">{{ t.formGroup }}</span><span>{{ fcDetail.groupName || '—' }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.proposer }}</span><span>{{ fcDetail.proposer || '—' }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.formContact }}</span><span>{{ fcDetail.contact || '—' }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.formEventType }}</span><span>{{ fcDetail.eventType || '—' }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.formPayTarget }}</span><span>{{ fcDetail.payTarget || '—' }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.formActivityType }}</span><span>{{ fcDetail.activityType || '—' }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.activity }}</span><span>{{ fcDetail.activityId ? activityTitle(fcDetail.activityId) : '—' }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.formSubmitTime || '提交时间' }}</span><span>{{ formatShortTime(fcDetail.createdAt) }}</span></div>
+        <div class="bd-field"><span class="bd-label">{{ t.formAttachment }}</span><span>
+          <template v-if="parseAttachment(fcDetail.attachment)"><a :href="parseAttachment(fcDetail.attachment).url" target="_blank" rel="noopener">📎 {{ parseAttachment(fcDetail.attachment).name }}</a><template v-if="parseAttachment(fcDetail.attachment).size">（{{ formatSize(parseAttachment(fcDetail.attachment).size) }}）</template></template>
+          <template v-else>—</template>
+        </span></div>
+      </div>
+      <div v-if="fcDetail.description" class="bd-section">
+        <div class="bd-label-row"><span class="bd-label">{{ t.formDescription || '活动说明' }}</span></div>
+        <p class="bd-text">{{ fcDetail.description }}</p>
+      </div>
+      <div class="bd-section">
+        <div class="bd-label-row"><span class="bd-label">{{ t.formDetailTitle }}（{{ (fcDetail.detailItems || []).length }} 项）</span></div>
+        <table class="bd-table">
+          <thead><tr><th>#</th><th>{{ t.itemName }}</th><th>{{ t.qty }}</th><th>{{ t.unitPrice }}</th><th>{{ t.itemAmount }}</th><th>{{ t.itemCategory }}</th><th>{{ t.itemNote }}</th></tr></thead>
+          <tbody>
+            <tr v-for="(it, i) in fcDetail.detailItems" :key="i">
+              <td>{{ i + 1 }}</td><td>{{ it.item }}</td><td>{{ it.qty }}</td><td>¥{{ formatAmount(it.unitPrice) }}</td><td>¥{{ formatAmount(it.amount) }}</td><td>{{ it.category || '—' }}</td><td>{{ it.note || '' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="bd-total">{{ t.total }} ¥{{ formatAmount(fcItemsTotal) }}<template v-if="fcDetail.amount"> · {{ t.formBudgetAmount }} ¥{{ formatAmount(fcDetail.amount) }}<span :class="fcDiff >= 0 ? 'ok' : 'bad'">（{{ t.bdDiffLabel || '差额' }} ¥{{ formatAmount(fcDiff) }}）</span></template></div>
+      </div>
+      <div class="bd-section">
+        <span class="bd-label">{{ t.redlineTitle }} </span>
+        <span :class="fcRedlinesOk ? 'bd-redline-ok' : 'bd-redline-bad'">{{ fcRedlinesOk ? '✓ 3 ' + t.redlineOk + '' : '✗ ' + t.redlineNotOk + '（' + fcUnchecked + '）' }}</span>
+      </div>
+      <div v-if="fcDetail.status === 'open'" class="bd-section bd-vote-zone">
+        <div class="bd-label-row"><span class="bd-label">{{ t.myVote }}</span></div>
+        <div class="vote-row">
+          <span class="vote-count">{{ t.forCount.replace('{n}', fcDetail.forCount) }} · {{ t.againstCount.replace('{n}', fcDetail.againstCount) }} · {{ t.uncommitted.replace('{n}', fcDetail.uncommitted) }}</span>
+          <span class="vote-line">{{ t.vetoLineV2.replace('{n}', fcDetail.vetoCount) }}</span>
+        </div>
+        <div v-if="!isAuthenticated" class="oppose-hint">{{ t.loginFirst }}</div>
+        <div v-else-if="votedByMe(fcDetail.id)" class="oppose-done">{{ myVote(fcDetail.id) === 'for' ? t.voteForDone : t.voteAgainstDone }}</div>
+        <div v-else-if="voteForm.id !== fcDetail.id" class="vote-actions">
+          <button class="btn-vote for" @click="startVote(fcDetail, 'for')">{{ t.voteFor }}</button>
+          <button class="btn-vote against" @click="startVote(fcDetail, 'against')">{{ t.voteAgainst }}</button>
+        </div>
+        <div v-else class="vote-input">
+          <p class="oppose-hint">{{ t.voteReasonHint }}</p>
+          <textarea v-model="voteForm.reason" class="oppose-reason" :placeholder="t.opposeReason" rows="2"></textarea>
+          <div class="oppose-actions">
+            <button class="btn-vote against" :disabled="voteForm.submitting" @click="submitVote">{{ voteForm.submitting ? t.submitting : t.submit }}</button>
+            <button class="btn-ghost" @click="cancelVoteInput">{{ t.close }}</button>
+          </div>
+          <span v-if="voteForm.msg" class="oppose-msg">{{ voteForm.msg }}</span>
+        </div>
+      </div>
+      <div class="bd-actions">
+        <button class="btn-ghost" @click="closeFcDetail">{{ t.close }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 投票确认（页面内弹窗，不用系统 confirm） -->
+  <div v-if="voteConfirm.show" class="modal-mask" @click.self="cancelVoteConfirm">
+    <div class="modal confirm-mini">
+      <p class="oppose-hint" style="font-size:14px;font-weight:600;margin:4px 0 2px">{{ t.voteConfirm }}</p>
+      <p class="oppose-hint" style="font-size:12px;margin:0 0 12px">{{ t.voteFinalHint }}</p>
+      <div class="oppose-actions" style="justify-content:flex-end">
+        <button class="btn-vote for" @click="confirmVoteYes">{{ t.confirmVote }}</button>
+        <button class="btn-ghost" @click="cancelVoteConfirm">{{ t.cancelVote }}</button>
+      </div>
+    </div>
   </div>
 </template>

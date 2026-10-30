@@ -3,7 +3,7 @@
 // body: 与 POST 发起相同字段（title/amount/groupName/eventType/activityType/payTarget/detailItems/redlines/contact/description/activityId）
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../../_utils.js'
 import { getFinanceConfig } from '../../../../_finance.js'
-import { GROUP_OPTIONS, EVENT_TYPE_OPTIONS, ACTIVITY_TYPE_OPTIONS, PAY_TARGET_OPTIONS } from '../index.js'
+import { GROUP_OPTIONS, EVENT_TYPE_OPTIONS, ACTIVITY_TYPE_OPTIONS, PAY_TARGET_OPTIONS, normalizeAttachment } from '../index.js'
 import { purgePublicCache } from '../../../../_cache.js'
 
 function parseItems(items) {
@@ -78,6 +78,8 @@ export async function onRequest(context) {
       }
     }
     const amount = Number(body.amount) || 0
+    // 活动方案附件（选填）：{name,url,size,type} 或 null/undefined；仅接受 budgets/ 前缀的 R2 链接
+    const attachment = normalizeAttachment(body.attachment)
 
     await sql`
       UPDATE budget_proposals
@@ -85,7 +87,7 @@ export async function onRequest(context) {
           description = ${String(body.description || '')}, detail_items = ${JSON.stringify(items)},
           amount = ${amount}, group_name = ${body.groupName || ''}, contact = ${String(body.contact || '')},
           event_type = ${body.eventType || ''}, activity_type = ${body.activityType || ''}, pay_target = ${body.payTarget || ''},
-          redlines = ${JSON.stringify(redlines)}, returned_reason = '', status = ${saveDraft ? 'draft' : 'submitted'}
+          redlines = ${JSON.stringify(redlines)}, attachment = ${attachment}, returned_reason = '', status = ${saveDraft ? 'draft' : 'submitted'}
       WHERE id = ${id}
     `
     await logHistory(sql, { type: 'finance', action: saveDraft ? 'save_draft' : 'resubmit', refId: id,

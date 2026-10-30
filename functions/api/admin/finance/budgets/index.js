@@ -47,6 +47,7 @@ export async function onRequest(context) {
           applicantId: b.applicant_id || '', createdBy: b.created_by || '',
           exposeType: b.expose_type || 'normal',
           status: b.status, exposeStart: b.expose_start, exposeEnd: b.expose_end,
+          attachment: b.attachment || '',
           createdAt: b.created_at, settledAt: b.settled_at,
           forCount: stats.forCount, againstCount: stats.againstCount,
           uncommitted: stats.uncommitted, total: stats.total,

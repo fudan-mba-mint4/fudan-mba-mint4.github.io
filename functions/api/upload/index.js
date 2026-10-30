@@ -1,6 +1,6 @@
-// 许愿池图片 / 报销凭证 / 薄荷币申报证明 上传 - POST /api/upload（登录即可，面向全体同学）
-// 与班委专用 /api/admin/upload 隔离：仅接受图片（image/*）或报销/证明 PDF，
-// 且 key 必须在 wishes/ 或 receipts/ 或 proofs/ 前缀下，防止越权写入其他路径或上传非白名单文件。
+// 许愿池图片 / 报销凭证 / 薄荷币申报证明 / 预算公示活动方案附件 上传 - POST /api/upload（登录即可，面向全体同学）
+// 与班委专用 /api/admin/upload 隔离：仅接受图片（image/*）或凭证/证明 PDF 或预算附件文档，
+// 且 key 必须在 wishes/ 或 receipts/ 或 proofs/ 或 budgets/ 前缀下，防止越权写入其他路径或上传非白名单文件。
 // body: { key, contentType, dataBase64 }
 import {
   corsResponse, optionsResponse, parseBody, requireLogin,
@@ -18,17 +18,24 @@ export async function onRequest(context) {
     if (!key || !dataBase64) return corsResponse({ error: '缺少 key 或 dataBase64' }, 400)
     const isReceipt = /^receipts\//.test(key || '')
     const isProof = /^proofs\//.test(key || '')
+    const isBudgetAtt = /^budgets\//.test(key || '')
     const okKey = /^wishes\/[^/][^.]*\.(jpe?g|png|webp|gif|heic)$/i.test(key || '')
       || /^receipts\/[^/]+\/[^/][^.]*\.(jpe?g|png|webp|gif|pdf)$/i.test(key || '')
       || /^proofs\/[^/]+\/[^/][^.]*\.(jpe?g|png|webp|gif|pdf)$/i.test(key || '')
+      || /^budgets\/[^/][^.]*\.(pdf|doc|docx|ppt|pptx|xls|xlsx|jpe?g|png|webp|gif)$/i.test(key || '')
     if (!okKey) return corsResponse({ error: '非法的存储路径或文件类型' }, 400)
-    const okType = (isReceipt || isProof)
-      ? (/^image\//.test(contentType || '') || contentType === 'application/pdf')
-      : /^image\//.test(contentType || '')
-    if (!okType) return corsResponse({ error: (isReceipt || isProof) ? '凭证/证明仅支持图片或 PDF' : '许愿池只能上传图片' }, 400)
-    // 大小上限：base64 约 14M 字符 ≈ 10MB 二进制（前端已压缩到 1600px，通常 <1MB）
-    if (typeof dataBase64 !== 'string' || dataBase64.length > 14 * 1024 * 1024)
-      return corsResponse({ error: '图片过大（单张不超过 10MB）' }, 400)
+    let okType
+    if (isBudgetAtt) {
+      okType = /^image\//.test(contentType || '') || /^application\/(pdf|msword|vnd\.ms-powerpoint|vnd\.ms-excel|vnd\.openxmlformats-officedocument\.)/.test(contentType || '')
+    } else {
+      okType = (isReceipt || isProof)
+        ? (/^image\//.test(contentType || '') || contentType === 'application/pdf')
+        : /^image\//.test(contentType || '')
+    }
+    if (!okType) return corsResponse({ error: isBudgetAtt ? '预算附件仅支持 PDF/Word/PPT/Excel 或图片' : (isReceipt || isProof) ? '凭证/证明仅支持图片或 PDF' : '许愿池只能上传图片' }, 400)
+    // 大小上限：base64 约 28M 字符 ≈ 20MB 二进制（前端图片已压缩到 1600px，通常 <1MB；预算活动方案文档放宽到大文件）
+    if (typeof dataBase64 !== 'string' || dataBase64.length > 28 * 1024 * 1024)
+      return corsResponse({ error: '文件过大（单文件不超过 20MB）' }, 400)
     if (!env.R2) return corsResponse({ error: 'R2 binding 未配置' }, 500)
 
     // base64 -> 二进制（for 循环逐字节，避免大文件逐元素回调开销）

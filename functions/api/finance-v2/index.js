@@ -34,6 +34,7 @@ function mapBudget(row) {
     applicantId: row.applicant_id || '', createdBy: row.created_by || '',
     exposeType: row.expose_type || 'normal',
     status: row.status, exposeStart: row.expose_start, exposeEnd: row.expose_end,
+    attachment: row.attachment || '',
     createdAt: row.created_at, settledAt: row.settled_at, isDemo: row.is_demo || 0,
   }
 }

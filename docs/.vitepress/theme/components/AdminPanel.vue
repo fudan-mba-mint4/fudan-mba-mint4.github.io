@@ -653,6 +653,7 @@
               <span class="existing-title">
                 <span :class="'bc-' + b.status">[{{ b.status }}]</span> {{ b.title }} · ¥{{ b.amount }}
                 <span v-if="b.proposalNo" class="bc-no">{{ b.proposalNo }}</span>
+                <span v-if="parseBudgetAtt(b.attachment)" class="bc-no" title="含活动方案附件">📎</span>
                 <span v-if="b.exposeType === 'emergency'" class="emergency-tag">紧急·事后补公示</span>
               </span>
               <span class="existing-meta">
@@ -676,6 +677,7 @@
               </details>
             </div>
             <div class="reimb-actions">
+              <button type="button" class="existing-del detail" @click="openBudgetDetail(b)">详情</button>
               <template v-if="isAccountantView">
                 <button v-if="['submitted','returned'].includes(b.status)" type="button" class="existing-del ok" @click="openBudgetApprove(b)">公开</button>
                 <button v-if="b.status === 'submitted'" type="button" class="existing-del" @click="openBudgetReturn(b)">退回</button>
@@ -687,6 +689,71 @@
           </div>
         </div>
 
+        </div>
+
+        <!-- 公示详情弹层（页面内，完整展示提交字段 + 预算总额 + 审批按钮） -->
+        <div v-if="budgetDetail" class="modal-mask" @click.self="closeBudgetDetail">
+          <div class="modal bd-modal">
+            <div class="modal-head"><span class="modal-title">公示详情</span><button class="modal-close" @click="closeBudgetDetail">×</button></div>
+            <div class="modal-body">
+              <div class="bd-head">
+                <span :class="'bc-' + budgetDetail.status">[{{ budgetDetail.status }}]</span>
+                <span class="existing-title" style="font-weight:600">{{ budgetDetail.title }}</span>
+                <span v-if="budgetDetail.proposalNo" class="bc-no">{{ budgetDetail.proposalNo }}</span>
+                <span v-if="budgetDetail.exposeType === 'emergency'" class="emergency-tag">紧急·事后补公示</span>
+                <span class="bd-amount">预算上限 ¥{{ formatAmount(budgetDetail.amount) }}</span>
+              </div>
+              <div class="bd-grid">
+                <div class="bd-field"><span class="bd-label">申请小组</span><span>{{ budgetDetail.groupName || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">申请人</span><span>{{ budgetDetail.proposer || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">联系方式</span><span>{{ budgetDetail.contact || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">事项性质</span><span>{{ budgetDetail.eventType || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">资金支付对象</span><span>{{ budgetDetail.payTarget || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">活动类型</span><span>{{ budgetDetail.activityType || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">关联活动</span><span>{{ bdActivityTitle(budgetDetail.activityId) }}</span></div>
+                <div class="bd-field"><span class="bd-label">提交时间</span><span>{{ shortTime(budgetDetail.created_at) }}</span></div>
+                <div class="bd-field"><span class="bd-label">活动方案附件</span><span>
+                  <template v-if="bdAttachment"><a :href="bdAttachment.url" target="_blank" rel="noopener">📎 {{ bdAttachment.name }}</a><span class="dim">（{{ bdAttachment.size ? formatSize(bdAttachment.size) : '' }}）</span></template>
+                  <template v-else>—</template>
+                </span></div>
+              </div>
+              <div v-if="budgetDetail.description" class="bd-section">
+                <div class="bd-label-row"><span class="bd-label">活动说明</span></div>
+                <p class="bd-text">{{ budgetDetail.description }}</p>
+              </div>
+              <div class="bd-section">
+                <div class="bd-label-row"><span class="bd-label">预算明细（{{ (budgetDetail.detailItems || []).length }} 项）</span></div>
+                <table class="bd-table">
+                  <thead><tr><th>#</th><th>支出项目</th><th>数量</th><th>单价</th><th>金额</th><th>分类</th><th>备注</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(it, i) in budgetDetail.detailItems" :key="i">
+                      <td>{{ i + 1 }}</td><td>{{ it.item }}</td><td>{{ it.qty }}</td><td>¥{{ formatAmount(it.unitPrice) }}</td><td>¥{{ formatAmount(it.amount) }}</td><td>{{ it.category || '—' }}</td><td>{{ it.note || '' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="bd-total">明细合计 ¥{{ formatAmount(bdItemsTotal) }}<template v-if="budgetDetail.amount"> · 预算上限 ¥{{ formatAmount(budgetDetail.amount) }}<span :class="bdDiff >= 0 ? 'ok' : 'bad'">（差额 ¥{{ formatAmount(bdDiff) }}）</span></template></div>
+              </div>
+              <div class="bd-section">
+                <span class="bd-label">财务红线核对 </span>
+                <span :class="bdRedlinesOk ? 'bd-redline-ok' : 'bd-redline-bad'">{{ bdRedlinesOk ? '✓ 3 项已确认' : '✗ 未勾选（' + bdUnchecked + ' 项）' }}</span>
+              </div>
+              <div v-if="budgetDetail.status === 'returned' && budgetDetail.returnedReason" class="bd-section bd-return">
+                <div class="bd-label-row"><span class="bd-label">退回原因</span></div>
+                <p class="bd-text">{{ budgetDetail.returnedReason }}</p>
+              </div>
+              <div v-if="!['submitted','returned','draft'].includes(budgetDetail.status)" class="bd-section">
+                <div class="bd-label-row"><span class="bd-label">投票进展</span></div>
+                <p class="bd-text">赞成 {{ budgetDetail.forCount ?? 0 }} · 反对 {{ budgetDetail.againstCount ?? 0 }} · 未表态 {{ budgetDetail.uncommitted ?? 0 }} · 否决线 {{ budgetDetail.vetoCount ?? '—' }}<template v-if="budgetDetail.exposeEnd"> · 公示至 {{ (budgetDetail.exposeEnd || '').slice(0, 10) }}</template></p>
+              </div>
+              <div class="form-actions bd-actions">
+                <template v-if="isAccountantView">
+                  <button v-if="['submitted','returned'].includes(budgetDetail.status)" type="button" class="submit-btn" :disabled="submitting" @click="openBudgetApprove(budgetDetail)">公开</button>
+                  <button v-if="budgetDetail.status === 'submitted'" type="button" class="existing-del" @click="openBudgetReturn(budgetDetail)">退回</button>
+                </template>
+                <button type="button" class="existing-del detail" @click="closeBudgetDetail">关闭</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 公开确认弹层（页面内，非系统弹窗） -->
@@ -2115,6 +2182,40 @@ const isAccountantView = computed(() => (currentUser.value?.name || '') === '程
 const budgetReturn = ref(null) // { id, title, reason }
 const budgetApproved = ref(null) // { title, proposalNo, url }
 const budgetApproveConfirm = ref(null) // { id, title }
+// 公示详情弹层（完整展示提交字段 + 预算总额 + 审批按钮）
+const budgetDetail = ref(null) // 当前查看的公示对象
+function openBudgetDetail(b) { budgetDetail.value = b }
+function closeBudgetDetail() { budgetDetail.value = null }
+const bdItemsTotal = computed(() => {
+  const items = budgetDetail.value?.detailItems || []
+  return Math.round(items.reduce((s, it) => s + (Number(it.amount) || 0), 0) * 100) / 100
+})
+const bdDiff = computed(() => Math.round((Number(budgetDetail.value?.amount || 0) - bdItemsTotal.value) * 100) / 100)
+const bdRedlinesOk = computed(() => { const r = budgetDetail.value?.redlines || {}; return !!(r.r1 && r.r2 && r.r3) })
+const bdUnchecked = computed(() => { const r = budgetDetail.value?.redlines || {}; return [r.r1, r.r2, r.r3].filter(v => !v).length })
+const bdAttachment = computed(() => {
+  const a = budgetDetail.value?.attachment
+  if (!a) return null
+  if (typeof a === 'string') { try { const o = JSON.parse(a); return o && o.url ? o : null } catch { return null } }
+  return a && a.url ? a : null
+})
+function bdActivityTitle(id) {
+  if (!id) return '—'
+  const a = actList.value.find(x => String(x.id) === String(id))
+  return a ? actTitle(a) : id
+}
+const formatAmount = (n) => (Number(n) || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+// 公示附件兼容解析：历史数据 attachment 为空 / 非法 JSON 均视为无附件
+function parseBudgetAtt(att) {
+  if (!att) return null
+  if (typeof att === 'string') {
+    try {
+      const o = JSON.parse(att)
+      return o && o.url ? o : null
+    } catch { return null }
+  }
+  return att && att.url ? att : null
+}
 function openBudgetApprove(b) { budgetApproveConfirm.value = { id: b.id, title: b.title } }
 function closeBudgetApprove() { budgetApproveConfirm.value = null }
 async function doBudgetApprove() {
@@ -3095,4 +3196,30 @@ watch(currentType, (val) => {
 .fin-item-add:hover { background: var(--c-accent-light); }
 .fin-items-foot { display: flex; align-items: center; gap: 12px; }
 .fin-items-total { font-size: 13px; font-weight: 700; color: var(--c-accent); }
+
+/* ===== 公示详情弹窗 ===== */
+.bd-modal { max-width: 760px; }
+.bd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--c-border); }
+.bd-head .bd-amount { margin-left: auto; font-weight: 700; color: var(--c-accent); white-space: nowrap; }
+.bd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; margin: 10px 0 4px; }
+.bd-field { display: flex; gap: 6px; font-size: 13px; min-width: 0; }
+.bd-label { flex-shrink: 0; color: var(--c-text-tertiary); }
+.bd-field > span:last-child { overflow-wrap: anywhere; }
+.bd-section { margin-top: 10px; font-size: 13px; }
+.bd-label-row { margin-bottom: 4px; }
+.bd-text { margin: 4px 0 0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.bd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.bd-table th, .bd-table td { border: 1px solid var(--c-border); padding: 5px 8px; text-align: left; vertical-align: top; }
+.bd-table th { background: var(--c-bg-secondary); font-weight: 600; white-space: nowrap; }
+.bd-table td:first-child { width: 28px; color: var(--c-text-tertiary); }
+.bd-total { margin-top: 6px; font-size: 13px; font-weight: 600; }
+.bd-total .ok { color: #16a34a; }
+.bd-total .bad { color: #c92a2a; }
+.bd-redline-ok { color: #16a34a; font-weight: 600; }
+.bd-redline-bad { color: #c92a2a; font-weight: 600; }
+.bd-return { padding: 8px 10px; background: var(--c-bg-secondary); border: 1px solid var(--c-border); border-radius: 8px; }
+.bd-actions { margin-top: 14px; border-top: 1px solid var(--c-border); padding-top: 12px; }
+.existing-del.detail { border-color: var(--c-border-accent); color: var(--c-text-secondary); }
+.existing-del.detail:hover { border-color: var(--c-accent); color: var(--c-accent); }
+@media (max-width: 640px) { .bd-grid { grid-template-columns: 1fr; } }
 </style>

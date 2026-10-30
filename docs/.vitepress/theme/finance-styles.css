@@ -350,3 +350,40 @@
 }
 .budget-form-card .redline-box { border: 1px solid transparent; border-radius: 6px; }
 .budget-form-card .redline-box.field-invalid { border-color: #e5484d; animation: field-shake .45s ease; }
+
+/* 预算公示 · 活动方案附件（选填） */
+.att-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; }
+.att-input { max-width: 420px; padding: 8px 14px; }
+.att-file { font-size: 13px; }
+.att-file a { color: var(--c-accent); font-weight: 600; text-decoration: underline; }
+.att-err { color: #c92a2a; font-weight: 600; }
+.bc-attach { margin-top: 6px; font-size: 13px; }
+
+/* 前台公示详情弹窗（与后台 bd-modal 同构） */
+.fc-detail-modal { max-width: 760px; }
+.bd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--c-border); }
+.bd-head .bd-amount { margin-left: auto; font-weight: 700; color: var(--c-accent); white-space: nowrap; }
+.bd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; margin: 10px 0 4px; }
+.bd-field { display: flex; gap: 6px; font-size: 13px; min-width: 0; }
+.bd-label { flex-shrink: 0; color: var(--c-text-tertiary); }
+.bd-field > span:last-child { overflow-wrap: anywhere; }
+.bd-section { margin-top: 10px; font-size: 13px; }
+.bd-label-row { margin-bottom: 4px; }
+.bd-text { margin: 4px 0 0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.bd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.bd-table th, .bd-table td { border: 1px solid var(--c-border); padding: 5px 8px; text-align: left; vertical-align: top; }
+.bd-table th { background: var(--c-bg-secondary); font-weight: 600; white-space: nowrap; }
+.bd-table td:first-child { width: 28px; color: var(--c-text-tertiary); }
+.bd-total { margin-top: 6px; font-size: 13px; font-weight: 600; }
+.bd-total .ok { color: #16a34a; }
+.bd-total .bad { color: #c92a2a; }
+.bd-redline-ok { color: #16a34a; font-weight: 600; }
+.bd-redline-bad { color: #c92a2a; font-weight: 600; }
+.bd-vote-zone { border-top: 1px solid var(--c-border); margin-top: 14px; padding-top: 12px; }
+.bd-vote-zone .vote-actions { display: flex; gap: 10px; margin-top: 6px; }
+.bd-actions { margin-top: 14px; border-top: 1px solid var(--c-border); padding-top: 12px; display: flex; justify-content: flex-end; gap: 10px; }
+@media (max-width: 640px) { .bd-grid { grid-template-columns: 1fr; } }
+.fc-detail-btn { border: 1.5px solid var(--c-border-accent); background: transparent; color: var(--c-text-secondary); padding: 4px 12px; border-radius: 8px; font-size: 12.5px; cursor: pointer; transition: all .18s ease; }
+.fc-detail-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.confirm-mini { max-width: 420px; }
+.confirm-mini .oppose-actions { margin-top: 12px; }

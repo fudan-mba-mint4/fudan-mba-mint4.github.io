@@ -275,6 +275,7 @@ CREATE TABLE IF NOT EXISTS budget_proposals (
   status TEXT DEFAULT 'submitted', -- submitted(待审批) / returned(已退回) / open(公示中) / passed(已通过) / rejected(已否决) / spent(已执行) / cancelled(已取消)
   expose_start TEXT,
   expose_end TEXT,
+  attachment TEXT DEFAULT '',  -- 活动方案附件 JSON {name,url,size,type}（选填，历史数据为空）
   created_by TEXT,
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   settled_at TEXT,
