@@ -116,14 +116,6 @@
               />
               <p v-if="confirmMismatch" class="field-error">两次输入的密码不一致</p>
             </div>
-            <div class="form-group">
-              <label class="form-label">分组 <span class="required">*</span></label>
-              <select v-model="regForm.groupNo" class="form-input" required>
-                <option value="" disabled>请选择你的分组（Orientation 小组）</option>
-                <option v-for="n in 6" :key="n" :value="n">第 {{ n }} 组</option>
-              </select>
-              <p class="field-hint">注册后不可修改，请如实选择（见同学名录分组）</p>
-            </div>
             <div v-if="regError" class="form-error">{{ regError }}</div>
             <button type="submit" class="submit-btn" :class="{ 'btn-blocked': nameInvalid }" :disabled="registerDisabled">
               <span v-if="regLoading" class="btn-spinner"></span>
@@ -156,7 +148,7 @@ const regError = ref('')
 const loginForm = ref({ username: '', password: '' })
 const regForm = ref({
   username: '', password: '', confirmPassword: '',
-  name: '', groupNo: '',
+  name: '',
 })
 
 // 真实姓名校验状态：idle（未检测/已重置）| checking | ok | too_short | not_in_roster | name_taken
@@ -251,10 +243,6 @@ async function handleRegister() {
   }
 
   // 前端校验
-  if (!regForm.value.groupNo) {
-    regError.value = '请选择你的分组'
-    return
-  }
   if (regForm.value.password !== regForm.value.confirmPassword) {
     regError.value = '两次输入的密码不一致'
     return

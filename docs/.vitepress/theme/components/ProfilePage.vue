@@ -38,11 +38,8 @@
                 <input v-model="editForm.name" class="info-input" />
               </div>
               <div class="info-group">
-                <label class="info-label">小组</label>
-                <select v-model="editForm.group_no" class="info-input">
-                  <option :value="null">未选择</option>
-                  <option v-for="n in 6" :key="n" :value="n">第 {{ n }} 组</option>
-                </select>
+                <label class="info-label">小组（系统自动分配）</label>
+                <input :value="currentUser.group_no ? `第 ${currentUser.group_no} 组` : '暂无分组'" class="info-input" disabled />
               </div>
             </div>
             <div class="info-row">
@@ -227,7 +224,7 @@ const coinLoading = ref(false)
 const saving = ref(false)
 const saveMsg = ref('')
 const saveMsgType = ref('success')
-const editForm = ref({ name: '', nickname: '', group_no: null })
+const editForm = ref({ name: '', nickname: '' })
 
 // 修改密码
 const pwdForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
@@ -269,7 +266,6 @@ watch(currentUser, (user) => {
       name: user.name || '',
       nickname: user.nickname || '',
       student_id: user.student_id || '',
-      group_no: user.group_no || null,
     }
   }
   loadCoins()

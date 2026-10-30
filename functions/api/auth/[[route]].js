@@ -9,7 +9,7 @@ import {
   getSql, hashPassword, generateToken,
   getAuthUser, corsResponse, optionsResponse, parseBody, COMMITTEE_ROLES, isViewerOnly,
 } from '../../_utils.js'
-import { isInRoster, normalizeName } from '../../_roster.js'
+import { isInRoster, normalizeName, orientationGroupOf } from '../../_roster.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -36,7 +36,7 @@ export async function onRequest(context) {
 async function handleRegister(request, env) {
   const sql = getSql(env)
   const body = await parseBody(request)
-  const { username, password, name, nickname, groupNo } = body
+  const { username, password, name, nickname } = body
 
   if (!username || username.trim().length < 2) return corsResponse({ error: '用户名至少2个字符' }, 400)
   if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) return corsResponse({ error: '用户名只能包含字母、数字和下划线' }, 400)
@@ -63,19 +63,12 @@ async function handleRegister(request, env) {
   const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   // 按真名自动识别班委角色（非班委为 null）
   const role = COMMITTEE_ROLES[cleanName] || null
-
-  // 注册时必填分组（Orientation 1-6 组），注册后不可修改
-  if (groupNo === undefined || groupNo === '' || groupNo === null) {
-    return corsResponse({ error: '请选择你的分组（第1~6组）' }, 400)
-  }
-  const gno = parseInt(groupNo, 10)
-  if (!Number.isInteger(gno) || gno < 1 || gno > 6) {
-    return corsResponse({ error: '请选择正确的分组（第1~6组）' }, 400)
-  }
+  // 按真名自动分配 Orientation 分组（1-6）；班主任/传承人组长等无分组为 null
+  const groupNo = orientationGroupOf(cleanName)
 
   const result = await sql`
     INSERT INTO users (username, password_hash, name, nickname, role, group_no, token, token_expires_at)
-    VALUES (${username.trim()}, ${await hashPassword(password)}, ${cleanName}, ${nickname?.trim() || ''}, ${role}, ${gno}, ${token}, ${tokenExpires})
+    VALUES (${username.trim()}, ${await hashPassword(password)}, ${cleanName}, ${nickname?.trim() || ''}, ${role}, ${groupNo}, ${token}, ${tokenExpires})
     RETURNING id, username, name, nickname, role, group_no, created_at
   `
 
@@ -123,8 +116,10 @@ async function handleLogin(request, env) {
   const user = result[0]
   // 每次登录按最新班委名单刷新角色：映射配置前注册的班委也能自动获得权限
   user.role = COMMITTEE_ROLES[user.name] || null
+  // 同时按名录刷新分组：分组规则调整后，老账号登录即自动同步
+  user.group_no = orientationGroupOf(user.name)
 
-  await sql`UPDATE users SET token = ${token}, token_expires_at = ${tokenExpires}, role = ${user.role} WHERE id = ${user.id}`
+  await sql`UPDATE users SET token = ${token}, token_expires_at = ${tokenExpires}, role = ${user.role}, group_no = ${user.group_no} WHERE id = ${user.id}`
 
   const { password_hash, ...safeUser } = user
   return corsResponse({
@@ -158,7 +153,7 @@ async function handleUpdateProfile(request, env) {
   if (!user) return corsResponse({ error: '未登录或登录已过期' }, 401)
 
   const body = await parseBody(request)
-  const { name, nickname } = body // group_no 不可修改（注册时固定）
+  const { name, nickname } = body // group_no 由系统按真名自动分配，不可自行修改
 
   if (name !== undefined) {
     const cleanName = normalizeName(name)
@@ -171,14 +166,15 @@ async function handleUpdateProfile(request, env) {
     if (dup.length > 0) {
       return corsResponse({ error: '该真名已被注册', code: 'NAME_TAKEN' }, 409)
     }
-    // 同步按新真名重算班委角色，避免改名后身份不一致
+    // 同步按新真名重算班委角色与分组，避免改名后身份不一致
     const newRole = COMMITTEE_ROLES[cleanName] || null
-    await sql`UPDATE users SET name = ${cleanName}, role = ${newRole} WHERE id = ${user.id}`
+    const newGroupNo = orientationGroupOf(cleanName)
+    await sql`UPDATE users SET name = ${cleanName}, role = ${newRole}, group_no = ${newGroupNo} WHERE id = ${user.id}`
   }
   if (nickname !== undefined) {
     await sql`UPDATE users SET nickname = ${String(nickname).trim()} WHERE id = ${user.id}`
   }
-  // 分组在注册时填写，注册后不可修改（此处忽略任何 group_no 传参）
+  // 分组由系统按真名自动分配，此处忽略任何 group_no 传参
 
   const result = await sql`SELECT id, username, name, nickname, role, group_no, created_at FROM users WHERE id = ${user.id}`
   return corsResponse({ message: '更新成功', data: result[0] })
@@ -190,9 +186,12 @@ async function handleMe(request, env) {
   if (!user) return corsResponse({ error: '未登录或登录已过期' }, 401)
   // 按最新名单刷新角色并回写（覆盖 token 仍有效、未重新登录的班委）
   const freshRole = COMMITTEE_ROLES[user.name] || null
-  if (freshRole !== user.role) {
-    await sql`UPDATE users SET role = ${freshRole} WHERE id = ${user.id}`
+  // 同时按名录刷新分组并回写（分组规则调整后，在线会话自动同步）
+  const freshGroupNo = orientationGroupOf(user.name)
+  if (freshRole !== user.role || freshGroupNo !== user.group_no) {
+    await sql`UPDATE users SET role = ${freshRole}, group_no = ${freshGroupNo} WHERE id = ${user.id}`
     user.role = freshRole
+    user.group_no = freshGroupNo
   }
   // viewerOnly：班主任 / 传承人仅可查看，不能参与投票、申报、报销、报名等活动（前端据此隐藏参与按钮）
   return corsResponse({ data: { ...user, viewerOnly: isViewerOnly(user) } })

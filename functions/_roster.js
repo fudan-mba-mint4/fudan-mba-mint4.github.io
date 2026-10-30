@@ -39,6 +39,21 @@ export function rosterRoleOf(rawName) {
   return n ? (ROSTER_ROLE_MAP.get(n) || null) : null
 }
 
+// 名录内成员的 Orientation 分组（1-6）；无 orientationGroup 的成员（班主任、传承人组长）不进映射
+const ORIENTATION_GROUP_MAP = new Map(
+  classMembers.members
+    .filter((m) => m && m.status === 'active' && m.orientationGroup)
+    .map((m) => [normalizeName(m.name), parseInt(m.orientationGroup, 10)]),
+)
+
+// 某真名的 Orientation 分组号（1-6）；无分组或不在名录返回 null
+export function orientationGroupOf(rawName) {
+  const n = normalizeName(rawName)
+  if (!n) return null
+  const g = ORIENTATION_GROUP_MAP.get(n)
+  return Number.isInteger(g) ? g : null
+}
+
 // 是否「仅可查看」身份：班主任 / 传承人（含组长）——不能参与投票、薄荷币申报、报销、报名等活动
 export function isViewerOnlyName(rawName) {
   const r = rosterRoleOf(rawName)
