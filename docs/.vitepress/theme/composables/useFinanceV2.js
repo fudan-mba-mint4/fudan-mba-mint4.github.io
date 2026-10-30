@@ -26,7 +26,7 @@ export const financeI18n = {
       insurance: '保险', supplies: '物资文具', other: '其他',
       tuition: '班费缴纳', sponsor: '赞助/奖金', interest: '利息收入',
     },
-    budgetTitle: '预算公示', budgetDesc: '支出前公示 ≥3 日，实名异议，反对达 1/3 不可动用班费',
+    budgetTitle: '预算公示', budgetDesc: '支出前公示 ≥3 日，实名公示、匿名表决，反对达 1/3 不可动用班费',
     inProgress: '公示中', pendingSettle: '待结算', history: '历史公示',
     budgetUpper: '预算上限', proposer: '申请方', items: '预算明细', exposeDaysLeft: '剩余 {n} 天',
     exposeEnded: '公示已结束，待财务结算',
@@ -55,6 +55,7 @@ export const financeI18n = {
     forCount: '赞成 {n}', againstCount: '反对 {n}',
     reasonsTitle: '反对留言（匿名公开）', noReasons: '暂无反对留言',
     emergencyTag: '紧急·事后补公示', voteReasonHint: '反对理由（可选，将匿名公开，不可撤回）',
+    anonAllNote: '🔒 全程匿名：你的赞成、反对与意见均匿名展示，不公开身份',
     statusNeedRevision: '待补正', needRevise: '修改重新提交',
     /* v2 预算公示：全员发起 → 会计审批 → 公开投票 */
     tabAllBudgets: '全部公示', tabMyBudgets: '我提交的公示',
@@ -112,7 +113,7 @@ export const financeI18n = {
       insurance: 'Insurance', supplies: 'Supplies', other: 'Other',
       tuition: 'Class Dues', sponsor: 'Sponsorship', interest: 'Interest',
     },
-    budgetTitle: 'Budget Disclosure', budgetDesc: 'Disclosed ≥3 days before spending; real-name objections; ≥1/3 veto',
+    budgetTitle: 'Budget Disclosure', budgetDesc: 'Disclosed ≥3 days before spending; real-name disclosure, anonymous voting; ≥1/3 veto',
     inProgress: 'Open', pendingSettle: 'To settle', history: 'History',
     budgetUpper: 'Budget cap', proposer: 'Proposer', items: 'Breakdown', exposeDaysLeft: '{n} days left',
     exposeEnded: 'Disclosure ended, pending settlement',
@@ -141,6 +142,7 @@ export const financeI18n = {
     forCount: '{n} for', againstCount: '{n} against',
     reasonsTitle: 'Against comments (anonymous)', noReasons: 'No comments yet',
     emergencyTag: 'Emergency · post-disclosure', voteReasonHint: 'Reason (optional, shown anonymously, final)',
+    anonAllNote: '🔒 Fully anonymous: your vote and comments are shown anonymously, your identity is hidden',
     statusNeedRevision: 'Revision needed', needRevise: 'Edit & resubmit',
     /* v2 budget: everyone submits → accountant approves → public vote */
     tabAllBudgets: 'All budgets', tabMyBudgets: 'My submissions',
@@ -198,7 +200,7 @@ export const financeI18n = {
       insurance: 'ประกัน', supplies: 'วัสดุ/เครื่องเขียน', other: 'อื่นๆ',
       tuition: 'ค่าชั้นเรียน', sponsor: 'เงินสนับสนุน', interest: 'ดอกเบี้ย',
     },
-    budgetTitle: 'การเปิดเผยงบประมาณ', budgetDesc: 'เปิดเผย ≥3 วันก่อนใช้จ่าย คัดค้านแบบระบุชื่อ ถึง 1/3 ห้ามใช้',
+    budgetTitle: 'การเปิดเผยงบประมาณ', budgetDesc: 'เปิดเผย ≥3 วันก่อนใช้จ่าย เปิดเผยระบุชื่อ ลงคะแนนไม่ระบุชื่อ ถึง 1/3 ห้ามใช้',
     inProgress: 'กำลังเปิดเผย', pendingSettle: 'รอสรุป', history: 'ประวัติ',
     budgetUpper: 'วงเงิน', proposer: 'ผู้ยื่น', items: 'รายละเอียด', exposeDaysLeft: 'เหลือ {n} วัน',
     exposeEnded: 'สิ้นสุดการเปิดเผย รอสรุป',
@@ -227,6 +229,7 @@ export const financeI18n = {
     forCount: 'เห็นด้วย {n}', againstCount: 'คัดค้าน {n}',
     reasonsTitle: 'ความคิดเห็นคัดค้าน (ไม่ระบุชื่อ)', noReasons: 'ยังไม่มีความคิดเห็น',
     emergencyTag: 'ฉุกเฉิน · เปิดเผยหลังใช้จ่าย', voteReasonHint: 'เหตุผล (ไม่บังคับ เปิดเผยไม่ระบุชื่อ แก้ไขไม่ได้)',
+    anonAllNote: '🔒 ไม่ระบุชื่อทั้งหมด: โหวตและความคิดเห็นของคุณแสดงแบบไม่ระบุชื่อ ไม่เปิดเผยตัวตน',
     statusNeedRevision: 'รอแก้ไข', needRevise: 'แก้ไขแล้วส่งใหม่',
     /* v2 งบประมาณ: ทุกคนส่ง → บัญชีอนุมัติ → โหวตสาธารณะ */
     tabAllBudgets: 'งบประมาณทั้งหมด', tabMyBudgets: 'รายการที่ฉันส่ง',
@@ -381,9 +384,10 @@ export function useFinanceV2() {
   const budgetsMap = computed(() => { const m = {}; budgets.value.forEach(b => { m[b.id] = b }); return m })
   const reimbMap = computed(() => { const m = {}; reimbursements.value.forEach(r => { m[r.id] = r }); return m })
 
-  const gotoActivity = (id) => { if (id) router.push({ path: '/activities/', query: { focus: id } }) }
-  const gotoBudget = (id) => { if (id) router.push({ path: '/finance/budgets/', query: { focus: id } }) }
-  const gotoReimb = (id) => { if (id) router.push({ path: '/finance/reimb/', query: { focus: id } }) }
+  // VitePress 路由仅支持 go(字符串路径)，无 Vue Router 的 push；query 手动拼接
+  const gotoActivity = (id) => { if (id) router.go('/activities/?focus=' + encodeURIComponent(id)) }
+  const gotoBudget = (id) => { if (id) router.go('/finance/budgets/?focus=' + encodeURIComponent(id)) }
+  const gotoReimb = (id) => { if (id) router.go('/finance/reimb/?focus=' + encodeURIComponent(id)) }
 
   const budgetStatusText = (b) => b.status === 'passed' ? t.value.budgetPassed : b.status === 'rejected' ? t.value.budgetRejected : b.status === 'cancelled' ? t.value.budgetCancelled : b.status === 'submitted' ? t.value.statusSubmitted : b.status === 'returned' ? t.value.statusReturned : b.status === 'draft' ? t.value.statusDraft : t.value.budgetSpent
   const passedBudgets = computed(() => budgets.value.filter(b => b.status === 'passed'))

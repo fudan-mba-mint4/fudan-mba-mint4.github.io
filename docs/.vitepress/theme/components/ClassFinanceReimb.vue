@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
+import { getQueryParam } from '../utils/urlUtils.js'
 import '../finance-styles.css'
 
 const {
@@ -176,7 +177,8 @@ const voucherView = ref(null)
 const openVouchers = (r) => { voucherView.value = { title: r.description, vouchers: r.vouchers } }
 const closeVouchers = () => { voucherView.value = null }
 const hlId = ref('')
-watch(() => router.route?.query?.focus, (v) => {
+watch(() => router.route.path, () => {
+  const v = getQueryParam('focus')
   if (v) { hlId.value = String(v); setTimeout(() => { hlId.value = '' }, 2600) }
 }, { immediate: true })
 </script>

@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vitepress'
 import { useLang, formatDate, formatRelative } from '../composables/useLang'
 import { useNow } from '../composables/useNow.js'
 import { parseDate } from '../utils/dateUtils.js'
+import { getQueryParam } from '../utils/urlUtils.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useActivities } from '../composables/useActivities.js'
@@ -102,8 +103,10 @@ const wishesLink = computed(() => `${langPrefix.value}/wishes/`)
 const { activities } = useActivities({ withFinance: true })
 
 // 从财务页跳转深链：/activities/?focus=<activityId> → 定位到该活动日期
+// VitePress 的 route 不含 query，需用 window.location.search 读取；route.path 作响应式触发源
 const focusDate = ref(null)
-watch([() => route?.query?.focus, activities], ([id]) => {
+watch([() => route.path, activities], () => {
+  const id = getQueryParam('focus')
   if (!id) { focusDate.value = null; return }
   const act = activities.value.find(a => String(a.id) === String(id))
   if (act?.date) {

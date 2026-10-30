@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import { getQueryParam } from '../utils/urlUtils.js'
 import { readFileAsBase64 } from '../utils/admin/utils.js'
 import '../finance-styles.css'
 
@@ -343,9 +344,10 @@ async function submitVote() {
   finally { f.submitting = false }
 }
 
-/* focus 高亮 */
+/* focus 高亮（VitePress route 无 query，用 window.location 读取，route.path 作触发源）*/
 const hlId = ref('')
-watch(() => router.route?.query?.focus, (v) => {
+watch(() => router.route.path, () => {
+  const v = getQueryParam('focus')
   if (v) { hlId.value = String(v); setTimeout(() => { hlId.value = '' }, 2600) }
 }, { immediate: true })
 </script>
@@ -369,7 +371,7 @@ watch(() => router.route?.query?.focus, (v) => {
           <button class="budget-tab" :class="{ active: tab === 'mine' }" @click="tab = 'mine'">{{ t.tabMyBudgets }}</button>
         </div>
         <button v-if="isAuthenticated" class="btn-oppose primary" @click="openForm()">{{ t.newBudgetPropose }}</button>
-        <button v-else class="btn-oppose" @click="router.push('/auth/')">{{ t.loginFirst }}</button>
+        <button v-else class="btn-oppose" @click="router.go('/auth/')">{{ t.loginFirst }}</button>
       </div>
 
       <!-- 发起/重交表单 -->
@@ -528,6 +530,7 @@ watch(() => router.route?.query?.focus, (v) => {
             <div v-if="parseAttachment(b.attachment)" class="bc-attach"><span class="att-file">📎 <a :href="parseAttachment(b.attachment).url" target="_blank" rel="noopener">{{ parseAttachment(b.attachment).name }}</a><template v-if="parseAttachment(b.attachment).size">（{{ formatSize(parseAttachment(b.attachment).size) }}）</template></span></div>
             <div class="bc-actions" style="margin-top:10px"><button type="button" class="fc-detail-btn" @click="openFcDetail(b)">📄 {{ t.viewDetail }}</button></div>
             <div class="bc-vote">
+              <div class="anon-note">{{ t.anonAllNote }}</div>
               <div class="vote-row">
                 <span class="vote-count">{{ t.forCount.replace('{n}', b.forCount) }} · {{ t.againstCount.replace('{n}', b.againstCount) }} · {{ t.uncommitted.replace('{n}', b.uncommitted) }}</span>
                 <span class="vote-line">{{ t.vetoLineV2.replace('{n}', b.vetoCount) }}</span>
@@ -652,6 +655,7 @@ watch(() => router.route?.query?.focus, (v) => {
       </div>
       <div v-if="fcDetail.status === 'open'" class="bd-section bd-vote-zone">
         <div class="bd-label-row"><span class="bd-label">{{ t.myVote }}</span></div>
+        <div class="anon-note">{{ t.anonAllNote }}</div>
         <div class="vote-row">
           <span class="vote-count">{{ t.forCount.replace('{n}', fcDetail.forCount) }} · {{ t.againstCount.replace('{n}', fcDetail.againstCount) }} · {{ t.uncommitted.replace('{n}', fcDetail.uncommitted) }}</span>
           <span class="vote-line">{{ t.vetoLineV2.replace('{n}', fcDetail.vetoCount) }}</span>

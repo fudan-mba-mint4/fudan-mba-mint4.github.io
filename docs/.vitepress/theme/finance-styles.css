@@ -85,6 +85,7 @@
 .mini-table td.it-desc { color: var(--c-text-tertiary); font-size: 12px; }
 
 .bc-vote { margin-top: 10px; border-top: 1px dashed var(--c-border); padding-top: 12px; }
+.anon-note { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; color: var(--c-text-tertiary); background: var(--c-bg-elevated); border-radius: 8px; padding: 6px 10px; margin-bottom: 10px; }
 .vote-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
 .vote-count { color: var(--c-text-secondary); }
 .vote-count.veto { color: #c92a2a; font-weight: 600; }
