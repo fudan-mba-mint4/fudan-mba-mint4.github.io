@@ -608,3 +608,22 @@ html[lang="th-TH"] body {
     max-width: 100% !important;
   }
 }
+
+/* ---------- 顶部导航折叠断点 ----------
+   VitePress 默认 <768px 才折叠为汉堡菜单；本站一级菜单多（8 个主菜单 + 语言/外观组），
+   完整导航实测需要约 1074px，在 768–1119px 会横向溢出（页面级 overflow-x）。
+   将折叠断点提升到 1120px：窄于该宽度时隐藏横排菜单、显示汉堡按钮，
+   点击后由主题既有的 VPNavScreen 抽屉承载全部导航。 */
+@media (max-width: 1119px) {
+  .VPNavBarMenu {
+    display: none !important;
+  }
+
+  .VPNavBarHamburger {
+    display: flex !important;
+  }
+
+  .VPNavScreen {
+    display: block !important;
+  }
+}

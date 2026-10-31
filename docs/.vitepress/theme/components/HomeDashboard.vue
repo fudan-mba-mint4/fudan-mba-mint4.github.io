@@ -37,7 +37,7 @@ const i18n = {
     quickLinksTitle: '快速入口',
     links: {
       schedule: '课表',
-      announcements: '公告',
+      guide: '指南',
       slides: '课件',
       activities: '活动',
       gallery: '相册',
@@ -102,7 +102,7 @@ const i18n = {
     quickLinksTitle: 'Quick Links',
     links: {
       schedule: 'Schedule',
-      announcements: 'Announcements',
+      guide: 'Guide',
       slides: 'Course Materials',
       activities: 'Activities',
       gallery: 'Gallery',
@@ -159,7 +159,7 @@ const i18n = {
     quickLinksTitle: 'ลิงก์ด่วน',
     links: {
       schedule: 'ตารางเรียน',
-      announcements: 'ประกาศ',
+      guide: 'คู่มือ',
       slides: 'เอกสารรายวิชา',
       activities: 'กิจกรรม',
       gallery: 'อัลบั้ม',
@@ -600,7 +600,7 @@ const unreadCounts = computed(() => {
 })
 
 const quickLinks = computed(() => [
-  { key: 'announcements', label: t.value.links.announcements, href: `${langPrefix.value}/announcements/`, icon: 'megaphone' },
+  { key: 'guide', label: t.value.links.guide, href: `${langPrefix.value}/guide/`, icon: 'compass' },
   { key: 'activities', label: t.value.links.activities, href: `${langPrefix.value}/activities/`, icon: 'party-popper' },
   { key: 'slides', label: t.value.links.slides, href: `${langPrefix.value}/slides/`, icon: 'book' },
   { key: 'coins', label: t.value.links.coins, href: `${langPrefix.value}/mint-coins/`, icon: 'leaf' },
@@ -1061,6 +1061,9 @@ onUnmounted(() => {
               </template>
               <template v-else-if="link.icon === 'leaf'">
                 <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+              </template>
+              <template v-else-if="link.icon === 'compass'">
+                <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
               </template>
             </svg>
             <span class="quicklink-label">{{ link.label }}</span>

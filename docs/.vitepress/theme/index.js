@@ -34,7 +34,32 @@ import Polls from './components/Polls.vue'
 import CityFootprint from './components/CityFootprint.vue'
 import Wishes from './components/Wishes.vue'
 import MintCoins from './components/MintCoins.vue'
+import GuideCards from './components/GuideCards.vue'
+
+// ===== 指南中心 Guide* 组件族（蓝图 §5，方案 B+） =====
+import GuideSectionHead from './components/GuideSectionHead.vue'
+import GuideCallout from './components/GuideCallout.vue'
+import GuideStepList from './components/GuideStepList.vue'
+import GuideStepFlow from './components/GuideStepFlow.vue'
+import GuideInfoTable from './components/GuideInfoTable.vue'
+import GuideRoleCard from './components/GuideRoleCard.vue'
+import GuideFaqItem from './components/GuideFaqItem.vue'
+import GuideFaq from './components/GuideFaq.vue'
+import GuideTopicCard from './components/GuideTopicCard.vue'
+import GuideHomeSearch from './components/GuideHomeSearch.vue'
+import GuideEmptyState from './components/GuideEmptyState.vue'
+import GuideMaintenanceBar from './components/GuideMaintenanceBar.vue'
+import GuideRelatedLinks from './components/GuideRelatedLinks.vue'
+import GuideDocFooter from './components/GuideDocFooter.vue'
+import GuideFeedback from './components/GuideFeedback.vue'
+import GuideBreadcrumb from './components/GuideBreadcrumb.vue'
+import GuideTopicRail from './components/GuideTopicRail.vue'
+import GuideToc from './components/GuideToc.vue'
+import GuideDocShell from './components/GuideDocShell.vue'
+import GuideLanding from './components/GuideLanding.vue'
+
 import './styles/index.css'
+import './styles/guide.css'
 
 export default {
   extends: DefaultTheme,
@@ -70,6 +95,29 @@ export default {
     app.component('CityFootprint', CityFootprint)
     app.component('Wishes', Wishes)
     app.component('MintCoins', MintCoins)
+    app.component('GuideCards', GuideCards)
+
+    // 指南中心 Guide* 组件族（蓝图 §5.0：md 中可直接标签使用）
+    app.component('GuideSectionHead', GuideSectionHead)
+    app.component('GuideCallout', GuideCallout)
+    app.component('GuideStepList', GuideStepList)
+    app.component('GuideStepFlow', GuideStepFlow)
+    app.component('GuideInfoTable', GuideInfoTable)
+    app.component('GuideRoleCard', GuideRoleCard)
+    app.component('GuideFaqItem', GuideFaqItem)
+    app.component('GuideFaq', GuideFaq)
+    app.component('GuideTopicCard', GuideTopicCard)
+    app.component('GuideHomeSearch', GuideHomeSearch)
+    app.component('GuideEmptyState', GuideEmptyState)
+    app.component('GuideMaintenanceBar', GuideMaintenanceBar)
+    app.component('GuideRelatedLinks', GuideRelatedLinks)
+    app.component('GuideDocFooter', GuideDocFooter)
+    app.component('GuideFeedback', GuideFeedback)
+    app.component('GuideBreadcrumb', GuideBreadcrumb)
+    app.component('GuideTopicRail', GuideTopicRail)
+    app.component('GuideToc', GuideToc)
+    app.component('GuideDocShell', GuideDocShell)
+    app.component('GuideLanding', GuideLanding)
 
     // 全局IP追踪：应用启动 2 秒后静默记录一次城市足迹。
     // - enhanceApp 只在应用首次启动时执行一次，SPA 路由切换不会重复触发，
