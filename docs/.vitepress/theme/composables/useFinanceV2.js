@@ -28,7 +28,7 @@ export const financeI18n = {
     },
     budgetTitle: '预算公示', budgetDesc: '支出前公示 ≥3 日，实名公示、匿名表决，反对达 1/3 不可动用班费',
     inProgress: '公示中', pendingSettle: '待结算', history: '历史公示',
-    budgetUpper: '预算上限', proposer: '申请方', items: '预算明细', exposeDaysLeft: '剩余 {n} 天',
+    budgetUpper: '预算上限', proposer: '申请方', items: '预算明细', exposeCountdown: '剩余 {n}', exposeDayUnit: '天',
     exposeEnded: '公示已结束，待财务结算',
     budgetPassed: '已通过', budgetRejected: '已否决', budgetCancelled: '已取消', budgetSpent: '已执行',
     reimbTitle: '报销', reimbDesc: '线上提交凭证 → 财务审批 → 线下打款 → 入账公示',
@@ -115,7 +115,7 @@ export const financeI18n = {
     },
     budgetTitle: 'Budget Disclosure', budgetDesc: 'Disclosed ≥3 days before spending; real-name disclosure, anonymous voting; ≥1/3 veto',
     inProgress: 'Open', pendingSettle: 'To settle', history: 'History',
-    budgetUpper: 'Budget cap', proposer: 'Proposer', items: 'Breakdown', exposeDaysLeft: '{n} days left',
+    budgetUpper: 'Budget cap', proposer: 'Proposer', items: 'Breakdown', exposeCountdown: '{n} left', exposeDayUnit: 'd',
     exposeEnded: 'Disclosure ended, pending settlement',
     budgetPassed: 'Approved', budgetRejected: 'Vetoed', budgetCancelled: 'Cancelled', budgetSpent: 'Executed',
     reimbTitle: 'Reimbursement', reimbDesc: 'Submit vouchers online → finance review → offline payment → posted',
@@ -202,7 +202,7 @@ export const financeI18n = {
     },
     budgetTitle: 'การเปิดเผยงบประมาณ', budgetDesc: 'เปิดเผย ≥3 วันก่อนใช้จ่าย เปิดเผยระบุชื่อ ลงคะแนนไม่ระบุชื่อ ถึง 1/3 ห้ามใช้',
     inProgress: 'กำลังเปิดเผย', pendingSettle: 'รอสรุป', history: 'ประวัติ',
-    budgetUpper: 'วงเงิน', proposer: 'ผู้ยื่น', items: 'รายละเอียด', exposeDaysLeft: 'เหลือ {n} วัน',
+    budgetUpper: 'วงเงิน', proposer: 'ผู้ยื่น', items: 'รายละเอียด', exposeCountdown: 'เหลือ {n}', exposeDayUnit: 'วัน',
     exposeEnded: 'สิ้นสุดการเปิดเผย รอสรุป',
     budgetPassed: 'ผ่าน', budgetRejected: 'คัดค้าน', budgetCancelled: 'ยกเลิก', budgetSpent: 'ดำเนินการแล้ว',
     reimbTitle: 'เบิกจ่าย', reimbDesc: 'ส่งหลักฐานออนไลน์ → อนุมัติ → โอนเงิน → ลงบัญชี',
@@ -400,7 +400,6 @@ export function useFinanceV2() {
     return budgets.value.filter(b => b.status === 'open' && now > new Date(b.exposeEnd).getTime())
   })
   const doneBudgets = computed(() => budgets.value.filter(b => !['open'].includes(b.status)))
-  const daysLeft = (b) => Math.max(0, Math.ceil((new Date(b.exposeEnd).getTime() - Date.now()) / 86400000))
   const exposeStatus = (b) => {
     const now = Date.now()
     if (now < new Date(b.exposeStart).getTime()) return 'notstart'
@@ -463,7 +462,7 @@ export function useFinanceV2() {
     formatAmount, formatDate, formatFullDate, catLabel, isImage, voucherTypeLabel, reimbStatusLabel,
     activitiesMap, activityTitle, budgetsMap, reimbMap,
     gotoActivity, gotoBudget, gotoReimb, budgetStatusText, passedBudgets,
-    openBudgets, pendingSettleBudgets, doneBudgets, daysLeft, exposeStatus,
+    openBudgets, pendingSettleBudgets, doneBudgets, exposeStatus,
     period, monthSel, semSel, semesters, periodTx, pIncome, pExpense, pBalance,
     catBreakdown, actBreakdown, catPalette,
     pendingAudits, pendingPays, ledgerBalanceNow, lastRc, rcDiff, nowIso,

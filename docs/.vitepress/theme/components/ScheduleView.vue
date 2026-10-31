@@ -21,6 +21,18 @@ const i18n = {
     lecturer: '主讲',
     today: '今天',
     ended: '已结束',
+    exam: '期末考试',
+    pastDates: '已过去的日期',
+    exportCalendar: '导入日历',
+    exportTitle: '把课表装进手机日历',
+    scanHint: '用手机相机或支付宝扫一扫，自动跳转到日历添加',
+    subscribeCalendar: '导入到日历',
+    saveQr: '保存二维码',
+    longPressHint: '手机长按二维码可保存图片',
+    copyLink: '复制 iCal 链接',
+    copied: '已复制',
+    deviceHint: 'iPhone / 安卓 / 鸿蒙：扫码或下载文件后，打开并选择「添加到日历」即可',
+    alipayHint: '支付宝大学课表：复制链接后，在「课表 → 导入 → 链接导入」粘贴即可',
     footerNote: '课表数据来源于复旦管院校历系统，如有调整请以学校通知为准',
     updatedAt: '数据更新时间',
   },
@@ -38,6 +50,18 @@ const i18n = {
     lecturer: 'Lecturer',
     today: 'Today',
     ended: 'Ended',
+    exam: 'Final Exam',
+    pastDates: 'Past dates',
+    exportCalendar: 'Add to Calendar',
+    exportTitle: 'Add your schedule to your phone calendar',
+    scanHint: 'Scan with your phone camera or Alipay to add to your calendar automatically',
+    subscribeCalendar: 'Add to Calendar',
+    saveQr: 'Save QR code',
+    longPressHint: 'On a phone, long-press the QR code to save the image',
+    copyLink: 'Copy iCal link',
+    copied: 'Copied',
+    deviceHint: 'iPhone / Android / HarmonyOS: scan or download the file, then open and tap "Add to Calendar"',
+    alipayHint: 'Alipay Campus schedule: copy the link, paste it in Class Schedule → Import → Link Import',
     footerNote: 'Schedule data from Fudan GSM academic calendar. Changes follow official notices.',
     updatedAt: 'Updated',
   },
@@ -55,6 +79,18 @@ const i18n = {
     lecturer: 'อาจารย์ผู้สอน',
     today: 'วันนี้',
     ended: 'จบแล้ว',
+    exam: 'สอบปลายภาค',
+    pastDates: 'วันที่ผ่านมา',
+    exportCalendar: 'เพิ่มลงปฏิทิน',
+    exportTitle: 'เพิ่มตารางเรียนลงปฏิทินมือถือ',
+    scanHint: 'สแกนด้วยกล้องมือถือหรือ Alipay เพื่อเพิ่มลงปฏิทินอัตโนมัติ',
+    subscribeCalendar: 'เพิ่มลงปฏิทิน',
+    saveQr: 'บันทึก QR code',
+    longPressHint: 'บนมือถือ กดค้างที่ QR เพื่อบันทึกรูปภาพ',
+    copyLink: 'คัดลอกลิงก์ iCal',
+    copied: 'คัดลอกแล้ว',
+    deviceHint: 'iPhone / Android / HarmonyOS: สแกนหรือดาวน์โหลด แล้วเปิดและเลือก "เพิ่มในปฏิทิน"',
+    alipayHint: 'ตารางเรียน Alipay Campus: คัดลอกลิงก์ วางใน ตารางเรียน → นำเข้า → ลิงก์',
     footerNote: 'ข้อมูลตารางเรียนมาจากปฏิทินการศึกษา Fudan GSM หากมีการเปลี่ยนแปลงให้ถือตามประกาศอย่างเป็นทางการ',
     updatedAt: 'อัปเดตเมื่อ',
   },
@@ -70,6 +106,27 @@ const locale = computed(() =>
 const { data: scheduleData, loading } = useData('/data/schedule.json')
 const activeTab = ref('week') // 'week' | 'course' | 'calendar'
 const showCalendar = ref(false)
+/* ===== 导入日历（ICS 文件 + 二维码） ===== */
+const showExport = ref(false)
+const copiedIcs = ref(false)
+const ICS_URL = 'https://mint4.cn/data/schedule.ics' // 与 scripts/generate-schedule-calendar.mjs 的二维码内容一致
+const WEB_CAL_URL = 'https://mint4.cn/data/schedule.ics' // https 直链：iOS/安卓/鸿蒙 打开 .ics 直接「添加到日历」；webcal:// 会被 iOS 按非加密通道处理而弹「不安全连接」，故不用
+const copyIcsLink = async () => {
+  try {
+    await navigator.clipboard.writeText(ICS_URL)
+  } catch (e) {
+    const ta = document.createElement('textarea')
+    ta.value = ICS_URL
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    try { document.execCommand('copy') } catch (_) { /* 忽略 */ }
+    document.body.removeChild(ta)
+  }
+  copiedIcs.value = true
+  setTimeout(() => { copiedIcs.value = false }, 2000)
+}
 
 /* ========== 课程颜色：用稳定索引而非中文名 ========== */
 const courseIndexMap = computed(() => {
@@ -188,16 +245,57 @@ const selectedDayCourses = computed(() => {
   return getCoursesByDate(selectedDate.value)
 })
 
+/* 强制点亮所有未显示的 .reveal（异步数据 / 折叠展开共用） */
+const forceReveal = () => {
+  document.querySelectorAll('.schedule-page .reveal:not(.is-visible)').forEach(el => {
+    el.classList.add('is-visible')
+  })
+}
+
 watch(activeTab, async () => {
   await nextTick()
-  setTimeout(() => {
-    document.querySelectorAll('.schedule-page .reveal:not(.is-visible)').forEach(el => {
-      el.classList.add('is-visible')
-    })
-  }, 50)
+  setTimeout(forceReveal, 50)
+})
+
+/* 修复：schedule.json 异步加载，晚于 IntersectionObserver 初始化的列表元素
+   永远不会被观察到（线上复现：14 个 day-block 全部停在 opacity:0）。
+   数据就绪后再强制点亮所有 .reveal，保证内容一定可见。 */
+watch(scheduleData, async (val) => {
+  if (!val) return
+  await nextTick()
+  setTimeout(forceReveal, 50)
 })
 
 /* ========== 日期/时间工具 ========== */
+/* 按日期视图列表：正序（日期早的在上） */
+const dayList = computed(() => {
+  if (!scheduleData.value) return []
+  return [...scheduleData.value.schedule].sort((a, b) => a.date.localeCompare(b.date))
+})
+
+/* 已过去日期默认折叠，只展示今天及之后的日期（正序） */
+const todayStr = computed(() => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
+const visibleDays = computed(() => dayList.value.filter(d => d.date >= todayStr.value))
+const pastDays = computed(() => dayList.value.filter(d => d.date < todayStr.value))
+const showPast = ref(false)
+const togglePast = () => {
+  showPast.value = !showPast.value
+  if (showPast.value) {
+    nextTick().then(() => setTimeout(forceReveal, 50))
+  }
+}
+/* 列表渲染模型：折叠条 + 过去日期 + 今天及未来（整体正序） */
+const weekItems = computed(() => {
+  const items = []
+  if (pastDays.value.length) items.push({ type: 'past-fold' })
+  if (showPast.value) pastDays.value.forEach((d, i) => items.push({ type: 'day', day: d, idx: i }))
+  visibleDays.value.forEach((d, i) => items.push({ type: 'day', day: d, idx: i }))
+  return items
+})
+
 const formatDate = (dateStr) =>
   new Intl.DateTimeFormat(locale.value, { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(dateStr))
 
@@ -227,6 +325,10 @@ const isToday = (dateStr) => {
         <span class="calendar-icon">📅</span>
         <span>{{ t.viewCalendar || '查看校历' }}</span>
       </button>
+      <button class="calendar-btn" @click="showExport = true">
+        <span class="calendar-icon">📆</span>
+        <span>{{ t.exportCalendar }}</span>
+      </button>
     </div>
 
     <!-- 校历弹窗 -->
@@ -236,6 +338,25 @@ const isToday = (dateStr) => {
         <h3>复旦大学 2026—2027 学年校历</h3>
         <img src="/images/fudan-academic-calendar-2026-2027.jpg" alt="复旦大学校历" class="calendar-img" />
         <a href="/images/fudan-academic-calendar-2026-2027.jpg" target="_blank" class="calendar-download">在新标签页打开</a>
+      </div>
+    </div>
+
+    <!-- 导入日历弹窗 -->
+    <div v-if="showExport" class="calendar-modal" @click.self="showExport = false">
+      <div class="calendar-modal-content export-content">
+        <button class="calendar-close" @click="showExport = false">✕</button>
+        <h3>{{ t.exportTitle }}</h3>
+        <img src="/data/schedule-qr.png" :alt="t.exportCalendar" class="export-qr" />
+        <p class="export-hint">{{ t.scanHint }}</p>
+        <div class="export-actions">
+          <a class="export-btn" :href="WEB_CAL_URL">{{ t.subscribeCalendar }}</a>
+          <button class="export-btn" @click="copyIcsLink">{{ copiedIcs ? t.copied : t.copyLink }}</button>
+          <a class="export-btn" href="/data/schedule-qr.png" download="mint4-schedule-qr.png">{{ t.saveQr }}</a>
+        </div>
+        <div class="export-tips">
+          <p>📱 {{ t.longPressHint }} · {{ t.deviceHint }}</p>
+          <p>💳 {{ t.alipayHint }}</p>
+        </div>
       </div>
     </div>
 
@@ -284,59 +405,67 @@ const isToday = (dateStr) => {
         </button>
       </div>
 
-      <!-- 按日期视图 -->
+      <!-- 按日期视图（正序；已过去日期折叠） -->
       <div v-if="activeTab === 'week'" class="week-view">
-        <div
-          v-for="(day, dayIndex) in scheduleData.schedule"
-          :key="day.date"
-          class="day-block reveal"
-          :class="`reveal-delay-${Math.min(dayIndex + 1, 6)}`"
+        <template
+          v-for="(it, idx) in weekItems"
+          :key="it.type === 'past-fold' ? 'past-fold' : it.day.date"
         >
-          <div class="day-header" :class="{ today: isToday(day.date) }">
-            <div class="day-date">
-              <span class="day-num">{{ formatShortDay(day.date) }}</span>
-              <span class="day-month">{{ formatShortMonth(day.date) }}</span>
-            </div>
-            <div class="day-info">
-              <h3>{{ formatDate(day.date) }}</h3>
-              <span class="course-count">{{ day.courses.length }} {{ t.sessionsCount }}</span>
-            </div>
-            <span v-if="isToday(day.date)" class="today-badge">{{ t.today }}</span>
+          <!-- 已过去日期折叠条（正序下位于列表最前） -->
+          <div v-if="it.type === 'past-fold'" class="past-fold">
+            <button class="past-toggle" :aria-expanded="showPast" @click="togglePast">
+              <svg class="past-chev" :class="{ open: showPast }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              <span>{{ t.pastDates }}（{{ pastDays.length }}）</span>
+            </button>
           </div>
+          <!-- 日期块 -->
+          <div v-else class="day-block reveal" :class="`reveal-delay-${Math.min(it.idx + 1, 6)}`">
+            <div class="day-header" :class="{ today: isToday(it.day.date) }">
+              <div class="day-date">
+                <span class="day-num">{{ formatShortDay(it.day.date) }}</span>
+                <span class="day-month">{{ formatShortMonth(it.day.date) }}</span>
+              </div>
+              <div class="day-info">
+                <h3>{{ formatDate(it.day.date) }}</h3>
+                <span class="course-count">{{ it.day.courses.length }} {{ t.sessionsCount }}</span>
+              </div>
+              <span v-if="isToday(it.day.date)" class="today-badge">{{ t.today }}</span>
+            </div>
 
-          <div class="day-courses">
-            <div
-              v-for="course in day.courses"
-              :key="course.course + course.time_start"
-              class="course-item"
-              :class="[colorClassFor(course.course), { past: isPast(course.date, course.time_start) }]"
-            >
-              <div class="course-time">
-                <span class="time-start">{{ course.time_start }}</span>
-                <span class="time-divider"></span>
-                <span class="time-end">{{ course.time_end }}</span>
-              </div>
-              <div class="course-detail">
-                <h4>{{ course.course }}</h4>
-                <div class="course-meta">
-                  <span class="meta-item">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    {{ course.teacher }}
-                  </span>
-                  <span class="meta-item">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    {{ course.location }}
-                  </span>
+            <div class="day-courses">
+              <div
+                v-for="course in it.day.courses"
+                :key="course.course + course.time_start"
+                class="course-item"
+                :class="[colorClassFor(course.course), { past: isPast(course.date, course.time_start) }]"
+              >
+                <div class="course-time">
+                  <span class="time-start">{{ course.time_start }}</span>
+                  <span class="time-divider"></span>
+                  <span class="time-end">{{ course.time_end }}</span>
                 </div>
+                <div class="course-detail">
+                  <h4>{{ course.course }}<span v-if="course.exam" class="exam-tag">{{ t.exam }}</span></h4>
+                  <div class="course-meta">
+                    <span class="meta-item">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                      </svg>
+                      {{ course.teacher }}
+                    </span>
+                    <span class="meta-item">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      {{ course.location }}
+                    </span>
+                  </div>
+                </div>
+                <span v-if="isPast(course.date, course.time_start)" class="past-tag">{{ t.ended }}</span>
               </div>
-              <span v-if="isPast(course.date, course.time_start)" class="past-tag">{{ t.ended }}</span>
             </div>
           </div>
-        </div>
+        </template>
       </div>
 
       <!-- 按课程视图 -->
@@ -516,6 +645,7 @@ const isToday = (dateStr) => {
   transition: opacity 0.2s;
 }
 .calendar-btn:hover { opacity: 0.85; }
+.calendar-btn + .calendar-btn { margin-left: 24px; }
 .calendar-icon { font-size: 16px; }
 
 /* 校历弹窗 */
@@ -576,6 +706,54 @@ const isToday = (dateStr) => {
 }
 .calendar-download:hover { text-decoration: underline; }
 
+/* 导入日历弹窗 */
+.export-content { max-width: 380px; text-align: center; }
+.export-qr {
+  width: 200px;
+  height: 200px;
+  margin: 8px auto 16px;
+  display: block;
+  background: #fff;
+  padding: 8px;
+  border-radius: 12px;
+}
+.export-hint {
+  font-size: 13px;
+  color: var(--c-text-secondary);
+  margin: 0 0 16px;
+}
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border: 1px solid var(--c-border-accent);
+  border-radius: 999px;
+  color: var(--c-accent);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.export-btn:hover { background: var(--c-accent); color: #fff; }
+.export-tips {
+  text-align: left;
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.export-tips p { margin: 0; }
+
 .loading {
   text-align: center;
   padding: var(--space-4xl);
@@ -629,6 +807,40 @@ const isToday = (dateStr) => {
 
 /* 按日期视图 */
 .day-block { margin-bottom: var(--space-2xl); }
+
+/* ===== 已过去日期折叠条 ===== */
+.past-fold { margin-bottom: var(--space-2xl); }
+.past-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--c-bg-secondary);
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-full);
+  color: var(--c-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base);
+}
+.past-toggle:hover { border-color: var(--c-border-accent); color: var(--c-text-primary); }
+.past-chev { transition: transform var(--transition-base); }
+.past-chev.open { transform: rotate(180deg); }
+
+/* ===== 期末考试徽标 ===== */
+.exam-tag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.6;
+  color: #fff;
+  background: var(--c-accent);
+  border-radius: var(--radius-full);
+  vertical-align: middle;
+}
 
 .day-header {
   display: flex;

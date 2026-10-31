@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { getQueryParam } from '../utils/urlUtils.js'
@@ -9,7 +9,7 @@ import '../finance-styles.css'
 const {
   t, currentLang, loading, error, loadFinance, isAuthenticated, currentUser, authToken, router,
   budgets, myBudgets, openBudgets, pendingSettleBudgets, doneBudgets,
-  daysLeft, budgetStatusText, activityTitle, myVote, votedByMe, formatAmount,
+  budgetStatusText, activityTitle, myVote, votedByMe, formatAmount,
   activitiesMap, passedBudgets, gotoActivity,
 } = useFinanceV2()
 
@@ -350,6 +350,26 @@ watch(() => router.route.path, () => {
   const v = getQueryParam('focus')
   if (v) { hlId.value = String(v); setTimeout(() => { hlId.value = '' }, 2600) }
 }, { immediate: true })
+
+/* ===== 公示倒计时（秒级，每秒刷新） ===== */
+const clock = ref(Date.now())
+let clockTimer = null
+onMounted(() => { clockTimer = setInterval(() => { clock.value = Date.now() }, 1000) })
+onUnmounted(() => { if (clockTimer) { clearInterval(clockTimer); clockTimer = null } })
+
+const pad2 = (n) => String(n).padStart(2, '0')
+// ≥1 天：「X天 HH:MM:SS」；<1 天：「HH:MM:SS」；无截止时间返回 —（防御）
+const budgetCountdown = (b) => {
+  if (!b || !b.exposeEnd) return '—'
+  const diff = Math.max(0, new Date(b.exposeEnd).getTime() - clock.value)
+  const s = Math.floor(diff / 1000)
+  const d = Math.floor(s / 86400)
+  const h = Math.floor((s % 86400) / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  const hms = `${pad2(h)}:${pad2(m)}:${pad2(sec)}`
+  return d > 0 ? `${d}${t.value.exposeDayUnit} ${hms}` : hms
+}
 </script>
 
 <template>
@@ -489,7 +509,7 @@ watch(() => router.route.path, () => {
           <div v-for="b in myBudgets" :key="b.id" class="budget-card mine" :class="b.status">
             <div class="bc-head">
               <span class="bc-status" :class="b.status">{{ budgetStatusText(b) }}</span>
-              <span class="bc-days" v-if="b.status === 'open'">{{ t.exposeDaysLeft.replace('{n}', daysLeft(b)) }}</span>
+              <span class="bc-days" v-if="b.status === 'open'">{{ t.exposeCountdown.replace('{n}', budgetCountdown(b)) }}</span>
             </div>
             <div class="bc-title">
               {{ b.title || '（未命名草稿）' }}
@@ -519,7 +539,7 @@ watch(() => router.route.path, () => {
           <div v-for="b in openBudgets" :key="b.id" class="budget-card open" :class="{ 'hl-flash': hlId === b.id }">
             <div class="bc-head">
               <span class="bc-status open">● {{ t.inProgress }}</span>
-              <span class="bc-days">{{ t.exposeDaysLeft.replace('{n}', daysLeft(b)) }}</span>
+              <span class="bc-days">{{ t.exposeCountdown.replace('{n}', budgetCountdown(b)) }}</span>
             </div>
             <div class="bc-title">{{ b.title }}<span v-if="b.proposalNo" class="bc-no">{{ b.proposalNo }}</span></div>
             <div class="bc-meta">

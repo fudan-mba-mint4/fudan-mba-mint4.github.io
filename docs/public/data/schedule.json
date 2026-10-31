@@ -1,7 +1,7 @@
 {
   "semester": "2026秋季学期",
-  "total_courses": 3,
-  "total_sessions": 21,
+  "total_courses": 6,
+  "total_sessions": 42,
   "courses": [
     {
       "name": "数据、模型与决策",
@@ -151,6 +151,51 @@
           "time_start": "13:30",
           "time_end": "17:00"
         }
+      ]
+    },
+    {
+      "name": "宏观经济学",
+      "teacher": "王安宇",
+      "location": "政立院区B403教室",
+      "weekday": "周四",
+      "sessions": [
+        { "date": "2026-11-26", "weekday": "周四", "time_start": "18:00", "time_end": "21:30" },
+        { "date": "2026-12-03", "weekday": "周四", "time_start": "18:00", "time_end": "21:30" },
+        { "date": "2026-12-10", "weekday": "周四", "time_start": "18:00", "time_end": "21:30" },
+        { "date": "2026-12-17", "weekday": "周四", "time_start": "18:00", "time_end": "21:30" },
+        { "date": "2026-12-24", "weekday": "周四", "time_start": "18:00", "time_end": "21:30" },
+        { "date": "2026-12-31", "weekday": "周四", "time_start": "18:00", "time_end": "21:30" },
+        { "date": "2027-01-07", "weekday": "周四", "time_start": "18:00", "time_end": "21:30" }
+      ]
+    },
+    {
+      "name": "企业战略管理",
+      "teacher": "张青",
+      "location": "政立院区B403教室",
+      "weekday": "周日",
+      "sessions": [
+        { "date": "2026-11-29", "weekday": "周日", "time_start": "08:30", "time_end": "12:00" },
+        { "date": "2026-12-06", "weekday": "周日", "time_start": "08:30", "time_end": "12:00" },
+        { "date": "2026-12-13", "weekday": "周日", "time_start": "08:30", "time_end": "12:00" },
+        { "date": "2026-12-20", "weekday": "周日", "time_start": "08:30", "time_end": "12:00" },
+        { "date": "2026-12-27", "weekday": "周日", "time_start": "08:30", "time_end": "12:00" },
+        { "date": "2027-01-03", "weekday": "周日", "time_start": "08:30", "time_end": "12:00" },
+        { "date": "2027-01-10", "weekday": "周日", "time_start": "08:30", "time_end": "12:00" }
+      ]
+    },
+    {
+      "name": "运营管理",
+      "teacher": "李旭",
+      "location": "政立院区B403教室",
+      "weekday": "周日",
+      "sessions": [
+        { "date": "2026-11-29", "weekday": "周日", "time_start": "13:30", "time_end": "17:00" },
+        { "date": "2026-12-06", "weekday": "周日", "time_start": "13:30", "time_end": "17:00" },
+        { "date": "2026-12-13", "weekday": "周日", "time_start": "13:30", "time_end": "17:00" },
+        { "date": "2026-12-20", "weekday": "周日", "time_start": "13:30", "time_end": "17:00" },
+        { "date": "2026-12-27", "weekday": "周日", "time_start": "13:30", "time_end": "17:00" },
+        { "date": "2027-01-03", "weekday": "周日", "time_start": "13:30", "time_end": "17:00" },
+        { "date": "2027-01-10", "weekday": "周日", "time_start": "13:30", "time_end": "17:00" }
       ]
     }
   ],
@@ -490,9 +535,396 @@
           "weekday_num": 6
         }
       ]
+    },
+    {
+      "date": "2026-11-14",
+      "weekday": "周六",
+      "courses": [
+        {
+          "course": "管理经济学",
+          "teacher": "罗云辉",
+          "location": "政立院区B403教室",
+          "start": "20261114T133000",
+          "date": "2026-11-14",
+          "time_start": "13:30",
+          "end": "20261114T153000",
+          "time_end": "15:30",
+          "weekday": "周六",
+          "weekday_num": 5,
+          "exam": true
+        }
+      ]
+    },
+    {
+      "date": "2026-11-15",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "会计学",
+          "teacher": "钟覃琳",
+          "location": "政立院区B504教室",
+          "start": "20261115T090000",
+          "date": "2026-11-15",
+          "time_start": "09:00",
+          "end": "20261115T110000",
+          "time_end": "11:00",
+          "weekday": "周日",
+          "weekday_num": 6,
+          "exam": true
+        },
+        {
+          "course": "数据、模型与决策",
+          "teacher": "黄达",
+          "location": "政立院区B406教室",
+          "start": "20261115T133000",
+          "date": "2026-11-15",
+          "time_start": "13:30",
+          "end": "20261115T153000",
+          "time_end": "15:30",
+          "weekday": "周日",
+          "weekday_num": 6,
+          "exam": true
+        }
+      ]
+    },
+    {
+      "date": "2026-11-26",
+      "weekday": "周四",
+      "courses": [
+        {
+          "course": "宏观经济学",
+          "teacher": "王安宇",
+          "location": "政立院区B403教室",
+          "start": "20261126T180000",
+          "date": "2026-11-26",
+          "time_start": "18:00",
+          "end": "20261126T213000",
+          "time_end": "21:30",
+          "weekday": "周四",
+          "weekday_num": 3
+        }
+      ]
+    },
+    {
+      "date": "2026-11-29",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "企业战略管理",
+          "teacher": "张青",
+          "location": "政立院区B403教室",
+          "start": "20261129T083000",
+          "date": "2026-11-29",
+          "time_start": "08:30",
+          "end": "20261129T120000",
+          "time_end": "12:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        },
+        {
+          "course": "运营管理",
+          "teacher": "李旭",
+          "location": "政立院区B403教室",
+          "start": "20261129T133000",
+          "date": "2026-11-29",
+          "time_start": "13:30",
+          "end": "20261129T170000",
+          "time_end": "17:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        }
+      ]
+    },
+    {
+      "date": "2026-12-03",
+      "weekday": "周四",
+      "courses": [
+        {
+          "course": "宏观经济学",
+          "teacher": "王安宇",
+          "location": "政立院区B403教室",
+          "start": "20261203T180000",
+          "date": "2026-12-03",
+          "time_start": "18:00",
+          "end": "20261203T213000",
+          "time_end": "21:30",
+          "weekday": "周四",
+          "weekday_num": 3
+        }
+      ]
+    },
+    {
+      "date": "2026-12-06",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "企业战略管理",
+          "teacher": "张青",
+          "location": "政立院区B403教室",
+          "start": "20261206T083000",
+          "date": "2026-12-06",
+          "time_start": "08:30",
+          "end": "20261206T120000",
+          "time_end": "12:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        },
+        {
+          "course": "运营管理",
+          "teacher": "李旭",
+          "location": "政立院区B403教室",
+          "start": "20261206T133000",
+          "date": "2026-12-06",
+          "time_start": "13:30",
+          "end": "20261206T170000",
+          "time_end": "17:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        }
+      ]
+    },
+    {
+      "date": "2026-12-10",
+      "weekday": "周四",
+      "courses": [
+        {
+          "course": "宏观经济学",
+          "teacher": "王安宇",
+          "location": "政立院区B403教室",
+          "start": "20261210T180000",
+          "date": "2026-12-10",
+          "time_start": "18:00",
+          "end": "20261210T213000",
+          "time_end": "21:30",
+          "weekday": "周四",
+          "weekday_num": 3
+        }
+      ]
+    },
+    {
+      "date": "2026-12-13",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "企业战略管理",
+          "teacher": "张青",
+          "location": "政立院区B403教室",
+          "start": "20261213T083000",
+          "date": "2026-12-13",
+          "time_start": "08:30",
+          "end": "20261213T120000",
+          "time_end": "12:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        },
+        {
+          "course": "运营管理",
+          "teacher": "李旭",
+          "location": "政立院区B403教室",
+          "start": "20261213T133000",
+          "date": "2026-12-13",
+          "time_start": "13:30",
+          "end": "20261213T170000",
+          "time_end": "17:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        }
+      ]
+    },
+    {
+      "date": "2026-12-17",
+      "weekday": "周四",
+      "courses": [
+        {
+          "course": "宏观经济学",
+          "teacher": "王安宇",
+          "location": "政立院区B403教室",
+          "start": "20261217T180000",
+          "date": "2026-12-17",
+          "time_start": "18:00",
+          "end": "20261217T213000",
+          "time_end": "21:30",
+          "weekday": "周四",
+          "weekday_num": 3
+        }
+      ]
+    },
+    {
+      "date": "2026-12-20",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "企业战略管理",
+          "teacher": "张青",
+          "location": "政立院区B403教室",
+          "start": "20261220T083000",
+          "date": "2026-12-20",
+          "time_start": "08:30",
+          "end": "20261220T120000",
+          "time_end": "12:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        },
+        {
+          "course": "运营管理",
+          "teacher": "李旭",
+          "location": "政立院区B403教室",
+          "start": "20261220T133000",
+          "date": "2026-12-20",
+          "time_start": "13:30",
+          "end": "20261220T170000",
+          "time_end": "17:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        }
+      ]
+    },
+    {
+      "date": "2026-12-24",
+      "weekday": "周四",
+      "courses": [
+        {
+          "course": "宏观经济学",
+          "teacher": "王安宇",
+          "location": "政立院区B403教室",
+          "start": "20261224T180000",
+          "date": "2026-12-24",
+          "time_start": "18:00",
+          "end": "20261224T213000",
+          "time_end": "21:30",
+          "weekday": "周四",
+          "weekday_num": 3
+        }
+      ]
+    },
+    {
+      "date": "2026-12-27",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "企业战略管理",
+          "teacher": "张青",
+          "location": "政立院区B403教室",
+          "start": "20261227T083000",
+          "date": "2026-12-27",
+          "time_start": "08:30",
+          "end": "20261227T120000",
+          "time_end": "12:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        },
+        {
+          "course": "运营管理",
+          "teacher": "李旭",
+          "location": "政立院区B403教室",
+          "start": "20261227T133000",
+          "date": "2026-12-27",
+          "time_start": "13:30",
+          "end": "20261227T170000",
+          "time_end": "17:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        }
+      ]
+    },
+    {
+      "date": "2026-12-31",
+      "weekday": "周四",
+      "courses": [
+        {
+          "course": "宏观经济学",
+          "teacher": "王安宇",
+          "location": "政立院区B403教室",
+          "start": "20261231T180000",
+          "date": "2026-12-31",
+          "time_start": "18:00",
+          "end": "20261231T213000",
+          "time_end": "21:30",
+          "weekday": "周四",
+          "weekday_num": 3
+        }
+      ]
+    },
+    {
+      "date": "2027-01-03",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "企业战略管理",
+          "teacher": "张青",
+          "location": "政立院区B403教室",
+          "start": "20270103T083000",
+          "date": "2027-01-03",
+          "time_start": "08:30",
+          "end": "20270103T120000",
+          "time_end": "12:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        },
+        {
+          "course": "运营管理",
+          "teacher": "李旭",
+          "location": "政立院区B403教室",
+          "start": "20270103T133000",
+          "date": "2027-01-03",
+          "time_start": "13:30",
+          "end": "20270103T170000",
+          "time_end": "17:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        }
+      ]
+    },
+    {
+      "date": "2027-01-07",
+      "weekday": "周四",
+      "courses": [
+        {
+          "course": "宏观经济学",
+          "teacher": "王安宇",
+          "location": "政立院区B403教室",
+          "start": "20270107T180000",
+          "date": "2027-01-07",
+          "time_start": "18:00",
+          "end": "20270107T213000",
+          "time_end": "21:30",
+          "weekday": "周四",
+          "weekday_num": 3
+        }
+      ]
+    },
+    {
+      "date": "2027-01-10",
+      "weekday": "周日",
+      "courses": [
+        {
+          "course": "企业战略管理",
+          "teacher": "张青",
+          "location": "政立院区B403教室",
+          "start": "20270110T083000",
+          "date": "2027-01-10",
+          "time_start": "08:30",
+          "end": "20270110T120000",
+          "time_end": "12:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        },
+        {
+          "course": "运营管理",
+          "teacher": "李旭",
+          "location": "政立院区B403教室",
+          "start": "20270110T133000",
+          "date": "2027-01-10",
+          "time_start": "13:30",
+          "end": "20270110T170000",
+          "time_end": "17:00",
+          "weekday": "周日",
+          "weekday_num": 6
+        }
+      ]
     }
   ],
-  "last_updated": "2026-09-09 21:50",
+  "last_updated": "2026-10-31 20:00",
   "source": "复旦管院校历系统 iCalendar",
   "note": "严格按照校历数据，缺失日期为学校假期调休"
 }

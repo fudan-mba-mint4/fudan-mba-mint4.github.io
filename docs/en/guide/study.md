@@ -35,6 +35,7 @@ layout: page
       { title: 'Course information', desc: 'Each class lists time, classroom and instructor; click to view details.' },
       { title: 'Shared data with the homepage', desc: 'The homepage “Homework to-dos” and “Next class / unread” flags share live data with the schedule and slides.' },
       { title: 'Auxiliary views', desc: 'The semester highway map and the next-session pill are auxiliary views on the schedule page.' },
+      { title: 'Add to calendar', desc: 'The schedule page lets you scan a QR code or add the schedule to your phone calendar with one tap (iPhone / Android / HarmonyOS); Alipay Campus supports link import.' },
       { title: 'How updates are made', desc: 'When classes are rescheduled or a substitute instructor is needed, committee members update the schedule information promptly.' }
     ]"
   />
