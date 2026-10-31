@@ -619,7 +619,7 @@ const tr = (obj, key) => {
   font-weight: 600;
 }
 
-/* 许愿池独立页入口（醒目渐变胶囊） */
+/* 许愿池独立页入口（醒目渐变胶囊，用户指定保留） */
 .wish-entry {
   margin-left: auto;
   display: flex;
@@ -1182,8 +1182,8 @@ html.dark .timeline-item.past .tl-month {
 .hero-signup-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
 .hero-signup-btn.signed {
   background: rgba(52, 199, 89, 0.15);
-  color: #34c759;
-  border: 1.5px solid #34c759;
+  color: var(--c-green);
+  border: 1.5px solid var(--c-green);
 }
 .hero-signup-btn.signed:hover { background: rgba(52, 199, 89, 0.25); }
 .hero-signup-btn.full {
@@ -1213,8 +1213,8 @@ html.dark .timeline-item.past .tl-month {
 .signup-btn:hover:not(:disabled) { opacity: 0.9; }
 .signup-btn.signed {
   background: rgba(52, 199, 89, 0.12);
-  color: #34c759;
-  border: 1px solid #34c759;
+  color: var(--c-green);
+  border: 1px solid var(--c-green);
 }
 .signup-btn.signed:hover { background: rgba(52, 199, 89, 0.2); }
 .signup-btn.full {

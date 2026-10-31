@@ -21,6 +21,10 @@ export async function onRequest(context) {
       // 发布人：新建记当前用户；编辑保留原创建者、记最后更新者
       const prevRows = await sql`SELECT data FROM activities WHERE id = ${id}`
       const prev = prevRows[0]?.data
+      // 已结束活动锁定：可删除、不可再编辑（2026-10-31 用户拍板）
+      if (prev?.status === 'ended') {
+        return corsResponse({ error: '该活动已结束，不可编辑' }, 403)
+      }
       body.created_by = prev?.created_by || auth.user.name
       body.created_by_id = prev?.created_by_id || auth.user.id
       if (prev?.created_by) body.updated_by = auth.user.name

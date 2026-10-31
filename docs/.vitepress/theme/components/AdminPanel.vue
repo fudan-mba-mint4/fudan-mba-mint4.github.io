@@ -259,7 +259,7 @@
               <span class="existing-meta">{{ actDateRange(a) }}{{ a.category ? ' · ' + a.category : '' }}{{ a.scale ? ' · ' + a.scale : '' }}</span>
             </div>
             <div class="reimb-actions">
-              <button type="button" class="existing-del ok" @click="openActEdit(a)">编辑</button>
+              <button type="button" class="existing-del ok" @click="openActEdit(a)" :disabled="a.status === 'ended'" :title="a.status === 'ended' ? '活动已结束，不可编辑' : ''">编辑</button>
               <button type="button" class="existing-del" @click="deleteActivity(a)">删除</button>
             </div>
           </div>
@@ -3161,6 +3161,8 @@ watch(currentType, (val) => {
 .act-planning { background: #fff7e6; color: #b45309; }
 .act-recurring { background: #e8f4ec; color: #2f9e44; }
 .act-reminder { background: #ffecec; color: #ff3b30; }
+.act-ended { background: #f1f3f5; color: #868e96; }
+.existing-del:disabled { opacity: .5; cursor: not-allowed; }
 .session-mgr { margin-top: 16px; border-top: 1px dashed var(--c-border); padding-top: 14px; }
 .session-mgr h4 { margin: 0 0 4px; font-size: 14px; color: var(--c-text-primary); }
 .mgr-hint { margin: 0 0 10px; font-size: 12px; color: var(--c-text-tertiary); line-height: 1.5; }

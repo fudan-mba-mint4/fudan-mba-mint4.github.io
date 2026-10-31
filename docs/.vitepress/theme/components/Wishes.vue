@@ -77,6 +77,14 @@
     <div v-else-if="!wishes.length && !error" class="state-center empty-state">
       <div class="empty-icon">✦</div>
       <p>{{ t.empty }}</p>
+      <div class="empty-guide">
+        <strong>{{ t.howTitle }}</strong>
+        <ol class="empty-guide-list">
+          <li>{{ t.how1 }}</li>
+          <li>{{ t.how2 }}</li>
+          <li>{{ t.how3 }}</li>
+        </ol>
+      </div>
     </div>
     <div v-else-if="!wishes.length && error" class="state-center">
       <div class="empty-icon">📡</div>
@@ -274,6 +282,10 @@ const i18n = {
     imgTip: '最多 3 张图片，不支持视频',
     cancel: '取消', publishing: '发布中…', publish: '发布',
     empty: '还没有愿望，第一个写下你的想法吧',
+    howTitle: '许愿池怎么玩？',
+    how1: '写下你想要的班级活动、想去的地方、想玩的玩法',
+    how2: '同学们点赞支持，热度越高越容易成行',
+    how3: '体验运营组参考大家的愿望，策划落地成真',
     loadError: '加载遇到问题', retry: '重试',
     del: '删除', like: '点赞', comment: '评论',
     commentUnit: '条评论', noComments: '还没有评论，快来抢沙发～',
@@ -1075,6 +1087,33 @@ onBeforeUnmount(() => {
 }
 .empty-icon {
   font-size: 40px;
+}
+.empty-guide {
+  margin-top: 18px;
+  max-width: 460px;
+  width: 100%;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-xl);
+  padding: 20px 24px;
+  text-align: left;
+}
+.empty-guide strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin-bottom: 10px;
+}
+.empty-guide-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--c-text-secondary);
+  line-height: 1.5;
 }
 .spinner {
   width: 28px;
