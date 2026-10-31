@@ -64,6 +64,62 @@
   .guide-grid > * { grid-column: span 12 !important; }
 }
 
+/* 1.1 首页「开始之前」紧凑区块（仅 landing，不影响子页与模块指南卡） */
+/* 指南首页：页头与「开始之前」之间收紧，避免顶部留白过大（子页为 GuideDocShell，不命中） */
+div:has(> .guide-landing) > .page-header-section {
+  margin-bottom: var(--space-4);
+}
+
+.guide-landing .guide-before-head {
+  margin-top: var(--space-2);
+}
+
+.guide-landing .guide-before-head .guide-section-head__title {
+  padding-bottom: var(--space-2);
+}
+
+.guide-landing .guide-before-head .guide-section-head__lead {
+  margin-top: var(--space-2);
+}
+
+/* 两张前提 / 维护说明 Callout：收紧内边距与列表行距 */
+.guide-landing .guide-before-callout .guide-callout__body {
+  padding: var(--space-3) var(--space-4);
+}
+
+.guide-landing .guide-before-callout .guide-callout__header {
+  margin-bottom: var(--space-1);
+}
+
+.guide-landing .guide-before-callout .guide-callout__content ul,
+.guide-landing .guide-before-callout .guide-callout__content ol {
+  margin-top: var(--space-1);
+}
+
+.guide-landing .guide-before-callout .guide-callout__content li {
+  margin-bottom: var(--space-1);
+}
+
+/* 四张紧凑约定卡：收紧内边距、间距与图标方块 */
+.guide-landing .guide-before-card .guide-role-card--compact .guide-role-card__inner {
+  padding: var(--space-4);
+  gap: var(--space-2);
+}
+
+.guide-landing .guide-before-card .guide-role-card--compact .guide-role-card__head {
+  gap: var(--space-2);
+}
+
+.guide-landing .guide-before-card .guide-role-card--compact .guide-role-card__icon {
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+}
+
+.guide-landing .guide-before-card .guide-role-card--compact .guide-role-card__desc {
+  line-height: var(--line-height-normal);
+}
+
 /* ========== 2. 子页壳层 GuideDocShell（蓝图 §3.1 / §5.4） ========== */
 
 .guide-doc-shell {

@@ -10,40 +10,24 @@ layout: page
 />
 
 <GuideLanding>
-  <div class="guide-span-12">
-    <GuideHomeSearch />
-  </div>
-
-  <div class="guide-span-12">
-    <GuideSectionHead
-      title="模块指南"
-      lead="五个主题覆盖班费、薄荷币、班级互动、学习资料与同学治理，先按场景找到对应指南。"
-    />
-  </div>
-
-  <div class="guide-span-12">
-    <GuideCards />
-  </div>
-
-  <div class="guide-span-12">
+  <div class="guide-span-12 guide-before-head">
     <GuideSectionHead
       title="开始之前"
       lead="先了解账号前提与维护方式，再进入各模块指南。"
     />
   </div>
 
-  <div class="guide-span-6">
+  <div class="guide-span-6 guide-before-callout">
     <GuideCallout variant="prerequisite" title="使用前提">
       <ul>
         <li>先注册并登录：投票、发布活动、活动报名、许愿池、树洞留言 / 评论 / 踩一踩、薄荷币申报、预算公示发起与投票、报销等互动功能都需要登录；公开浏览不需要登录。</li>
-        <li>分组由系统按真名自动分配（Orientation 第 1~6 组），无需手动选择，注册后不可修改。</li>
         <li>忘记密码没有邮箱找回功能，请联系管理员雷振宇重置；登录后可自行修改密码。</li>
         <li>手机与电脑均可访问，手机浏览器打开 mint4.cn 即可。</li>
       </ul>
     </GuideCallout>
   </div>
 
-  <div class="guide-span-6">
+  <div class="guide-span-6 guide-before-callout">
     <GuideCallout variant="info" title="维护说明">
       <ul>
         <li>本指南由雷振宇维护；网站功能或操作细节变更时会及时更新，请以网站实际为准。</li>
@@ -52,7 +36,7 @@ layout: page
     </GuideCallout>
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="🔐"
@@ -62,7 +46,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="👁️"
@@ -72,7 +56,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="📭"
@@ -82,7 +66,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="🌗"
@@ -90,6 +74,21 @@ layout: page
       role="深色模式跟随系统"
       desc="界面深浅色随设备系统设置自动切换，无需手动选择。"
     />
+  </div>
+
+  <div class="guide-span-12">
+    <GuideSectionHead
+      title="模块指南"
+      lead="五个主题覆盖班费、薄荷币、班级互动、学习资料与同学治理，先按场景找到对应指南。"
+    />
+  </div>
+
+  <div class="guide-span-12 guide-module-search">
+    <GuideHomeSearch />
+  </div>
+
+  <div class="guide-span-12">
+    <GuideCards />
   </div>
 
   <template #footer>

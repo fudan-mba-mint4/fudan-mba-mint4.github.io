@@ -10,40 +10,24 @@ layout: page
 />
 
 <GuideLanding>
-  <div class="guide-span-12">
-    <GuideHomeSearch />
-  </div>
-
-  <div class="guide-span-12">
-    <GuideSectionHead
-      title="คู่มือแต่ละโมดูล"
-      lead="ห้าหัวข้อครอบคลุมเงินกองกลางชั้นเรียน เหรียญมินต์ ปฏิสัมพันธ์ในชั้นเรียน เอกสารการเรียนรู้ และเพื่อนร่วมชั้นกับการปกครอง ค้นหาคู่มือที่ตรงกับสถานการณ์ก่อน"
-    />
-  </div>
-
-  <div class="guide-span-12">
-    <GuideCards />
-  </div>
-
-  <div class="guide-span-12">
+  <div class="guide-span-12 guide-before-head">
     <GuideSectionHead
       title="ก่อนเริ่มต้น"
       lead="ทำความเข้าใจเงื่อนไขบัญชีและวิธีการดูแลคู่มือ ก่อนเข้าสู่คู่มือแต่ละโมดูล"
     />
   </div>
 
-  <div class="guide-span-6">
+  <div class="guide-span-6 guide-before-callout">
     <GuideCallout variant="prerequisite" title="เงื่อนไขเบื้องต้น">
       <ul>
         <li>ลงทะเบียนและเข้าสู่ระบบก่อน: การโหวต เผยแพร่กิจกรรม ลงทะเบียนกิจกรรม กระดานคำขอ ข้อความ / คอมเมนต์ / กดเหยียบในกระบอกไม้ไผ่ การยื่นคำขอเหรียญมินต์ การเสนองบประมาณและโหวตงบประมาณ การเบิกจ่าย และฟีเจอร์แบบโต้ตอบอื่น ๆ ล้วนต้องเข้าสู่ระบบก่อน การดูเนื้อหาสาธารณะไม่ต้องเข้าสู่ระบบ</li>
-        <li>กลุ่มถูกจัดสรรโดยระบบตามชื่อจริง (Orientation กลุ่มที่ 1~6) ไม่ต้องเลือกเองด้วยตนเอง และแก้ไขไม่ได้หลังลงทะเบียน</li>
         <li>ลืมรหัสผ่านไม่มีระบบกู้คืนทางอีเมล โปรดติดต่อผู้ดูแลระบบ Lei Zhenyu เพื่อรีเซ็ต; หลังเข้าสู่ระบบแล้วเปลี่ยนรหัสผ่านเองได้</li>
         <li>ใช้ได้ทั้งโทรศัพท์มือถือและคอมพิวเตอร์ เปิด mint4.cn ในเบราว์เซอร์มือถือได้เลย</li>
       </ul>
     </GuideCallout>
   </div>
 
-  <div class="guide-span-6">
+  <div class="guide-span-6 guide-before-callout">
     <GuideCallout variant="info" title="หมายเหตุการดูแล">
       <ul>
         <li>คู่มือนี้ดูแลโดย Lei Zhenyu; เมื่อฟีเจอร์เว็บไซต์หรือรายละเอียดขั้นตอนเปลี่ยนแปลง จะอัปเดตให้ทันเวลา โปรดยึดตามเว็บไซต์จริงเป็นหลัก</li>
@@ -52,7 +36,7 @@ layout: page
     </GuideCallout>
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="🔐"
@@ -62,7 +46,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="👁️"
@@ -72,7 +56,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="📭"
@@ -82,7 +66,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="🌗"
@@ -90,6 +74,21 @@ layout: page
       role="โหมดมืดตามระบบ"
       desc="สีหน้าจอเข้ม / อ่อนเปลี่ยนตามการตั้งค่าระบบของอุปกรณ์อัตโนมัติ ไม่ต้องเลือกเอง"
     />
+  </div>
+
+  <div class="guide-span-12">
+    <GuideSectionHead
+      title="คู่มือแต่ละโมดูล"
+      lead="ห้าหัวข้อครอบคลุมเงินกองกลางชั้นเรียน เหรียญมินต์ ปฏิสัมพันธ์ในชั้นเรียน เอกสารการเรียนรู้ และเพื่อนร่วมชั้นกับการปกครอง ค้นหาคู่มือที่ตรงกับสถานการณ์ก่อน"
+    />
+  </div>
+
+  <div class="guide-span-12 guide-module-search">
+    <GuideHomeSearch />
+  </div>
+
+  <div class="guide-span-12">
+    <GuideCards />
   </div>
 
   <template #footer>

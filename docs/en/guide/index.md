@@ -10,40 +10,24 @@ layout: page
 />
 
 <GuideLanding>
-  <div class="guide-span-12">
-    <GuideHomeSearch />
-  </div>
-
-  <div class="guide-span-12">
-    <GuideSectionHead
-      title="Module guides"
-      lead="Five topics cover class funds, Mint Coins, class interaction, study materials, and classmates & governance; find the guide that matches your situation first."
-    />
-  </div>
-
-  <div class="guide-span-12">
-    <GuideCards />
-  </div>
-
-  <div class="guide-span-12">
+  <div class="guide-span-12 guide-before-head">
     <GuideSectionHead
       title="Before you start"
       lead="Review the account prerequisites and how these guides are maintained before opening the module guides."
     />
   </div>
 
-  <div class="guide-span-6">
+  <div class="guide-span-6 guide-before-callout">
     <GuideCallout variant="prerequisite" title="Prerequisites">
       <ul>
         <li>Register and sign in first: voting, publishing activities, activity sign-up, wish wall posts, tree hole posts / comments / step-on, Mint Coins claims, budget disclosure submission and voting, reimbursements and other interactive features all require sign-in; public browsing does not.</li>
-        <li>Groups are assigned automatically by the system according to real name (Orientation groups 1–6); no manual selection is needed, and groups cannot be changed after registration.</li>
         <li>There is no email password recovery; please contact the administrator Lei Zhenyu to reset your password. After signing in you can change it yourself.</li>
         <li>The site works on both mobile and desktop; open mint4.cn in your phone browser.</li>
       </ul>
     </GuideCallout>
   </div>
 
-  <div class="guide-span-6">
+  <div class="guide-span-6 guide-before-callout">
     <GuideCallout variant="info" title="Maintenance note">
       <ul>
         <li>This guide is maintained by Lei Zhenyu; it is updated promptly whenever site features or operational details change. The live site prevails.</li>
@@ -52,7 +36,7 @@ layout: page
     </GuideCallout>
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="🔐"
@@ -62,7 +46,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="👁️"
@@ -72,7 +56,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="📭"
@@ -82,7 +66,7 @@ layout: page
     />
   </div>
 
-  <div class="guide-span-3">
+  <div class="guide-span-3 guide-before-card">
     <GuideRoleCard
       compact
       icon="🌗"
@@ -90,6 +74,21 @@ layout: page
       role="Dark mode follows the system"
       desc="Light and dark themes switch automatically with your device system settings; no manual choice is needed."
     />
+  </div>
+
+  <div class="guide-span-12">
+    <GuideSectionHead
+      title="Module guides"
+      lead="Five topics cover class funds, Mint Coins, class interaction, study materials, and classmates & governance; find the guide that matches your situation first."
+    />
+  </div>
+
+  <div class="guide-span-12 guide-module-search">
+    <GuideHomeSearch />
+  </div>
+
+  <div class="guide-span-12">
+    <GuideCards />
   </div>
 
   <template #footer>

@@ -91,6 +91,7 @@ const levelLabel = computed(() => shared.value.role[props.level] || '')
 
 .guide-role-card__icon {
   font-size: 20px;
+  line-height: 1;
   flex-shrink: 0;
 }
 
@@ -172,6 +173,11 @@ const levelLabel = computed(() => shared.value.role[props.level] || '')
   border-radius: var(--radius-md);
   background: var(--c-accent-light);
   color: var(--c-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .guide-role-card--compact .guide-role-card__level { display: none; }
