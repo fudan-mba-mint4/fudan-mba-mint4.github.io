@@ -617,6 +617,17 @@ export async function requireRead(request, env) {
   return { ok: true, user }
 }
 
+// 用户管理（用户列表 / 重置密码）：仅主理人 / 副主理人可用。
+// 用户明示该模块仅自己（主理人）使用；supervisor 独立董事会一律 403，不得重置他人密码。
+export async function requireUsersAdmin(request, env) {
+  const sql = getSql(env)
+  const user = await getAuthUser(request, sql)
+  if (!user) return { ok: false, status: 401, error: '请先登录' }
+  // 「用户管理」仅网站主理人本人（雷振宇）一人可用，其余任何人（含其他主理人/副主理人/独立董事会）一律 403
+  if (user.name === '雷振宇') return { ok: true, user }
+  return { ok: false, status: 403, error: '仅主理人本人可管理用户' }
+}
+
 // 仅要求“登录且是班委”（用于文件上传等多模块共用端点；supervisor 同样放行）
 export async function requireCommittee(request, env) {
   const sql = getSql(env)

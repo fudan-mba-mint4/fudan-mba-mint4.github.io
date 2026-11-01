@@ -1145,6 +1145,60 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== 用户管理（仅主理人/副主理人可见） ===== -->
+      <div v-if="currentType === 'users'" class="form-section users-admin">
+        <h3>👥 用户管理</h3>
+        <p class="users-tip">当前全部注册用户。同学忘记密码时，点「重置密码」一键将密码改为 <b class="mono">123456</b>，该用户会立即登出、需用新密码重新登录。</p>
+        <div class="users-stat-cards">
+          <div class="stat-card"><div class="stat-card-num">{{ usersStats.total }}</div><div class="stat-card-label">全部用户</div></div>
+          <div class="stat-card stat-card-active"><div class="stat-card-num">{{ usersStats.committee }}</div><div class="stat-card-label">班委</div></div>
+          <div class="stat-card"><div class="stat-card-num">{{ usersStats.groups }}</div><div class="stat-card-label">已分组</div></div>
+        </div>
+        <div class="users-toolbar">
+          <input v-model="usersSearch" placeholder="🔍 搜索用户名 / 真名 / 昵称…" class="treehole-search" />
+          <button @click="loadUsers" class="token-btn">刷新</button>
+        </div>
+        <div v-if="usersLoading" class="treehole-loading"><div class="spinner-sm"></div> 加载中...</div>
+        <div v-else-if="filteredUsers.length === 0" class="treehole-empty">暂无用户</div>
+        <div v-else class="users-table-wrap">
+          <table class="users-table">
+            <thead>
+              <tr><th>ID</th><th>用户名</th><th>真名</th><th>昵称</th><th>小组</th><th>角色</th><th>注册时间</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="u in filteredUsers" :key="u.id">
+                <td>{{ u.id }}</td>
+                <td class="mono">{{ u.username }}</td>
+                <td><strong>{{ u.name }}</strong></td>
+                <td>{{ u.nickname || '—' }}</td>
+                <td>{{ u.group_no ? u.group_no + ' 组' : '—' }}</td>
+                <td>{{ roleNameOf(u.role) }}</td>
+                <td>{{ shortTime(u.created_at) }}</td>
+                <td><button class="users-reset-btn" @click="openResetUser(u)">重置密码</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 重置密码确认弹窗（页面内，关键操作） -->
+      <div v-if="resetTarget" class="modal-mask" @click.self="resetTarget = null">
+        <div class="modal users-reset-modal">
+          <div class="modal-head">
+            <span class="modal-title">重置密码</span>
+            <button class="modal-close" @click="resetTarget = null">×</button>
+          </div>
+          <div class="modal-body">
+            <p>将把 <b>{{ resetTarget.name }}</b>（<span class="mono">{{ resetTarget.username }}</span>）的密码重置为 <b class="mono">123456</b>。</p>
+            <p class="users-reset-warn">该用户当前登录会立即失效，需用新密码重新登录。确定继续？</p>
+          </div>
+          <div class="users-reset-actions">
+            <button class="btn-ghost" @click="resetTarget = null">取消</button>
+            <button class="users-reset-confirm" :disabled="resetting" @click="doResetPassword">{{ resetting ? '重置中…' : '确认重置' }}</button>
+          </div>
+        </div>
+      </div>
       </div><!-- /workspace-left -->
 
       <div class="workspace-right">
@@ -1216,12 +1270,15 @@ const coinsTab = ref('claims')
 
 // 各模块角色映射 / 审批人 / 角色名（常量见 utils/admin/constants.js，与 functions/_utils.js 同步）
 // 按当前登录用户过滤可见模块：
-// 主理人/副主理人/独立董事会看全部（均可写）；薄荷币审批人（高晓梅/叶宏颖）额外放行薄荷币；其余角色按本职能过滤。
+// 主理人/副主理人看全部（均可写）；独立董事会可见全部模块（只读）；薄荷币审批人（高晓梅/叶宏颖）额外放行薄荷币；其余角色按本职能过滤。
+// 「用户管理」仅网站主理人本人（雷振宇）专属：任何角色（含其他主理人/副主理人）一律不展示。
 const visibleTypes = computed(() => {
   const role = currentUser.value?.role
   const name = currentUser.value?.name
   if (!role) return []
-  if (role === 'leader' || role === 'deputy' || role === 'supervisor') return dataTypes
+  if (role === 'leader' || role === 'deputy') return dataTypes.filter(t => t.id !== 'users' || name === '雷振宇')
+  // 独立董事会可见全部模块（只读），但「用户管理」仅主理人本人专属，不展示
+  if (role === 'supervisor') return dataTypes.filter(t => t.id !== 'users')
   const base = dataTypes.filter(t => (MODULE_ROLE_MAP[t.id] || []).includes(role))
   if (COIN_AUDITORS.includes(name) && !base.some(t => t.id === 'coins')) {
     return [...base, dataTypes.find(t => t.id === 'coins')]
@@ -1742,6 +1799,81 @@ function treeholePageChange(page) {
   treeholePagination.value.page = page
   loadTreeholeMessages()
 }
+
+// ===== 用户管理（列表 + 一键重置密码，仅主理人/副主理人可见）=====
+const usersList = ref([])
+const usersLoading = ref(false)
+const usersSearch = ref('')
+const resetTarget = ref(null)
+const resetting = ref(false)
+
+const usersStats = computed(() => {
+  const list = usersList.value
+  return {
+    total: list.length,
+    committee: list.filter(u => u.role).length,
+    groups: list.filter(u => u.group_no).length,
+  }
+})
+
+const filteredUsers = computed(() => {
+  const q = usersSearch.value.trim().toLowerCase()
+  if (!q) return usersList.value
+  return usersList.value.filter(u =>
+    (u.username || '').toLowerCase().includes(q)
+    || (u.name || '').toLowerCase().includes(q)
+    || (u.nickname || '').toLowerCase().includes(q))
+})
+
+function roleNameOf(role) {
+  return role ? (ROLE_LABEL_MAP[role] || role) : '同学'
+}
+
+async function loadUsers() {
+  usersLoading.value = true
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/users`, { headers: adminHeaders() })
+    const data = await res.json()
+    if (res.ok) usersList.value = data.users || []
+    else alert('加载失败: ' + (data.error || res.statusText))
+  } catch (e) {
+    alert('加载失败: ' + e.message)
+  } finally {
+    usersLoading.value = false
+  }
+}
+
+function openResetUser(u) {
+  resetTarget.value = u
+}
+
+async function doResetPassword() {
+  if (!resetTarget.value || resetting.value) return
+  resetting.value = true
+  try {
+    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/users/${resetTarget.value.id}/reset-password`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({}),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      showToast(data.message || '密码已重置', 'success')
+      resetTarget.value = null
+      loadUsers()
+      loadHistory()
+    } else {
+      showToast(data.error || '重置失败', 'error')
+    }
+  } catch (e) {
+    showToast('重置失败: ' + e.message, 'error')
+  } finally {
+    resetting.value = false
+  }
+}
+
+// 切到「用户管理」tab 时拉取最新列表
+watch(currentType, (t) => { if (t === 'users') loadUsers() })
 
 // ===== 提交记录（数据源：D1 admin_history 表）=====
 const submitHistory = ref([])
@@ -3223,5 +3355,23 @@ watch(currentType, (val) => {
 .bd-actions { margin-top: 14px; border-top: 1px solid var(--c-border); padding-top: 12px; }
 .existing-del.detail { border-color: var(--c-border-accent); color: var(--c-text-secondary); }
 .existing-del.detail:hover { border-color: var(--c-accent); color: var(--c-accent); }
+/* ===== 用户管理 ===== */
+.users-tip { font-size: 13px; color: var(--c-text-tertiary); margin: 0 0 14px; line-height: 1.6; }
+.users-tip b { color: var(--c-accent); }
+.users-stat-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.users-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+.users-table-wrap { overflow-x: auto; border: 1px solid var(--c-border); border-radius: 12px; }
+.users-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+.users-table th, .users-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--c-border); white-space: nowrap; }
+.users-table th { background: var(--c-bg-secondary); font-weight: 600; color: var(--c-text-secondary); font-size: 12px; }
+.users-table tbody tr:last-child td { border-bottom: none; }
+.users-table tbody tr:hover { background: var(--c-bg-tertiary); }
+.users-reset-btn { padding: 6px 12px; border: 1px solid var(--c-border-accent); background: none; color: var(--c-accent); border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s ease; }
+.users-reset-btn:hover { background: rgba(45,122,108,.08); border-color: var(--c-accent); }
+.users-reset-modal { max-width: 440px; }
+.users-reset-warn { color: #c92a2a; font-size: 13px; margin: 10px 0 0; }
+.users-reset-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.users-reset-confirm { padding: 7px 16px; background: #ff3b30; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.users-reset-confirm:disabled { opacity: .5; cursor: not-allowed; }
 @media (max-width: 640px) { .bd-grid { grid-template-columns: 1fr; } }
 </style>

@@ -77,14 +77,6 @@
     <div v-else-if="!wishes.length && !error" class="state-center empty-state">
       <div class="empty-icon">✦</div>
       <p>{{ t.empty }}</p>
-      <div class="empty-guide">
-        <strong>{{ t.howTitle }}</strong>
-        <ol class="empty-guide-list">
-          <li>{{ t.how1 }}</li>
-          <li>{{ t.how2 }}</li>
-          <li>{{ t.how3 }}</li>
-        </ol>
-      </div>
     </div>
     <div v-else-if="!wishes.length && error" class="state-center">
       <div class="empty-icon">📡</div>
@@ -256,6 +248,16 @@
     <Transition name="toast">
       <div v-if="toast" class="toast">{{ toast }}</div>
     </Transition>
+
+    <!-- 常驻底部玩法引导（空态/非空态都显示，悬浮在页面最下方） -->
+    <div class="wish-guide-bar" role="note">
+      <strong class="wish-guide-title">{{ t.howTitle }}</strong>
+      <ol class="wish-guide-list">
+        <li>{{ t.how1 }}</li>
+        <li>{{ t.how2 }}</li>
+        <li>{{ t.how3 }}</li>
+      </ol>
+    </div>
   </div>
 </template>
 
@@ -313,6 +315,10 @@ const i18n = {
     imgTip: 'Up to 3 photos, no videos',
     cancel: 'Cancel', publishing: 'Posting…', publish: 'Post',
     empty: 'No wishes yet — be the first to share an idea',
+    howTitle: 'How the Wish Pool works',
+    how1: 'Write down class activities, places to go, or fun ideas you want',
+    how2: 'Classmates like to show support — hotter ideas are more likely to happen',
+    how3: 'The Experience team reviews the wishes and brings them to life',
     loadError: 'Something went wrong', retry: 'Retry',
     del: 'Delete', like: 'Like', comment: 'Comment',
     commentUnit: 'comments', noComments: 'No comments yet — be the first',
@@ -340,6 +346,10 @@ const i18n = {
     imgTip: 'ได้สูงสุด 3 รูป ไม่รองรับวิดีโอ',
     cancel: 'ยกเลิก', publishing: 'กำลังโพสต์…', publish: 'โพสต์',
     empty: 'ยังไม่มีคำขอ เป็นคนแรกที่แชร์ไอเดีย',
+    howTitle: 'Wish Pool เล่นยังไง?',
+    how1: 'เขียนกิจกรรมที่อยากให้ชั้นเรียนจัด สถานที่ที่อยากไป หรือไอเดียสนุก ๆ',
+    how2: 'เพื่อน ๆ กดถูกใจเพื่อสนับสนุน ไอเดียที่ได้รับความนิยมมีโอกาสจัดจริงมากขึ้น',
+    how3: 'ทีมประสบการณ์จะรวบรวมความต้องการของทุกคน แล้วจัดกิจกรรมให้สำเร็จ',
     loadError: 'เกิดข้อผิดพลาด', retry: 'ลองใหม่',
     del: 'ลบ', like: 'ถูกใจ', comment: 'ความคิดเห็น',
     commentUnit: 'ความคิดเห็น', noComments: 'ยังไม่มีความคิดเห็น มาแสดงความคิดเห็นกัน',
@@ -1088,32 +1098,44 @@ onBeforeUnmount(() => {
 .empty-icon {
   font-size: 40px;
 }
-.empty-guide {
-  margin-top: 18px;
-  max-width: 460px;
-  width: 100%;
+/* 常驻底部玩法引导（空态/非空态都显示，悬浮在页面最下方；z-index 低于移动端 TabBar 的 1000） */
+.wish-guide-bar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  width: min(680px, calc(100vw - 32px));
+  box-sizing: border-box;
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-xl);
-  padding: 20px 24px;
-  text-align: left;
+  padding: 12px 20px 14px;
+  font-size: 13px;
 }
-.empty-guide strong {
+.wish-guide-title {
   display: block;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--c-text-primary);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
-.empty-guide-list {
+.wish-guide-list {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 14px;
+  gap: 4px;
+  font-size: 13px;
   color: var(--c-text-secondary);
   line-height: 1.5;
+}
+@media (max-width: 768px) {
+  .wish-guide-bar {
+    bottom: calc(56px + env(safe-area-inset-bottom) + 10px);
+    width: calc(100vw - 24px);
+    padding: 10px 14px 12px;
+  }
 }
 .spinner {
   width: 28px;

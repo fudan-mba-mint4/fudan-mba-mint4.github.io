@@ -14,6 +14,7 @@ export const dataTypes = [
   { id: 'coins', name: '薄荷币', icon: '🍃' },
   { id: 'gallery', name: '相册', icon: '🖼️' },
   { id: 'treehole', name: '树洞管理', icon: '🌳' },
+  { id: 'users', name: '用户管理', icon: '👥' },
 ]
 
 // 班费模块内部子 Tab
@@ -45,6 +46,8 @@ export const MODULE_ROLE_MAP = {
   coins: ['leader', 'deputy'],
   gallery: ['leader', 'deputy', 'memory'],
   treehole: ['leader', 'deputy', 'memory'],
+  // 用户管理：仅主理人/副主理人（用户明示仅自己使用；supervisor 后端 403）
+  users: [], // 「用户管理」仅主理人本人（雷振宇）专属，不按角色放行（见 AdminPanel visibleTypes 特殊判断）
 }
 
 // 薄荷币审批负责人（真名白名单，与后端 COIN_AUDITORS 保持一致）
