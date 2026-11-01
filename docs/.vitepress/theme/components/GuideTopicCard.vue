@@ -24,7 +24,12 @@ const ariaLabel = computed(() => `${shared.value.backToIndex ? '' : ''}${props.t
 </script>
 
 <template>
-  <a class="guide-topic-card" :class="`guide-topic-card--${size}`" :href="link" :aria-label="ariaLabel">
+  <a
+    class="guide-topic-card"
+    :class="[`guide-topic-card--${size}`, { 'fx-spotlight': size === 'md' }]"
+    :href="link"
+    :aria-label="ariaLabel"
+  >
     <div class="guide-topic-card__top">
       <span class="guide-topic-card__icon" aria-hidden="true">{{ icon }}</span>
       <span v-if="badge" class="guide-topic-card__badge">{{ badge }}</span>

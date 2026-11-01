@@ -161,3 +161,77 @@
 
 /* ---------- 减少动画偏好 ---------- */
 /* 注：index.css 中已存在全局 prefers-reduced-motion 降级，此处不再重复 */
+
+/* ============================================
+   交互动效（2026-11-01 · 动效优化 #20/#4）
+   ① 按钮按压回弹  ② 波纹跟手  ③ 大卡片跟手高亮
+   JS 由 theme/utils/interactiveFx.js 驱动；本文件只定义样式。
+   原则：只改 opacity / transform，GPU 友好；尊重 prefers-reduced-motion。
+   ============================================ */
+
+/* 按钮动效基底：建立层叠上下文（isolation）+ 裁剪（overflow），
+   保证波纹落在按钮背景之上、文字之下，并被圆角裁剪；去除移动端点击高亮 */
+button,
+[role="button"],
+a[class*="btn"] {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 波纹元素：从按下落点生成，向外扩散并淡出（z-index:-1 → 背景与内容之间） */
+.fx-ripple-el {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.16;
+  transform: scale(0);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: fx-ripple 600ms cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+@keyframes fx-ripple {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* 大卡片 / 主视觉跟手高亮：鼠标位置跟随的微弱薄荷光（非漂浮光晕）
+   仅在有 hover 能力的设备启用；reduced-motion 下 JS 直接跳过绑定 */
+@media (hover: hover) {
+  .fx-spotlight {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .fx-spotlight::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+      280px circle at var(--mx, 50%) var(--my, 50%),
+      var(--c-accent-glow),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity var(--transition-slow);
+    pointer-events: none;
+  }
+  .fx-spotlight.fx-spotlight-on::before {
+    opacity: 1;
+  }
+}
+
+/* 减少动效偏好：波纹静态化兜底（JS 已跳过，双保险） */
+@media (prefers-reduced-motion: reduce) {
+  .fx-ripple-el {
+    animation: none;
+    opacity: 0;
+  }
+}

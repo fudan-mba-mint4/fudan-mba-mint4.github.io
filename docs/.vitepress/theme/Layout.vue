@@ -3,6 +3,7 @@ import DefaultTheme from 'vitepress/theme'
 import MobileTabBar from './components/MobileTabBar.vue'
 import UserNavMenu from './components/UserNavMenu.vue'
 import { useScrollReveal } from './composables/useScrollReveal'
+import { initInteractiveFx, bindSpotlights } from './utils/interactiveFx'
 import { onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useData } from 'vitepress'
 
@@ -10,6 +11,9 @@ const { page } = useData()
 
 // 初始化滚动渐入动画
 const { refresh } = useScrollReveal()
+
+// 全局交互动效（按压回弹 + 波纹跟手 + 大卡片跟手高亮）
+let cleanupFx = null
 
 // 保存定时器句柄，避免快速导航时多个 setTimeout 竞态
 let scrollTimer = null
@@ -22,12 +26,17 @@ watch(
     if (scrollTimer) clearTimeout(scrollTimer)
     scrollTimer = setTimeout(() => {
       refresh()
+      bindSpotlights()
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }, 200)
   }
 )
 
 onMounted(() => {
+  // 全局交互动效：按压回弹 + 波纹 + 跟手高亮
+  cleanupFx = initInteractiveFx()
+  bindSpotlights()
+
   // 深色模式：每次都跟随系统设置，手动切换不保留记忆
   localStorage.removeItem('vitepress-theme-appearance')
   const applySystemTheme = () => {
@@ -101,6 +110,7 @@ onMounted(() => {
 
   // 组件卸载时清理监听器，避免内存泄漏
   onUnmounted(() => {
+    if (cleanupFx) cleanupFx()
     mediaQuery.removeEventListener('change', applySystemTheme)
     if (handleScroll) window.removeEventListener('scroll', handleScroll, { passive: true })
     if (scrollTimer) clearTimeout(scrollTimer)

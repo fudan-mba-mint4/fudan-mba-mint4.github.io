@@ -715,10 +715,6 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
   border-bottom: none;
 }
 
-.committee-table tr:hover td {
-  background: var(--c-bg-secondary);
-}
-
 .cell-module {
   font-weight: 600;
   color: var(--c-text-primary) !important;

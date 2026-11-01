@@ -315,7 +315,6 @@ main.guide-doc {
   font-size: var(--text-sm);
 }
 
-.guide-doc tr:hover td { background: var(--c-bg-secondary); }
 .guide-doc tr:last-child td { border-bottom: none; }
 
 .guide-doc blockquote {

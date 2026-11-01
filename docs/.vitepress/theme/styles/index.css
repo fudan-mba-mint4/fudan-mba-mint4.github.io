@@ -311,10 +311,6 @@ body {
   transition: background var(--transition-fast);
 }
 
-.vp-doc tr:hover td {
-  background: var(--c-bg-secondary) !important;
-}
-
 .vp-doc tr:last-child td {
   border-bottom: none !important;
 }

@@ -109,7 +109,6 @@ td {
 .guide-table--dense td,
 .guide-table--dense th { padding: var(--space-2) var(--space-3); }
 
-tbody tr:hover td { background: var(--c-bg-secondary); }
 tbody tr:last-child td { border-bottom: none; }
 
 .guide-table__cell--right { text-align: right; }
