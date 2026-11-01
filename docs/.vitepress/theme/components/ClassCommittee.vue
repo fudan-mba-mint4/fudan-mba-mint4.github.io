@@ -38,6 +38,31 @@ const i18n = {
     committeeNote: '具体委员名单待确认后更新。本页面当前为架构展示版本，职能模块划分已确定，人员信息将在班委会确认后补充。',
     tableHeaders: ['职能模块', '姓名', '主要职责'],
     pending: '待补充',
+    rulesTitle: '治理制度',
+    termTitle: '任期制度与改选连任',
+    termIntro: '每届班委任期一学年。学年末按「原任者意愿 + 是否有竞选者」分三种情形处理：',
+    termCases: [
+      { name: '直接连任', desc: '原任者愿意连任，且无他人参与竞选' },
+      { name: '动员竞选 / 改选投票', desc: '原任者愿意连任，但有同学参与竞选，组织全班投票表决' },
+      { name: '公开竞选改选', desc: '原任者不再连任，公开征集竞选者后组织全班投票' },
+    ],
+    termFlow: '改选流程：提名 / 自荐 → 全班投票 → 计票公示 → 新旧交接',
+    dutyTitle: '履职要求',
+    duties: [
+      { name: '启动', desc: '上任即定计划，明确学期目标与工作节奏' },
+      { name: '定岗', desc: '分工到人，责任清晰、不悬空' },
+      { name: '复盘', desc: '阶段性回顾，及时调整方向与做法' },
+      { name: '沉淀', desc: '过程与结果留档，经验可传承、可追溯' },
+      { name: '使命必达', desc: '承诺的事按时完成，遇阻提前沟通' },
+      { name: '接受监督', desc: '主动公开进展，接受独立董事会与全班监督' },
+    ],
+    oversightTitle: '罢免 · 主动退出 · 补位 · 交接监督',
+    oversight: [
+      { name: '主动退出', desc: '因故无法履职，提前向主理人团及班主任提出，经批准后办理交接' },
+      { name: '补位补选', desc: '班委空缺时由班委提名候选人，全班表决通过后补位' },
+      { name: '交接监督', desc: '账目双签、档案移交、班主任签字存档，过程留痕、责任清晰' },
+      { name: '罢免表决', desc: '罢免提案须全班不信任票过半方可通过对' },
+    ],
   },
   en: {
     philosophy: 'Committee members are enablers, not managers — every student can be seen, needed, and remembered',
@@ -75,6 +100,32 @@ const i18n = {
     committeeNote: 'Specific member names will be updated after confirmation. This page currently shows the architecture — module divisions are finalized, personnel info will be added after committee confirmation.',
     tableHeaders: ['Module', 'Name', 'Key Responsibilities'],
     pending: 'TBD',
+    // 以下为治理制度：中文定稿后统一翻译（开发阶段仅中文，en/th 占位）
+    rulesTitle: '治理制度',
+    termTitle: '任期制度与改选连任',
+    termIntro: '每届班委任期一学年。学年末按「原任者意愿 + 是否有竞选者」分三种情形处理：',
+    termCases: [
+      { name: '直接连任', desc: '原任者愿意连任，且无他人参与竞选' },
+      { name: '动员竞选 / 改选投票', desc: '原任者愿意连任，但有同学参与竞选，组织全班投票表决' },
+      { name: '公开竞选改选', desc: '原任者不再连任，公开征集竞选者后组织全班投票' },
+    ],
+    termFlow: '改选流程：提名 / 自荐 → 全班投票 → 计票公示 → 新旧交接',
+    dutyTitle: '履职要求',
+    duties: [
+      { name: '启动', desc: '上任即定计划，明确学期目标与工作节奏' },
+      { name: '定岗', desc: '分工到人，责任清晰、不悬空' },
+      { name: '复盘', desc: '阶段性回顾，及时调整方向与做法' },
+      { name: '沉淀', desc: '过程与结果留档，经验可传承、可追溯' },
+      { name: '使命必达', desc: '承诺的事按时完成，遇阻提前沟通' },
+      { name: '接受监督', desc: '主动公开进展，接受独立董事会与全班监督' },
+    ],
+    oversightTitle: '罢免 · 主动退出 · 补位 · 交接监督',
+    oversight: [
+      { name: '主动退出', desc: '因故无法履职，提前向主理人团及班主任提出，经批准后办理交接' },
+      { name: '补位补选', desc: '班委空缺时由班委提名候选人，全班表决通过后补位' },
+      { name: '交接监督', desc: '账目双签、档案移交、班主任签字存档，过程留痕、责任清晰' },
+      { name: '罢免表决', desc: '罢免提案须全班不信任票过半方可通过对' },
+    ],
   },
   th: {
     philosophy: 'คณะกรรมการเป็นผู้สนับสนุน ไม่ใช่ผู้จัดการ — ทุกคนสามารถถูกมองเห็น ถูกต้องการ และถูกจดจำ',
@@ -112,6 +163,32 @@ const i18n = {
     committeeNote: 'ชื่อสมาชิกจะได้รับการอัปเดตหลังการยืนยัน หน้านี้ปัจจุบันแสดงโครงสร้าง — การแบ่งโมดูลเสร็จสิ้นแล้ว ข้อมูลบุคคลจะถูกเพิ่มหลังการยืนยันจากคณะกรรมการ',
     tableHeaders: ['โมดูล', 'ชื่อ', 'หน้าที่หลัก'],
     pending: 'รอดำเนินการ',
+    // 以下为治理制度：中文定稿后统一翻译（开发阶段仅中文，en/th 占位）
+    rulesTitle: '治理制度',
+    termTitle: '任期制度与改选连任',
+    termIntro: '每届班委任期一学年。学年末按「原任者意愿 + 是否有竞选者」分三种情形处理：',
+    termCases: [
+      { name: '直接连任', desc: '原任者愿意连任，且无他人参与竞选' },
+      { name: '动员竞选 / 改选投票', desc: '原任者愿意连任，但有同学参与竞选，组织全班投票表决' },
+      { name: '公开竞选改选', desc: '原任者不再连任，公开征集竞选者后组织全班投票' },
+    ],
+    termFlow: '改选流程：提名 / 自荐 → 全班投票 → 计票公示 → 新旧交接',
+    dutyTitle: '履职要求',
+    duties: [
+      { name: '启动', desc: '上任即定计划，明确学期目标与工作节奏' },
+      { name: '定岗', desc: '分工到人，责任清晰、不悬空' },
+      { name: '复盘', desc: '阶段性回顾，及时调整方向与做法' },
+      { name: '沉淀', desc: '过程与结果留档，经验可传承、可追溯' },
+      { name: '使命必达', desc: '承诺的事按时完成，遇阻提前沟通' },
+      { name: '接受监督', desc: '主动公开进展，接受独立董事会与全班监督' },
+    ],
+    oversightTitle: '罢免 · 主动退出 · 补位 · 交接监督',
+    oversight: [
+      { name: '主动退出', desc: '因故无法履职，提前向主理人团及班主任提出，经批准后办理交接' },
+      { name: '补位补选', desc: '班委空缺时由班委提名候选人，全班表决通过后补位' },
+      { name: '交接监督', desc: '账目双签、档案移交、班主任签字存档，过程留痕、责任清晰' },
+      { name: '罢免表决', desc: '罢免提案须全班不信任票过半方可通过对' },
+    ],
   }
 }
 
@@ -191,6 +268,41 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
       <div class="philosophy-card">
         <p class="philosophy-text">{{ t.philosophy }}</p>
         <p class="philosophy-desc">{{ t.philosophyDesc }}</p>
+      </div>
+    </section>
+
+    <!-- 治理制度 -->
+    <section class="section">
+      <h2 class="section-title">{{ t.rulesTitle }}</h2>
+
+      <h3 class="rules-subtitle">🗓️ {{ t.termTitle }}</h3>
+      <p class="rules-intro">{{ t.termIntro }}</p>
+      <div class="term-grid">
+        <div v-for="(c, i) in t.termCases" :key="i" class="term-card">
+          <span class="term-index">{{ i + 1 }}</span>
+          <div class="term-content">
+            <h4 class="term-name">{{ c.name }}</h4>
+            <p class="term-desc">{{ c.desc }}</p>
+          </div>
+        </div>
+      </div>
+      <p class="rules-flow">{{ t.termFlow }}</p>
+
+      <h3 class="rules-subtitle">📋 {{ t.dutyTitle }}</h3>
+      <div class="duty-grid">
+        <div v-for="(d, i) in t.duties" :key="i" class="duty-card">
+          <span class="duty-index">{{ String(i + 1).padStart(2, '0') }}</span>
+          <h4 class="duty-name">{{ d.name }}</h4>
+          <p class="duty-desc">{{ d.desc }}</p>
+        </div>
+      </div>
+
+      <h3 class="rules-subtitle">⚖️ {{ t.oversightTitle }}</h3>
+      <div class="oversight-grid">
+        <div v-for="(o, i) in t.oversight" :key="i" class="oversight-card">
+          <h4 class="oversight-name">{{ o.name }}</h4>
+          <p class="oversight-desc">{{ o.desc }}</p>
+        </div>
       </div>
     </section>
 
@@ -308,6 +420,8 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
   .committee-grid { grid-template-columns: 1fr; }
   .committee-card--lead, .committee-card--deputy, .committee-card--board { grid-column: span 1; }
   .committee-hero-title { font-size: 22px; }
+  .term-grid, .duty-grid { grid-template-columns: repeat(2, 1fr); }
+  .oversight-grid { grid-template-columns: 1fr; }
 }
 
 /* 治理理念 */
@@ -339,6 +453,142 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
   max-width: 640px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* 治理制度 */
+.rules-subtitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 32px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rules-intro {
+  font-size: 13px;
+  color: var(--c-text-secondary);
+  line-height: 1.8;
+  margin: 0 0 16px;
+}
+
+.term-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.term-card {
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  transition: border-color 0.25s ease;
+}
+
+.term-card:hover {
+  border-color: var(--c-accent-light);
+}
+
+.term-index {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-accent);
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.term-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0 0 4px;
+}
+
+.term-desc {
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.rules-flow {
+  font-size: 12px;
+  color: var(--c-text-tertiary);
+  margin: 14px 0 0;
+}
+
+.duty-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.duty-card {
+  padding: 16px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  transition: border-color 0.25s ease;
+}
+
+.duty-card:hover {
+  border-color: var(--c-accent-light);
+}
+
+.duty-index {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-accent);
+}
+
+.duty-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 4px 0 4px;
+}
+
+.duty-desc {
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.oversight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.oversight-card {
+  padding: 16px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  transition: border-color 0.25s ease;
+}
+
+.oversight-card:hover {
+  border-color: var(--c-accent-light);
+}
+
+.oversight-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 0 0 4px;
+}
+
+.oversight-desc {
+  font-size: 12px;
+  color: var(--c-text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* 通用section */
@@ -495,6 +745,10 @@ const boardMembers = ['周楠骐', '李浩', '王星然', '王胜']
 
   .module-block {
     padding: 18px 16px;
+  }
+
+  .term-grid, .duty-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

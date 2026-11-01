@@ -31,6 +31,26 @@ const i18n = {
       { tag: '向上', desc: '互相激励、共同进步，不让任何一个人掉队' },
     ],
     footer: '在这里，每个人都能被看见、被需要、被记得。',
+    pactTitle: '班级公约',
+    pactGovTitle: '治理八条',
+    pactGov: [
+      { name: '信息通达', desc: '重要信息及时、完整传达，让每位同学都能同步掌握班级动态' },
+      { name: '友善共处', desc: '尊重彼此差异，以善意沟通，不搞小圈子、不制造对立' },
+      { name: '自主选择', desc: '尊重个人意愿，班级事务充分讨论，不强制、不绑架' },
+      { name: '言行有界', desc: '言行有分寸、不越界，守住相互尊重的底线' },
+      { name: '经费共议', desc: '班费使用公开商议、共同决定，重大支出充分听取意见' },
+      { name: '管账分离', desc: '管钱与记账分人负责，互相制衡、互相监督' },
+      { name: '阳光账目', desc: '收支明细定期公示，每一笔都经得起查看与追问' },
+      { name: '信守承诺', desc: '说到做到，答应的事认真履行，共建可信任的班级环境' },
+    ],
+    pactStudyTitle: '学风五条',
+    pactStudy: [
+      { name: '尊师重道', desc: '尊重每一位老师的付出，课堂内外以礼相待' },
+      { name: '学术独立', desc: '独立思考、独立完成学业任务，学术诚信是底线' },
+      { name: '专注自律', desc: '课堂专注、作业守时，对自己负责' },
+      { name: '摒弃头衔', desc: '不分职务高低、不分行业背景，平等交流、相互学习' },
+      { name: '积极准时', desc: '准时出席、积极参与，不让自己的缺席拖累集体' },
+    ],
   },
   en: {
     slogan: '4 the Best, for the Future.',
@@ -61,6 +81,27 @@ const i18n = {
       { tag: 'Upward', desc: 'Motivate each other, no one left behind' },
     ],
     footer: 'Here, everyone can be seen, needed, and remembered.',
+    // 以下为班级公约：中文定稿后统一翻译（开发阶段仅中文，en/th 占位）
+    pactTitle: '班级公约',
+    pactGovTitle: '治理八条',
+    pactGov: [
+      { name: '信息通达', desc: '重要信息及时、完整传达，让每位同学都能同步掌握班级动态' },
+      { name: '友善共处', desc: '尊重彼此差异，以善意沟通，不搞小圈子、不制造对立' },
+      { name: '自主选择', desc: '尊重个人意愿，班级事务充分讨论，不强制、不绑架' },
+      { name: '言行有界', desc: '言行有分寸、不越界，守住相互尊重的底线' },
+      { name: '经费共议', desc: '班费使用公开商议、共同决定，重大支出充分听取意见' },
+      { name: '管账分离', desc: '管钱与记账分人负责，互相制衡、互相监督' },
+      { name: '阳光账目', desc: '收支明细定期公示，每一笔都经得起查看与追问' },
+      { name: '信守承诺', desc: '说到做到，答应的事认真履行，共建可信任的班级环境' },
+    ],
+    pactStudyTitle: '学风五条',
+    pactStudy: [
+      { name: '尊师重道', desc: '尊重每一位老师的付出，课堂内外以礼相待' },
+      { name: '学术独立', desc: '独立思考、独立完成学业任务，学术诚信是底线' },
+      { name: '专注自律', desc: '课堂专注、作业守时，对自己负责' },
+      { name: '摒弃头衔', desc: '不分职务高低、不分行业背景，平等交流、相互学习' },
+      { name: '积极准时', desc: '准时出席、积极参与，不让自己的缺席拖累集体' },
+    ],
   },
   th: {
     slogan: '4 the Best, for the Future.',
@@ -91,6 +132,27 @@ const i18n = {
       { tag: 'ก้าวหน้า', desc: 'กระตุ้นซึ่งกันและกัน ไม่ทิ้งใครไว้ข้างหลัง' },
     ],
     footer: 'ที่นี่ ทุกคนสามารถถูกมองเห็น ถูกต้องการ และถูกจดจำ',
+    // 以下为班级公约：中文定稿后统一翻译（开发阶段仅中文，en/th 占位）
+    pactTitle: '班级公约',
+    pactGovTitle: '治理八条',
+    pactGov: [
+      { name: '信息通达', desc: '重要信息及时、完整传达，让每位同学都能同步掌握班级动态' },
+      { name: '友善共处', desc: '尊重彼此差异，以善意沟通，不搞小圈子、不制造对立' },
+      { name: '自主选择', desc: '尊重个人意愿，班级事务充分讨论，不强制、不绑架' },
+      { name: '言行有界', desc: '言行有分寸、不越界，守住相互尊重的底线' },
+      { name: '经费共议', desc: '班费使用公开商议、共同决定，重大支出充分听取意见' },
+      { name: '管账分离', desc: '管钱与记账分人负责，互相制衡、互相监督' },
+      { name: '阳光账目', desc: '收支明细定期公示，每一笔都经得起查看与追问' },
+      { name: '信守承诺', desc: '说到做到，答应的事认真履行，共建可信任的班级环境' },
+    ],
+    pactStudyTitle: '学风五条',
+    pactStudy: [
+      { name: '尊师重道', desc: '尊重每一位老师的付出，课堂内外以礼相待' },
+      { name: '学术独立', desc: '独立思考、独立完成学业任务，学术诚信是底线' },
+      { name: '专注自律', desc: '课堂专注、作业守时，对自己负责' },
+      { name: '摒弃头衔', desc: '不分职务高低、不分行业背景，平等交流、相互学习' },
+      { name: '积极准时', desc: '准时出席、积极参与，不让自己的缺席拖累集体' },
+    ],
   },
 }
 
@@ -152,6 +214,29 @@ const { t } = useLang(i18n)
         </div>
       </div>
       <p class="culture-footer">{{ t.footer }}</p>
+    </section>
+
+    <!-- 班级公约 -->
+    <section class="section">
+      <h2 class="section-title">{{ t.pactTitle }}</h2>
+
+      <h3 class="pact-subtitle">{{ t.pactGovTitle }}</h3>
+      <div class="pact-grid">
+        <div v-for="(g, i) in t.pactGov" :key="i" class="pact-card">
+          <span class="pact-index">{{ String(i + 1).padStart(2, '0') }}</span>
+          <h4 class="pact-name">{{ g.name }}</h4>
+          <p class="pact-desc">{{ g.desc }}</p>
+        </div>
+      </div>
+
+      <h3 class="pact-subtitle">{{ t.pactStudyTitle }}</h3>
+      <div class="pact-grid pact-grid--study">
+        <div v-for="(s, i) in t.pactStudy" :key="i" class="pact-card">
+          <span class="pact-index">{{ String(i + 1).padStart(2, '0') }}</span>
+          <h4 class="pact-name">{{ s.name }}</h4>
+          <p class="pact-desc">{{ s.desc }}</p>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -364,6 +449,59 @@ const { t } = useLang(i18n)
   margin: 0;
 }
 
+/* 班级公约 */
+.pact-subtitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 32px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.pact-grid--study {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.pact-card {
+  padding: 18px 16px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  transition: border-color 0.25s ease;
+}
+
+.pact-card:hover {
+  border-color: var(--c-accent-light);
+}
+
+.pact-index {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-accent);
+}
+
+.pact-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-text-primary);
+  margin: 6px 0 6px;
+}
+
+.pact-desc {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--c-text-secondary);
+  margin: 0;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
   .slogan-text {
@@ -387,6 +525,18 @@ const { t } = useLang(i18n)
 
   .atmosphere-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pact-grid,
+  .pact-grid--study {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .pact-grid,
+  .pact-grid--study {
+    grid-template-columns: 1fr;
   }
 }
 </style>

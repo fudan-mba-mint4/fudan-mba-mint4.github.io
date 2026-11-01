@@ -114,7 +114,7 @@ const { t } = useLang(i18n)
     </section>
 
     <!-- 四大建设方向 -->
-    <section class="section section--alt">
+    <section class="section">
       <h2 class="section-title">{{ t.pillarsTitle }}</h2>
       <div class="pillars-grid">
         <div v-for="(pillar, i) in t.pillars" :key="i" class="pillar-card">
@@ -146,7 +146,7 @@ const { t } = useLang(i18n)
     </section>
 
     <!-- 毕业后期望 -->
-    <section class="section section--alt">
+    <section class="section">
       <h2 class="section-title">{{ t.afterTitle }}</h2>
       <div class="after-grid">
         <div v-for="(item, i) in t.afterGrad" :key="i" class="after-card">
@@ -187,8 +187,8 @@ const { t } = useLang(i18n)
 }
 
 .vision-label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--c-accent);
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -265,7 +265,7 @@ const { t } = useLang(i18n)
   padding: 24px 22px;
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
-  border-radius: 16px;
+  border-radius: 20px;
   transition: all 0.25s ease;
 }
 
@@ -422,7 +422,7 @@ const { t } = useLang(i18n)
   padding: 22px 18px;
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
-  border-radius: 14px;
+  border-radius: 16px;
   text-align: center;
   transition: all 0.25s ease;
 }
