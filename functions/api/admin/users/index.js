@@ -1,9 +1,10 @@
-// 用户管理 - GET /api/admin/users（当前所有注册用户列表，仅主理人/副主理人可用）
-// 返回脱敏字段：不含 password_hash / token，仅后台管理所需展示信息。
+// 用户管理 - GET /api/admin/users（仅主理人本人雷振宇可用；返回注册用户 + 名录对齐结果）
+// 返回脱敏字段：不含 password_hash / token；roster 段用于「未注册同学 / 班主任·传承人 / 异常账号」对账。
 import {
   getSql, corsResponse, optionsResponse, requireUsersAdmin,
-  ensureTables, isMissingTableError,
+  ensureTables, isMissingTableError, COMMITTEE_ROLES,
 } from '../../../_utils.js'
+import { buildRosterAlignment } from '../../../_roster-align.js'
 
 export async function onRequest(context) {
   const { request, env } = context
@@ -31,5 +32,16 @@ async function handleList(env) {
     SELECT id, username, name, nickname, group_no, role, created_at
     FROM users
     ORDER BY created_at DESC, id DESC`
-  return corsResponse({ users: rows })
+  const aligned = buildRosterAlignment(rows, COMMITTEE_ROLES)
+  return corsResponse({
+    users: aligned.users,
+    roster: {
+      labels: aligned.labels,
+      summary: aligned.summary,
+      students: aligned.students,
+      unregisteredStudents: aligned.unregisteredStudents,
+      observers: aligned.observers,
+      unknownAccounts: aligned.unknownAccounts,
+    },
+  })
 }

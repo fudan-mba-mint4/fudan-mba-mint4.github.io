@@ -1,8 +1,7 @@
 // 班级同学名录（注册白名单）
 // 单一数据源：docs/public/data/class-members.json（与“同学名录”页是同一份文件）。
-// 仅 status === 'active' 的成员可注册，当前共 84 人：
-//   班主任 + 传承人（含传承人 leader）+ 在读学生；
-//   status === 'withdrawn'（已退出/退学）的同学不在白名单内。
+// 仅 status === 'active' 的成员可注册（当前 83 人：班主任 1 + 传承人含组长 13 + 在读学生 69）；
+// status === 'withdrawn'（退学/退出）、'suspended'（休学）等非活跃成员不在白名单内。
 import classMembers from '../docs/public/data/class-members.json'
 
 // 规范化姓名：
@@ -27,7 +26,7 @@ const ROSTER_ROLE_MAP = new Map(
     .map((m) => [normalizeName(m.name), m.role]),
 )
 
-// 是否本班同学（在 84 人名录内）
+// 是否本班活跃成员（在 83 名活跃名录内；非活跃退出/休学成员不计入）
 export function isInRoster(rawName) {
   const n = normalizeName(rawName)
   return n.length > 0 && ROSTER_SET.has(n)
@@ -62,3 +61,50 @@ export function isViewerOnlyName(rawName) {
 
 // 白名单人数（便于自检/日志）
 export const ROSTER_SIZE = ROSTER_SET.size
+
+// 活跃成员明细（status === 'active'）：班主任 + 传承人（含组长）+ 在读学生；
+// 供后台用户管理做「注册账号 ↔ 名录身份」对齐，避免在接口里重复解析 JSON。
+const ACTIVE_MEMBERS = classMembers.members
+  .filter((m) => m && m.status === 'active')
+  .map((m) => ({
+    id: m.id,
+    name: m.name,
+    nickname: m.nickname || '',
+    gender: m.gender || null,
+    role: m.role,
+    orientationGroup: m.orientationGroup ? parseInt(m.orientationGroup, 10) : null,
+    mentorGroup: m.mentorGroup || null,
+    status: m.status,
+  }))
+
+// 非活跃成员（withdrawn 退学/退出、suspended 休学等）：不在注册白名单，仅供异常账号对账
+const INACTIVE_MEMBERS = classMembers.members
+  .filter((m) => m && m.status !== 'active')
+  .map((m) => ({ name: m.name, role: m.role, status: m.status, norm: normalizeName(m.name) }))
+
+const INACTIVE_STATUS_MAP = new Map(INACTIVE_MEMBERS.map((m) => [m.norm, m.status]))
+
+// 活跃名录成员数组（只读副本语义：调用方不应原地修改）
+export function getActiveMembers() {
+  return ACTIVE_MEMBERS.map((m) => ({ ...m }))
+}
+
+// 非活跃成员（已退出/休学等）数组
+export function getInactiveMembers() {
+  return INACTIVE_MEMBERS.map((m) => ({ ...m }))
+}
+
+// 某真名在名录中的活跃状态：active（活跃白名单）/ inactive（存在但已退出/休学）/ unknown（名录中无此人）
+export function rosterStatusOf(rawName) {
+  const n = normalizeName(rawName)
+  if (!n) return 'unknown'
+  if (ROSTER_SET.has(n)) return 'active'
+  if (INACTIVE_STATUS_MAP.has(n)) return 'inactive'
+  return 'unknown'
+}
+
+// 非活跃成员的原始状态（withdrawn / suspended …）；不在非活跃名单返回 null
+export function inactiveStatusOf(rawName) {
+  const n = normalizeName(rawName)
+  return n ? (INACTIVE_STATUS_MAP.get(n) || null) : null
+}

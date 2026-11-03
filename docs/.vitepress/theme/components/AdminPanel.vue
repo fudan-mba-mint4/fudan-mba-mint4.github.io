@@ -1149,37 +1149,109 @@
       <!-- ===== 用户管理（仅主理人/副主理人可见） ===== -->
       <div v-if="currentType === 'users'" class="form-section users-admin">
         <h3>👥 用户管理</h3>
-        <p class="users-tip">当前全部注册用户。同学忘记密码时，点「重置密码」一键将密码改为 <b class="mono">123456</b>，该用户会立即登出、需用新密码重新登录。</p>
+        <p class="users-tip">注册账号以班级名录为准：在读同学用真名注册后自动识别班委职务与分组；班主任/传承人为只读身份。下方可在「注册账号 / 未注册同学 / 班主任·传承人」间切换；同学忘记密码时，在「注册账号」视图点「重置密码」一键改为 <b class="mono">123456</b>，该用户立即登出、需重新登录。</p>
         <div class="users-stat-cards">
-          <div class="stat-card"><div class="stat-card-num">{{ usersStats.total }}</div><div class="stat-card-label">全部用户</div></div>
-          <div class="stat-card stat-card-active"><div class="stat-card-num">{{ usersStats.committee }}</div><div class="stat-card-label">班委</div></div>
+          <div class="stat-card"><div class="stat-card-num">{{ usersStats.total }}</div><div class="stat-card-label">全部账号</div></div>
+          <div class="stat-card stat-card-active"><div class="stat-card-num">{{ usersStats.committee }}</div><div class="stat-card-label">班委账号</div></div>
           <div class="stat-card"><div class="stat-card-num">{{ usersStats.groups }}</div><div class="stat-card-label">已分组</div></div>
+          <button type="button" class="stat-card users-stat-link" :class="{ active: usersView === 'unregistered' }" @click="switchUsersView('unregistered')">
+            <div class="stat-card-num">{{ unregisteredStudents.length }}</div><div class="stat-card-label">未注册同学</div>
+          </button>
+        </div>
+        <div v-if="usersRoster" class="users-seg">
+          <button type="button" class="type-tab" :class="{ active: usersView === 'registered' }" @click="switchUsersView('registered')">注册账号（{{ usersStats.total }}）</button>
+          <button type="button" class="type-tab" :class="{ active: usersView === 'unregistered' }" @click="switchUsersView('unregistered')">未注册同学（{{ unregisteredStudents.length }}）</button>
+          <button type="button" class="type-tab" :class="{ active: usersView === 'observers' }" @click="switchUsersView('observers')">班主任·传承人（{{ observers.length }}）</button>
         </div>
         <div class="users-toolbar">
-          <input v-model="usersSearch" placeholder="🔍 搜索用户名 / 真名 / 昵称…" class="treehole-search" />
+          <input v-model="usersSearch" :placeholder="usersSearchPlaceholder" class="treehole-search" />
           <button @click="loadUsers" class="token-btn">刷新</button>
         </div>
         <div v-if="usersLoading" class="treehole-loading"><div class="spinner-sm"></div> 加载中...</div>
-        <div v-else-if="filteredUsers.length === 0" class="treehole-empty">暂无用户</div>
-        <div v-else class="users-table-wrap">
-          <table class="users-table">
-            <thead>
-              <tr><th>ID</th><th>用户名</th><th>真名</th><th>昵称</th><th>小组</th><th>角色</th><th>注册时间</th><th>操作</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="u in filteredUsers" :key="u.id">
-                <td>{{ u.id }}</td>
-                <td class="mono">{{ u.username }}</td>
-                <td><strong>{{ u.name }}</strong></td>
-                <td>{{ u.nickname || '—' }}</td>
-                <td>{{ u.group_no ? u.group_no + ' 组' : '—' }}</td>
-                <td>{{ roleNameOf(u.role) }}</td>
-                <td>{{ shortTime(u.created_at) }}</td>
-                <td><button class="users-reset-btn" @click="openResetUser(u)">重置密码</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <template v-else>
+          <div v-if="unknownAccounts.length" class="users-alert">
+            <strong>⚠ 异常账号 {{ unknownAccounts.length }} 个（不在活跃名录）</strong>
+            <p>已注册但属于已退出/休学成员，或姓名与名录不一致，请人工核对：</p>
+            <ul>
+              <li v-for="u in unknownAccounts" :key="u.id">{{ u.name }}（@{{ u.username }}）— {{ u.reason }}</li>
+            </ul>
+          </div>
+
+          <!-- 视图一：注册账号（含名录身份标注） -->
+          <div v-if="usersView === 'registered'">
+            <div v-if="filteredUsers.length === 0" class="treehole-empty">暂无匹配账号</div>
+            <div v-else class="users-table-wrap">
+              <table class="users-table">
+                <thead>
+                  <tr><th>ID</th><th>用户名</th><th>真名</th><th>昵称</th><th>小组</th><th>班委职务</th><th>名录身份</th><th>注册时间</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="u in filteredUsers" :key="u.id">
+                    <td>{{ u.id }}</td>
+                    <td class="mono">{{ u.username }}</td>
+                    <td><strong>{{ u.name }}</strong></td>
+                    <td>{{ u.nickname || '—' }}</td>
+                    <td>{{ u.group_no ? u.group_no + ' 组' : '—' }}</td>
+                    <td>{{ roleNameOf(u.role) }}</td>
+                    <td>
+                      <span v-if="u.rosterLabel" class="roster-tag" :class="rosterTagClass(u.rosterRole)">{{ u.rosterLabel }}</span>
+                      <span v-else class="roster-tag roster-tag--muted">未对齐</span>
+                    </td>
+                    <td>{{ shortTime(u.created_at) }}</td>
+                    <td><button class="users-reset-btn" @click="openResetUser(u)">重置密码</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 视图二：未注册同学（活跃名录在读学生，无账号） -->
+          <div v-if="usersView === 'unregistered'">
+            <p class="users-view-tip">下列在读同学尚未注册；「班委职务」非空者为待认领班委，应优先邀请注册——注册时填写与名录一致的真名，即自动获得职务与分组。</p>
+            <div v-if="filteredUnregistered.length === 0" class="treehole-empty">名录内在读同学均已注册 🎉</div>
+            <div v-else class="users-table-wrap">
+              <table class="users-table">
+                <thead>
+                  <tr><th>#</th><th>真名</th><th>昵称</th><th>小组</th><th>班委职务</th><th>状态</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(s, i) in filteredUnregistered" :key="s.id">
+                    <td>{{ i + 1 }}</td>
+                    <td><strong>{{ s.name }}</strong></td>
+                    <td>{{ s.nickname || '—' }}</td>
+                    <td>{{ s.group ? s.group + ' 组' : '—' }}</td>
+                    <td><span v-if="s.committeeRole" class="roster-tag roster-tag--accent">{{ roleNameOf(s.committeeRole) }}</span><span v-else>—</span></td>
+                    <td><span v-if="s.committeeRole" class="roster-tag roster-tag--warn">班委待注册</span><span v-else class="roster-tag roster-tag--muted">未注册</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 视图三：班主任 / 传承人（只读身份） -->
+          <div v-if="usersView === 'observers'">
+            <p class="users-view-tip">只读身份：不参与投票、报名、报销、薄荷币申报等互动；是否持有账号不影响名录页展示。</p>
+            <div v-if="filteredObservers.length === 0" class="treehole-empty">暂无班主任 / 传承人</div>
+            <div v-else class="users-table-wrap">
+              <table class="users-table">
+                <thead>
+                  <tr><th>真名</th><th>昵称</th><th>身份</th><th>账号状态</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="o in filteredObservers" :key="o.id">
+                    <td><strong>{{ o.name }}</strong></td>
+                    <td>{{ o.nickname || '—' }}</td>
+                    <td><span class="roster-tag" :class="rosterTagClass(o.rosterRole)">{{ o.rosterLabel }}</span></td>
+                    <td>
+                      <span v-if="o.registered" class="roster-tag roster-tag--ok">已注册 @{{ o.username }}</span>
+                      <span v-else class="roster-tag roster-tag--muted">未注册</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- 重置密码确认弹窗（页面内，关键操作） -->
@@ -1806,6 +1878,47 @@ const usersLoading = ref(false)
 const usersSearch = ref('')
 const resetTarget = ref(null)
 const resetting = ref(false)
+// 名录对齐数据（来自 /api/admin/users 的 roster 段）与三视图：registered 注册账号 / unregistered 未注册同学 / observers 班主任·传承人
+const usersRoster = ref(null)
+const usersView = ref('registered')
+const unregisteredStudents = computed(() => usersRoster.value?.unregisteredStudents || [])
+const observers = computed(() => usersRoster.value?.observers || [])
+const unknownAccounts = computed(() => usersRoster.value?.unknownAccounts || [])
+
+const usersSearchPlaceholder = computed(() => {
+  if (usersView.value === 'unregistered') return '🔍 搜索未注册同学姓名 / 昵称 / 职务…'
+  if (usersView.value === 'observers') return '🔍 搜索班主任 / 传承人姓名 / 昵称…'
+  return '🔍 搜索用户名 / 真名 / 昵称…'
+})
+
+function switchUsersView(view) {
+  usersSearch.value = ''
+  usersView.value = view
+}
+
+const filteredUnregistered = computed(() => {
+  const q = usersSearch.value.trim().toLowerCase()
+  if (!q) return unregisteredStudents.value
+  return unregisteredStudents.value.filter(s =>
+    (s.name || '').toLowerCase().includes(q)
+    || (s.nickname || '').toLowerCase().includes(q)
+    || (roleNameOf(s.committeeRole) || '').toLowerCase().includes(q))
+})
+
+const filteredObservers = computed(() => {
+  const q = usersSearch.value.trim().toLowerCase()
+  if (!q) return observers.value
+  return observers.value.filter(o =>
+    (o.name || '').toLowerCase().includes(q)
+    || (o.nickname || '').toLowerCase().includes(q)
+    || (o.rosterLabel || '').toLowerCase().includes(q))
+})
+
+function rosterTagClass(role) {
+  if (role === 'headTeacher') return 'roster-tag--accent'
+  if (role === 'mentor' || role === 'mentorLeader') return 'roster-tag--mentor'
+  return ''
+}
 
 const usersStats = computed(() => {
   const list = usersList.value
@@ -1834,8 +1947,11 @@ async function loadUsers() {
   try {
     const res = await fetchWithRetry(`${API_PREFIX}/api/admin/users`, { headers: adminHeaders() })
     const data = await res.json()
-    if (res.ok) usersList.value = data.users || []
-    else alert('加载失败: ' + (data.error || res.statusText))
+    if (res.ok) {
+      usersList.value = data.users || []
+      usersRoster.value = data.roster || null
+      if (!data.roster) usersView.value = 'registered'
+    } else alert('加载失败: ' + (data.error || res.statusText))
   } catch (e) {
     alert('加载失败: ' + e.message)
   } finally {
@@ -3070,7 +3186,6 @@ watch(currentType, (val) => {
 .history-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 16px; }
 .history-section h3 { font-size: 15px; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; position: sticky; top: -16px; background: var(--c-bg-card); padding: 2px 0 10px; z-index: 1; }
 .history-count { font-size: 12px; font-weight: 400; color: var(--c-text-tertiary); }
-.history-loading { font-size: 12px; color: var(--c-text-tertiary); font-weight: 400; }
 .history-empty { text-align: center; padding: 24px; color: var(--c-text-tertiary); font-size: 13px; }
 
 .history-item { display: flex; gap: 8px; align-items: flex-start; padding: 10px; border: 1px solid var(--c-border); border-radius: 10px; margin-bottom: 8px; background: var(--c-bg-secondary); }
@@ -3142,7 +3257,6 @@ watch(currentType, (val) => {
 .treehole-clear-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
 
 /* 列表 */
-.treehole-loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 32px; color: var(--c-text-tertiary); font-size: 14px; }
 .treehole-empty { text-align: center; padding: 40px 20px; color: var(--c-text-tertiary); font-size: 14px; }
 .treehole-list { display: flex; flex-direction: column; gap: 8px; }
 .treehole-item { display: flex; gap: 12px; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-bg-secondary); align-items: flex-start; transition: border-color 0.2s; }
@@ -3184,9 +3298,6 @@ watch(currentType, (val) => {
 .treehole-page-btn:hover:not(:disabled) { border-color: var(--c-accent); }
 .treehole-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .treehole-page-info { font-size: 13px; color: var(--c-text-secondary); }
-
-.spinner-sm { width: 16px; height: 16px; border: 2px solid var(--c-border); border-top-color: var(--c-accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 640px) {
   .treehole-stat-cards { grid-template-columns: repeat(2, 1fr); }
@@ -3358,8 +3469,24 @@ watch(currentType, (val) => {
 /* ===== 用户管理 ===== */
 .users-tip { font-size: 13px; color: var(--c-text-tertiary); margin: 0 0 14px; line-height: 1.6; }
 .users-tip b { color: var(--c-accent); }
-.users-stat-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.users-stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
 .users-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+.users-seg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.users-seg .type-tab { padding: 7px 14px; border-radius: 10px; font-size: 13px; }
+.users-stat-link { background: var(--c-bg-secondary); border: 1px solid var(--c-border); color: inherit; font: inherit; cursor: pointer; text-align: center; transition: border-color 0.2s; }
+.users-stat-link.active { border-color: var(--c-accent); }
+.users-view-tip { font-size: 12.5px; color: var(--c-text-tertiary); margin: 0 0 10px; line-height: 1.6; }
+.users-alert { border: 1px solid rgba(255,59,48,.3); background: rgba(255,59,48,.05); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: #c92a2a; }
+.users-alert p { margin: 6px 0; }
+.users-alert ul { margin: 6px 0 0; padding-left: 18px; }
+.users-alert li { margin: 3px 0; }
+.roster-tag { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.roster-tag--muted { background: var(--c-bg-elevated); color: var(--c-text-tertiary); }
+.roster-tag--accent { background: rgba(94,196,172,.15); color: var(--c-accent); }
+.roster-tag--mentor { background: rgba(255,159,10,.12); color: #b45309; }
+.roster-tag--warn { background: rgba(255,59,48,.12); color: #c92a2a; }
+.roster-tag--ok { background: rgba(52,199,89,.14); color: #2f9e44; }
+@media (max-width: 640px) { .users-stat-cards { grid-template-columns: repeat(2, 1fr); } }
 .users-table-wrap { overflow-x: auto; border: 1px solid var(--c-border); border-radius: 12px; }
 .users-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
 .users-table th, .users-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--c-border); white-space: nowrap; }
