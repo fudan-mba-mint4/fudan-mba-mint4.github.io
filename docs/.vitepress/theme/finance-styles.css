@@ -67,14 +67,17 @@
 .budget-card { background: var(--c-bg-secondary); border: 1px solid var(--c-border); border-radius: 14px; padding: 16px 20px; margin-bottom: 10px; }
 .budget-card.open { border-color: rgba(94,196,172,.5); }
 .budget-card.pending { border-color: rgba(255,159,10,.45); }
-.bc-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.bc-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .bc-status { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
 .bc-status.open { background: rgba(94,196,172,.15); color: var(--c-accent); }
 .bc-status.pending { background: rgba(255,159,10,.15); color: #b45309; }
 .bc-status.passed { background: rgba(52,199,89,.14); color: #2f9e44; }
 .bc-status.rejected { background: rgba(255,59,48,.12); color: #c92a2a; }
 .bc-status.cancelled, .bc-status.spent { background: var(--c-bg-elevated); color: var(--c-text-tertiary); }
-.bc-days { font-size: 13px; color: var(--c-accent); font-weight: 600; }
+/* 右侧：静态截止日期（左，弱化）+ 动态倒计时（右，薄荷强调色）并排，窄屏自动换行 */
+.bc-head-right { margin-left: auto; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.bc-deadline { font-size: 12px; font-weight: 500; color: var(--c-text-tertiary); white-space: nowrap; }
+.bc-days { font-size: 13px; color: var(--c-accent); font-weight: 600; white-space: nowrap; }
 .bc-title { font-size: 16px; font-weight: 600; color: var(--c-text-primary); margin-bottom: 8px; }
 .bc-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--c-text-secondary); margin-bottom: 8px; }
 .bc-amount b { color: var(--c-text-primary); }

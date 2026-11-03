@@ -370,6 +370,15 @@ const budgetCountdown = (b) => {
   const hms = `${pad2(h)}:${pad2(m)}:${pad2(sec)}`
   return d > 0 ? `${d}${t.value.exposeDayUnit} ${hms}` : hms
 }
+
+// 静态截止日期时间（月日 + HH:mm），与动态倒计时并排展示；无截止时间返回空串
+const deadlineText = (b) => {
+  if (!b || !b.exposeEnd) return ''
+  const d = new Date(b.exposeEnd)
+  if (isNaN(d.getTime())) return ''
+  const loc = currentLang.value === 'en' ? 'en-US' : currentLang.value === 'th' ? 'th-TH' : 'zh-CN'
+  return new Intl.DateTimeFormat(loc, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
+}
 </script>
 
 <template>
@@ -509,7 +518,10 @@ const budgetCountdown = (b) => {
           <div v-for="b in myBudgets" :key="b.id" class="budget-card mine" :class="b.status">
             <div class="bc-head">
               <span class="bc-status" :class="b.status">{{ budgetStatusText(b) }}</span>
-              <span class="bc-days" v-if="b.status === 'open'">{{ t.exposeCountdown.replace('{n}', budgetCountdown(b)) }}</span>
+              <span v-if="b.status === 'open' && b.exposeEnd" class="bc-head-right">
+                <span class="bc-deadline">{{ t.exposeDeadline.replace('{d}', deadlineText(b)) }}</span>
+                <span class="bc-days">{{ t.exposeCountdown.replace('{n}', budgetCountdown(b)) }}</span>
+              </span>
             </div>
             <div class="bc-title">
               {{ b.title || '（未命名草稿）' }}
@@ -539,7 +551,10 @@ const budgetCountdown = (b) => {
           <div v-for="b in openBudgets" :key="b.id" class="budget-card open" :class="{ 'hl-flash': hlId === b.id }">
             <div class="bc-head">
               <span class="bc-status open">● {{ t.inProgress }}</span>
-              <span class="bc-days">{{ t.exposeCountdown.replace('{n}', budgetCountdown(b)) }}</span>
+              <span v-if="b.exposeEnd" class="bc-head-right">
+                <span class="bc-deadline">{{ t.exposeDeadline.replace('{d}', deadlineText(b)) }}</span>
+                <span class="bc-days">{{ t.exposeCountdown.replace('{n}', budgetCountdown(b)) }}</span>
+              </span>
             </div>
             <div class="bc-title">{{ b.title }}<span v-if="b.proposalNo" class="bc-no">{{ b.proposalNo }}</span></div>
             <div class="bc-meta">

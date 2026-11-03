@@ -181,6 +181,19 @@ a[class*="btn"] {
   touch-action: manipulation;
 }
 
+/* 纯切换型 Tab / 筛选片不做波纹（与 interactiveFx.js 的 NO_RIPPLE_SELECTOR 同清单），
+   无需圆角裁剪；恢复 overflow:visible，避免探出角外的角标（如后台 .todo-badge）被裁进框内 */
+button.fp-tab,
+button.budget-tab,
+button.mc-subtab,
+button.view-tab,
+button.type-tab,
+button.module-tab,
+button.stat-chip,
+button.week-chip {
+  overflow: visible;
+}
+
 /* 波纹元素：从按下落点生成，向外扩散并淡出（z-index:-1 → 背景与内容之间） */
 .fx-ripple-el {
   position: absolute;
