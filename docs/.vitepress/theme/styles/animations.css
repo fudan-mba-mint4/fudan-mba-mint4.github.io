@@ -268,3 +268,44 @@ button.week-chip {
     animation: none !important;
   }
 }
+
+/* ============================================
+   数据替换淡入 + 页面切换淡入（2026-11-03 · 动效打磨）
+   ============================================ */
+
+/* 骨架→真实数据替换：真实内容容器渲染即播放一次淡入（只动 opacity/transform，不影响布局，容器锁高不变） */
+.fx-fade-in {
+  animation: fx-fade-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fx-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* SPA 页面切换：内容区轻量淡入（挂载到 .VPContent，路由变化时重放一次） */
+.fx-page-in {
+  animation: fx-page-in 0.16s ease both;
+}
+
+@keyframes fx-page-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-fade-in,
+  .fx-page-in {
+    animation: none !important;
+  }
+}

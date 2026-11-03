@@ -229,7 +229,7 @@ onMounted(async () => {
     </div>
     <template v-else>
       <!-- 模块B：行业分布环图 -->
-      <section class="block">
+      <section class="block fx-fade-in">
         <h2 class="block-title">{{ t.industryTitle }}</h2>
         <p class="block-sub">{{ t.industrySub }}</p>
         <div class="ring-wrap">
@@ -264,7 +264,7 @@ onMounted(async () => {
       </section>
 
       <!-- 模块C：内推机会板 -->
-      <section class="block">
+      <section class="block fx-fade-in">
         <h2 class="block-title">{{ t.referralTitle }}</h2>
         <p class="block-sub">{{ t.referralSub }}</p>
         <div class="referral-grid">
@@ -284,7 +284,7 @@ onMounted(async () => {
       </section>
 
       <!-- 模块D：职业资源书签墙 -->
-      <section class="block">
+      <section class="block fx-fade-in">
         <h2 class="block-title">{{ t.resourceTitle }}</h2>
         <p class="block-sub">{{ t.resourceSub }}</p>
         <div class="resource-grid">
@@ -305,7 +305,7 @@ onMounted(async () => {
       </section>
 
       <!-- 模块E：职业分享会 -->
-      <section class="block">
+      <section class="block fx-fade-in">
         <h2 class="block-title">{{ t.eventTitle }}</h2>
         <p class="block-sub">{{ t.eventSub }}</p>
         <div v-if="careerEvents.length" class="event-row">

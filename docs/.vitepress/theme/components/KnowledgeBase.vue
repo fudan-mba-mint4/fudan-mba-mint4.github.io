@@ -218,7 +218,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 文档卡片网格 -->
-    <div class="doc-list" v-else-if="filteredDocs.length > 0">
+    <div class="doc-list fx-fade-in" v-else-if="filteredDocs.length > 0">
       <article
         v-for="doc in filteredDocs"
         :key="doc.id"

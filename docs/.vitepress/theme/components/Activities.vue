@@ -401,7 +401,7 @@ const tr = (obj, key) => {
         </div>
       </div>
 
-      <div v-else-if="heroEvent" class="hero-body">
+      <div v-else-if="heroEvent" class="hero-body fx-fade-in">
         <!-- 左：倒计时 -->
         <div class="hero-left">
           <span class="hero-eyebrow">{{ t.nextEvent }}</span>
@@ -476,10 +476,27 @@ const tr = (obj, key) => {
       </div>
     </section>
 
-    <!-- ===== 月历视图（右栏） ===== -->
+    <!-- ===== 月历视图（右栏）：加载期骨架（42 格与真实月历等高等宽，原位替换不跳动） ===== -->
+    <div v-if="view === 'calendar' && loading" class="cal-skeleton" aria-hidden="true">
+      <div class="cal-sk-toolbar">
+        <SkeletonBlock variant="rect" width="32px" height="32px" />
+        <SkeletonBlock width="150px" height="20px" />
+        <SkeletonBlock variant="rect" width="32px" height="32px" />
+        <SkeletonBlock width="56px" height="28px" radius="14px" />
+      </div>
+      <SkeletonBlock width="130px" height="14px" class="cal-sk-summary" />
+      <div class="cal-sk-weekdays">
+        <span v-for="n in 7" :key="n"><SkeletonBlock width="26px" height="12px" /></span>
+      </div>
+      <div class="cal-sk-grid">
+        <div v-for="n in 42" :key="n" class="cal-sk-cell">
+          <SkeletonBlock width="22px" height="13px" />
+        </div>
+      </div>
+    </div>
     <ActivityCalendar
-      v-if="view === 'calendar'"
-      class="pane-calendar"
+      v-else-if="view === 'calendar'"
+      class="pane-calendar fx-fade-in"
       :activities="activities"
       :is-authenticated="isAuthenticated"
       :actions="calendarActions"
@@ -502,7 +519,7 @@ const tr = (obj, key) => {
         </div>
       </div>
     </div>
-    <div class="timeline" v-if="view === 'timeline' && !loading && sortedEvents.length">
+    <div class="timeline fx-fade-in" v-if="view === 'timeline' && !loading && sortedEvents.length">
       <template v-for="(act, idx) in sortedEvents" :key="act.id">
         <div class="timeline-item" :class="{ future: isUpcoming(act), past: !isUpcoming(act) }">
           <article class="tl-card">
@@ -1287,5 +1304,42 @@ html.dark .timeline-item.past .tl-month {
   .hero-signup-btn { width: 100%; padding: 14px 24px; }
   .tl-signup { width: 100%; }
   .signup-btn { width: 100%; padding: 11px; }
+}
+
+/* 月历加载骨架：网格 42 格（6 行×7 列），与真实月历 .cal-cell min-height:72px 对齐，防替换跳动 */
+.cal-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cal-sk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cal-sk-summary {
+  margin: 2px 0 8px;
+}
+.cal-sk-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+.cal-sk-weekdays span {
+  display: flex;
+  justify-content: center;
+}
+.cal-sk-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-sk-cell {
+  min-height: 72px;
+  min-width: 0;
+  border: 1px solid var(--c-border-light);
+  border-radius: var(--radius-md);
+  padding: 5px;
 }
 </style>

@@ -300,7 +300,7 @@ function formatDeadline(iso) {
     </div>
     <div v-else-if="!polls.length" class="polls-empty">{{ t.noPolls }}</div>
 
-    <div class="polls-list">
+    <div class="polls-list fx-fade-in">
       <div v-for="poll in polls" :key="poll.id" class="poll-card" :class="{ expanded: expandedId === poll.id }">
         <!-- 卡片头 -->
         <div class="poll-head" @click="toggleExpand(poll.id)">

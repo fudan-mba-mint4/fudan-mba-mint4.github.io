@@ -82,7 +82,7 @@
     </div>
 
     <!-- 留言列表 -->
-    <div class="message-list">
+    <div class="message-list fx-fade-in">
       <!-- 首屏加载骨架：形状对齐留言卡（圆头像 + 昵称/时间行 + 内容两行），容器锁高防跳动 -->
       <div v-if="loading && messages.length === 0" class="th-skeleton" aria-hidden="true">
         <div v-for="n in 5" :key="n" class="th-skel-card">

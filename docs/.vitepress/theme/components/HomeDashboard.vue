@@ -970,7 +970,7 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div v-else class="schedule-list">
+        <div v-else class="schedule-list fx-fade-in">
           <div
             v-for="(course, i) in upcomingClasses"
             :key="i"
@@ -1114,7 +1114,7 @@ onUnmounted(() => {
           </div>
         </div>
         <template v-else>
-          <div class="finance-balance">
+          <div class="finance-balance fx-fade-in">
             <span class="finance-amount">¥ {{ formatNumber(financeData.balance) }}</span>
             <span class="finance-label">{{ t.balance }}</span>
           </div>
@@ -1157,7 +1157,7 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-        <div v-else class="announcement-list">
+        <div v-else class="announcement-list fx-fade-in">
           <a
             v-for="item in announcementsData"
             :key="item.id"
@@ -1197,7 +1197,7 @@ onUnmounted(() => {
           </div>
         </div>
         <template v-else>
-          <div class="countdown-ring-wrap">
+          <div class="countdown-ring-wrap fx-fade-in">
             <div
               class="countdown-ring"
               :class="{ 'countdown-ring--urgent': isCountdownUrgent }"
@@ -1245,7 +1245,7 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-        <div v-else-if="pendingHomework.length > 0" class="homework-list">
+        <div v-else-if="pendingHomework.length > 0" class="homework-list fx-fade-in">
           <a
             v-for="hw in pendingHomework"
             :key="hw.id"

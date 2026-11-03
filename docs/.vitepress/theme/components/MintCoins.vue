@@ -21,7 +21,7 @@
         <a v-else :href="`${langPrefix}/auth/`" class="mc-wallet-btn">{{ t.loginWallet }}</a>
       </div>
       <!-- 概览指标 -->
-      <div class="mc-overview" v-if="board">
+      <div class="mc-overview fx-fade-in" v-if="board">
         <div class="mc-stat"><span class="mc-stat-num">{{ board.overview.totalCirculating }}</span><span class="mc-stat-label">{{ t.totalCirculating }}</span></div>
         <div class="mc-stat"><span class="mc-stat-num">+{{ board.overview.issuedThisMonth }}</span><span class="mc-stat-label">{{ t.issuedThisMonth }}</span></div>
         <div class="mc-stat"><span class="mc-stat-num">{{ board.overview.participants }}</span><span class="mc-stat-label">{{ t.participants }}</span></div>
@@ -51,7 +51,7 @@
     <div v-else-if="!boardLoading && !board" class="mc-empty">{{ t.noData }}</div>
 
     <!-- ===== 薄荷园 · 森林 ===== -->
-    <section v-show="tab === 'forest'" class="mc-section">
+    <section v-show="tab === 'forest'" class="mc-section fx-fade-in">
       <p class="mc-tip">{{ t.forestTip }}</p>
       <p class="mc-demo-hint">🧪 {{ t.forestDemoHint }}</p>
       <div class="mc-forest">
@@ -86,7 +86,7 @@
     </section>
 
     <!-- ===== 排行榜 ===== -->
-    <section v-show="tab === 'board'" class="mc-section">
+    <section v-show="tab === 'board'" class="mc-section fx-fade-in">
       <div class="mc-subtabs">
         <button v-for="(label, key) in t.boardTabs" :key="key" class="mc-subtab" :class="{ active: boardTab === key }"
           @click="boardTab = key">{{ label }}</button>

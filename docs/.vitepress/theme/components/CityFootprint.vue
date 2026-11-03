@@ -17,7 +17,7 @@
             <SkeletonBlock variant="rect" width="88px" height="12px" />
           </div>
         </div>
-        <div v-else class="cf-stats">
+        <div v-else class="cf-stats fx-fade-in">
           <div class="cf-stat">
             <div class="cf-stat-num">{{ stats.total }}</div>
             <div class="cf-stat-label">本月访问次数</div>
@@ -36,7 +36,7 @@
             <SkeletonBlock variant="rect" width="36px" height="12px" />
           </div>
         </div>
-        <div v-else class="cf-top-list">
+        <div v-else class="cf-top-list fx-fade-in">
           <div
             v-for="(city, i) in visibleCities"
             :key="city.city"

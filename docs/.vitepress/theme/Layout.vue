@@ -18,7 +18,7 @@ let cleanupFx = null
 // 保存定时器句柄，避免快速导航时多个 setTimeout 竞态
 let scrollTimer = null
 
-// 页面切换后：重新初始化滚动动画 + 滚动到顶部
+// 页面切换后：重新初始化滚动动画 + 内容区轻量淡入 + 滚动到顶部
 watch(
   () => page.value.relativePath,
   async () => {
@@ -27,6 +27,13 @@ watch(
     scrollTimer = setTimeout(() => {
       refresh()
       bindSpotlights()
+      // SPA 页面切换淡入：对 .VPContent 重放一次 fx-page-in（150ms，尊重 prefers-reduced-motion 已在 CSS 停用）
+      const content = document.querySelector('.VPContent')
+      if (content) {
+        content.classList.remove('fx-page-in')
+        void content.offsetWidth // 强制 reflow 重启动画
+        content.classList.add('fx-page-in')
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }, 200)
   }

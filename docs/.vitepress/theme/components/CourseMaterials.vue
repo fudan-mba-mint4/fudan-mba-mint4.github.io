@@ -181,7 +181,7 @@ const typeLabel = (f) => {
 
     <template v-else-if="materialsData">
       <!-- 课程标签 -->
-      <div class="course-tabs">
+      <div class="course-tabs fx-fade-in">
         <button
           v-for="(course, idx) in (materialsData.courses || [])"
           :key="course.id"

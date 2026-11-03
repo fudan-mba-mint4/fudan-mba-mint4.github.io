@@ -59,7 +59,7 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
     </div>
     <template v-else>
       <!-- 余额总览 + 预警 -->
-      <div class="balance-card">
+      <div class="balance-card fx-fade-in">
         <div class="balance-main">
           <span class="balance-label">{{ t.balance }}</span>
           <span class="balance-amount" :class="{ 'low': config.warnLine && balance < config.warnLine }">¥ {{ formatAmount(balance) }}</span>

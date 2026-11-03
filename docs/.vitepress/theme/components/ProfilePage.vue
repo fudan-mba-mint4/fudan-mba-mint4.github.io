@@ -109,7 +109,7 @@
             <p>还没有报名任何活动</p>
             <button class="empty-btn" @click="goToActivities">去看看活动</button>
           </div>
-          <div v-else class="signup-list">
+          <div v-else class="signup-list fx-fade-in">
             <div v-for="signup in mySignups" :key="signup.eventId" class="signup-item">
               <div class="signup-info">
                 <h3 class="signup-title">{{ signup.title }}</h3>
@@ -139,7 +139,7 @@
               <SkeletonBlock width="64px" height="13px" />
             </div>
           </div>
-          <div v-else class="mc-wallet-card" :class="'tier-' + (coinMe?.account?.tier?.key || 'none')">
+          <div v-else class="mc-wallet-card fx-fade-in" :class="'tier-' + (coinMe?.account?.tier?.key || 'none')">
             <div class="mc-wallet-left">
               <div class="mc-balance">{{ coinMe?.account?.balance ?? '–' }}<span class="mc-balance-unit">币</span></div>
               <div class="mc-wallet-sub">累计获得 {{ coinMe?.account?.earned ?? 0 }} · 已花费 {{ coinMe?.account?.spent ?? 0 }}</div>
@@ -153,7 +153,7 @@
           <p v-else class="viewer-only-hint">班主任与传承人仅可查看，不能参与薄荷币申报</p>
 
           <h3 class="mc-sub-title">我的申报</h3>
-          <div v-if="coinMe?.claims?.length" class="claim-list">
+          <div v-if="coinMe?.claims?.length" class="claim-list fx-fade-in">
             <div v-for="c in coinMe.claims" :key="c.id" class="claim-item" :class="'claim-' + c.status">
               <div class="claim-top">
                 <span class="claim-title">{{ c.title }}</span>
@@ -173,7 +173,7 @@
           </div>
 
           <h3 v-if="coinMe?.ledgers?.length" class="mc-sub-title">收支明细</h3>
-          <div v-if="coinMe?.ledgers?.length" class="ledger-list">
+          <div v-if="coinMe?.ledgers?.length" class="ledger-list fx-fade-in">
             <div v-for="l in coinMe.ledgers.slice(0, 8)" :key="l.id" class="ledger-item">
               <span class="ledger-delta" :class="l.delta > 0 ? 'earn' : 'spend'">{{ l.delta > 0 ? '+' : '' }}{{ l.delta }}</span>
               <span class="ledger-note">{{ l.note || '—' }}</span>

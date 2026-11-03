@@ -299,7 +299,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
     </section>
 
     <!-- 非置顶时间线 -->
-    <div v-if="!loadingAnn && timeline.length" class="timeline">
+    <div v-if="!loadingAnn && timeline.length" class="timeline fx-fade-in">
       <article
         v-for="item in timeline"
         :key="item.id"

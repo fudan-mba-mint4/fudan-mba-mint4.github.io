@@ -108,7 +108,7 @@
     </div>
 
     <!-- 瀑布流：JS 最矮列分列，桌面 3 / 平板 2 / 手机 1 -->
-    <div v-else class="masonry">
+    <div v-else class="masonry fx-fade-in">
       <div
         v-for="(col, ci) in columns"
         :key="ci"

@@ -484,7 +484,7 @@ const isToday = (dateStr) => {
       </div>
 
       <!-- 按课程视图 -->
-      <div v-else-if="activeTab === 'course'" class="course-view">
+      <div v-else-if="activeTab === 'course'" class="course-view fx-fade-in">
         <div
           v-for="(course, index) in scheduleData.courses"
           :key="course.name"
@@ -524,7 +524,7 @@ const isToday = (dateStr) => {
       </div>
 
       <!-- 月历视图 -->
-      <div v-else class="calendar-view reveal">
+      <div v-else class="calendar-view reveal fx-fade-in">
         <div class="calendar-header">
           <button class="cal-nav-btn" :disabled="!canGoPrev" @click="prevMonth">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>

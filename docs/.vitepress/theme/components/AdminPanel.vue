@@ -898,7 +898,7 @@
             </div>
           </div>
           <template v-else>
-            <div v-if="finSupervision.supervision && finSupervision.supervision.length" class="existing-list">
+            <div v-if="finSupervision.supervision && finSupervision.supervision.length" class="existing-list fx-fade-in">
               <div v-for="b in finSupervision.supervision" :key="b.id" class="existing-item supervision-item">
                 <div class="existing-info">
                   <span class="existing-title">{{ b.title }} · ¥{{ b.amount }}</span>
@@ -929,7 +929,7 @@
           <p class="empty-hint">通过后按获币名单批量入账；驳回必须填写原因。全部操作留痕可追溯。</p>
           <div v-if="coinClaimsMsg" class="empty-hint">{{ coinClaimsMsg }}</div>
           <div v-else-if="!coinClaims.length" class="empty-hint">暂无待审核申报</div>
-          <div v-else class="existing-list">
+          <div v-else class="existing-list fx-fade-in">
             <div v-for="c in coinClaims" :key="c.id" class="existing-item">
               <div class="existing-info">
                 <span class="existing-title">{{ c.applicant }} · {{ c.title }}（+{{ c.total }} 币）</span>
@@ -1117,7 +1117,7 @@
             </div>
           </div>
           <div v-else-if="treeholeMessages.length === 0" class="treehole-empty">空空如也，没有符合条件的留言</div>
-          <div v-else class="treehole-list">
+          <div v-else class="treehole-list fx-fade-in">
             <div v-for="msg in treeholeMessages" :key="msg.id" class="treehole-item" :class="{ deleted: msg.is_deleted, expanded: expandedId === msg.id }">
               <div class="treehole-item-check">
                 <input type="checkbox" :value="msg.id" v-model="treeholeSelected" />
@@ -1206,7 +1206,7 @@
           <!-- 视图一：注册账号（含名录身份标注） -->
           <div v-if="usersView === 'registered'">
             <div v-if="filteredUsers.length === 0" class="treehole-empty">暂无匹配账号</div>
-            <div v-else class="users-table-wrap">
+            <div v-else class="users-table-wrap fx-fade-in">
               <table class="users-table">
                 <thead>
                   <tr><th>ID</th><th>用户名</th><th>真名</th><th>昵称</th><th>小组</th><th>班委职务</th><th>名录身份</th><th>注册时间</th><th>操作</th></tr>
@@ -1235,7 +1235,7 @@
           <div v-if="usersView === 'unregistered'">
             <p class="users-view-tip">下列在读同学尚未注册；「班委职务」非空者为待认领班委，应优先邀请注册——注册时填写与名录一致的真名，即自动获得职务与分组。</p>
             <div v-if="filteredUnregistered.length === 0" class="treehole-empty">名录内在读同学均已注册 🎉</div>
-            <div v-else class="users-table-wrap">
+            <div v-else class="users-table-wrap fx-fade-in">
               <table class="users-table">
                 <thead>
                   <tr><th>#</th><th>真名</th><th>昵称</th><th>小组</th><th>班委职务</th><th>状态</th></tr>
@@ -1258,7 +1258,7 @@
           <div v-if="usersView === 'observers'">
             <p class="users-view-tip">只读身份：不参与投票、报名、报销、薄荷币申报等互动；是否持有账号不影响名录页展示。</p>
             <div v-if="filteredObservers.length === 0" class="treehole-empty">暂无班主任 / 传承人</div>
-            <div v-else class="users-table-wrap">
+            <div v-else class="users-table-wrap fx-fade-in">
               <table class="users-table">
                 <thead>
                   <tr><th>真名</th><th>昵称</th><th>身份</th><th>账号状态</th></tr>

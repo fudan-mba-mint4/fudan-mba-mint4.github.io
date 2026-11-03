@@ -124,7 +124,7 @@ const closeVouchers = () => { voucherView.value = null }
         {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
       </div>
       <template v-else>
-        <div class="section-header">
+        <div class="section-header fx-fade-in">
           <h3 class="section-title">{{ t.tabWorkbench }}</h3>
           <span class="section-desc">{{ t.workbenchDesc }}</span>
         </div>
