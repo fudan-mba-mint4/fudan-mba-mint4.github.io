@@ -10,6 +10,7 @@ import { useAuth } from '../composables/useAuth.js'
 import { useActivities } from '../composables/useActivities.js'
 import { markRead } from '../composables/useUnread.js'
 import ActivityCalendar from './ActivityCalendar.vue'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -100,7 +101,7 @@ const langPrefix = computed(() => (lang.value === 'en' ? '/en' : lang.value === 
 const wishesLink = computed(() => `${langPrefix.value}/wishes/`)
 
 /* ========== 活动数据：统一 selector（DB 优先、静态回退），相册/班费标记自动派生 ========== */
-const { activities } = useActivities({ withFinance: true })
+const { activities, loading } = useActivities({ withFinance: true })
 
 // 从财务页跳转深链：/activities/?focus=<activityId> → 定位到该活动日期
 // VitePress 的 route 不含 query，需用 window.location.search 读取；route.path 作响应式触发源
@@ -378,7 +379,29 @@ const tr = (obj, key) => {
       ></div>
       <div class="hero-scrim"></div>
 
-      <div v-if="heroEvent" class="hero-body">
+      <div v-if="loading" class="hero-body hero-body--sk" aria-hidden="true">
+        <!-- 骨架：形状对齐 hero 三栏（倒计时/标题+meta/名额环） -->
+        <div class="hero-left">
+          <SkeletonBlock width="88px" height="14px" />
+          <div class="sk-cd-row">
+            <SkeletonBlock width="46px" height="30px" />
+            <SkeletonBlock width="46px" height="30px" />
+          </div>
+          <SkeletonBlock width="64px" height="12px" />
+        </div>
+        <div class="hero-main">
+          <SkeletonBlock width="58%" height="26px" />
+          <div class="sk-hero-meta">
+            <SkeletonBlock width="120px" height="14px" />
+            <SkeletonBlock width="140px" height="14px" />
+          </div>
+        </div>
+        <div class="hero-right sk-hero-ring">
+          <SkeletonBlock variant="circle" width="64px" height="64px" />
+        </div>
+      </div>
+
+      <div v-else-if="heroEvent" class="hero-body">
         <!-- 左：倒计时 -->
         <div class="hero-left">
           <span class="hero-eyebrow">{{ t.nextEvent }}</span>
@@ -447,8 +470,8 @@ const tr = (obj, key) => {
         </template>
       </div>
 
-      <!-- 无未来活动兜底 -->
-      <div v-if="!heroEvent" class="hero-body hero-body--empty">
+      <!-- 无未来活动兜底（加载完成后才显示，加载期由骨架占据） -->
+      <div v-if="!loading && !heroEvent" class="hero-body hero-body--empty">
         <p class="hero-empty-text">{{ t.noUpcoming }}</p>
       </div>
     </section>
@@ -464,7 +487,22 @@ const tr = (obj, key) => {
     />
 
     <!-- ===== 垂直脊柱时间线 ===== -->
-    <div class="timeline" v-if="view === 'timeline' && sortedEvents.length">
+    <div v-if="view === 'timeline' && loading" class="acts-tl-skeleton" aria-hidden="true">
+      <div v-for="n in 4" :key="n" class="sk-tl-card">
+        <div class="sk-tl-date">
+          <SkeletonBlock width="52px" height="15px" />
+        </div>
+        <div class="sk-tl-body">
+          <SkeletonBlock width="48%" height="18px" />
+          <div class="sk-tl-meta">
+            <SkeletonBlock width="110px" height="12px" />
+            <SkeletonBlock width="130px" height="12px" />
+          </div>
+          <SkeletonBlock width="86%" height="12px" />
+        </div>
+      </div>
+    </div>
+    <div class="timeline" v-if="view === 'timeline' && !loading && sortedEvents.length">
       <template v-for="(act, idx) in sortedEvents" :key="act.id">
         <div class="timeline-item" :class="{ future: isUpcoming(act), past: !isUpcoming(act) }">
           <article class="tl-card">
@@ -707,6 +745,8 @@ const tr = (obj, key) => {
   justify-content: center;
   gap: 20px;
   padding: 28px 24px 22px;
+  /* 锁高与骨架一致（含名额环三栏+双gap+padding），数据有无名额环都不跳动 */
+  min-height: 312px;
 }
 .view-body--calendar .hero-left { width: 100%; flex-shrink: 0; }
 .view-body--calendar .hero-main { width: 100%; flex: none; }
@@ -777,6 +817,25 @@ const tr = (obj, key) => {
   padding: 36px 40px;
   color: var(--c-card-accent-text);
 }
+
+/* ===== 活动骨架：形状对齐 hero 三栏 / 时间线卡片 ===== */
+.hero-body--sk { color: inherit; min-height: 312px; }
+.sk-cd-row { display: flex; gap: 8px; margin: 10px 0 8px; }
+.sk-hero-meta { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.sk-hero-ring { justify-content: center; }
+.acts-tl-skeleton { display: flex; flex-direction: column; gap: 18px; }
+.sk-tl-card {
+  display: flex;
+  gap: 18px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  min-height: 104px;
+}
+.sk-tl-date { width: 96px; flex-shrink: 0; padding-top: 4px; }
+.sk-tl-body { display: flex; flex-direction: column; gap: 9px; flex: 1; min-width: 0; }
+.sk-tl-meta { display: flex; gap: 12px; }
 /* 有封面图时保持白字（深色遮罩上） */
 .hero--cover .hero-body {
   color: #ffffff;

@@ -4,6 +4,7 @@ import { useLang } from '../composables/useLang.js'
 import { useNow } from '../composables/useNow.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { markRead } from '../composables/useUnread.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -111,6 +112,8 @@ async function fetchWithDbFallback(dbUrl, staticUrl, isUsable) {
 
 const announcementsData = ref(null)
 const announcements = computed(() => announcementsData.value?.announcements || [])
+/* 加载态：数据未到时展示骨架（替代误导性空态），fetch 完成（含静态回退）后关闭 */
+const loadingAnn = ref(true)
 
 watch(announcements, (list) => {
   markRead('announcements', list.map(a => String(a.id)))
@@ -118,11 +121,15 @@ watch(announcements, (list) => {
 
 onMounted(async () => {
   if (typeof window === 'undefined') return
-  announcementsData.value = await fetchWithDbFallback(
-    '/api/announcements',
-    '/data/announcements.json',
-    (json) => Array.isArray(json?.announcements) && json.announcements.length > 0
-  )
+  try {
+    announcementsData.value = await fetchWithDbFallback(
+      '/api/announcements',
+      '/data/announcements.json',
+      (json) => Array.isArray(json?.announcements) && json.announcements.length > 0
+    )
+  } finally {
+    loadingAnn.value = false
+  }
 })
 
 /* ========== 实时时钟（倒计时用，每分钟刷新） ========== */
@@ -237,8 +244,32 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
       </div>
     </div>
 
+    <!-- 加载骨架：形状对齐置顶巨幕卡 + 时间线行，容器锁高防跳动 -->
+    <div v-if="loadingAnn" class="ann-skeleton" aria-hidden="true">
+      <div class="sk-hero-grid">
+        <div v-for="n in 2" :key="n" class="sk-hero">
+          <div class="sk-hero-meta">
+            <SkeletonBlock width="52px" height="20px" radius="10px" />
+            <SkeletonBlock width="72px" height="16px" />
+          </div>
+          <SkeletonBlock width="72%" height="22px" />
+          <SkeletonBlock width="92%" height="13px" />
+          <SkeletonBlock width="40%" height="12px" />
+        </div>
+      </div>
+      <div v-for="n in 5" :key="n" class="sk-tl-row">
+        <div class="sk-tl-node">
+          <SkeletonBlock variant="circle" width="15px" height="15px" />
+        </div>
+        <div class="sk-tl-main">
+          <SkeletonBlock width="58%" height="16px" />
+          <SkeletonBlock width="84%" height="12px" />
+        </div>
+      </div>
+    </div>
+
     <!-- 置顶巨幕卡（最多 2 条） -->
-    <section v-if="pinnedHero.length" class="pinned-hero">
+    <section v-if="!loadingAnn && pinnedHero.length" class="pinned-hero">
       <div class="pinned-grid">
         <article
           v-for="item in pinnedHero"
@@ -268,7 +299,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
     </section>
 
     <!-- 非置顶时间线 -->
-    <div v-if="timeline.length" class="timeline">
+    <div v-if="!loadingAnn && timeline.length" class="timeline">
       <article
         v-for="item in timeline"
         :key="item.id"
@@ -320,7 +351,7 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="!pinnedHero.length" class="empty-state">
+    <div v-else-if="!loadingAnn && !pinnedHero.length" class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -616,6 +647,36 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
 }
 .empty-state svg { margin-bottom: var(--space-4); opacity: 0.5; }
 .empty-state p { font-size: var(--text-base); margin: 0; }
+
+/* ========== 加载骨架：形状对齐置顶巨幕卡 + 时间线行 ========== */
+.ann-skeleton { display: flex; flex-direction: column; gap: var(--space-5); }
+.sk-hero-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+.sk-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  min-height: 148px;
+}
+.sk-hero-meta { display: flex; gap: var(--space-3); align-items: center; }
+.sk-tl-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  min-height: 64px;
+}
+.sk-tl-node { width: 28px; flex-shrink: 0; display: flex; justify-content: center; }
+.sk-tl-main { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+@media (max-width: 640px) {
+  .sk-hero-grid { grid-template-columns: 1fr; }
+}
 
 /* ========== 移动端 ========== */
 @media (max-width: 640px) {

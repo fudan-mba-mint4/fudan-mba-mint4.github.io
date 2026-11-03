@@ -885,7 +885,18 @@
           <h3>🔍 监督视图（仅本人可见）</h3>
           <p class="empty-hint">票向实名明细：显示每条公示的赞成/反对名单与留言人身份，仅本人可查看。</p>
           <div v-if="supervisionMsg" class="empty-hint">{{ supervisionMsg }}</div>
-          <div v-else-if="!finSupervision" class="empty-hint">加载中…</div>
+          <!-- 监督视图：加载期 2 张卡片骨架（标题 + 金额大数字 + 明细行）；错误提示 supervisionMsg 与“暂无公示记录”空态原样保留 -->
+          <div v-else-if="!finSupervision" class="supervision-skeleton" aria-hidden="true">
+            <div v-for="i in 2" :key="i" class="supervision-skel-card">
+              <div class="supervision-skel-head">
+                <SkeletonBlock width="52%" height="13px" />
+                <SkeletonBlock width="96px" height="20px" radius="8px" />
+              </div>
+              <SkeletonBlock class="supervision-skel-meta" width="64%" height="11px" />
+              <SkeletonBlock class="supervision-skel-vote" width="88%" height="11px" />
+              <SkeletonBlock class="supervision-skel-vote" width="58%" height="11px" />
+            </div>
+          </div>
           <template v-else>
             <div v-if="finSupervision.supervision && finSupervision.supervision.length" class="existing-list">
               <div v-for="b in finSupervision.supervision" :key="b.id" class="existing-item supervision-item">
@@ -1095,9 +1106,15 @@
             <button v-if="treeholeSelected.length > 0" @click="clearSelection" class="treehole-clear-btn">清除选择</button>
           </div>
 
-          <!-- 留言列表 -->
-          <div v-if="treeholeLoading" class="treehole-loading">
-            <div class="spinner-sm"></div> 加载中...
+          <!-- 留言列表：加载期行骨架（纯展示 aria-hidden，4 条圆头像+两行文本）；空态/真实列表分支保持原判断 -->
+          <div v-if="treeholeLoading" class="treehole-skeleton" aria-hidden="true">
+            <div v-for="i in 4" :key="i" class="treehole-skel-item">
+              <SkeletonBlock variant="circle" width="36px" height="36px" />
+              <div class="sk-lines">
+                <SkeletonBlock width="46%" height="14px" />
+                <SkeletonBlock width="86%" height="12px" />
+              </div>
+            </div>
           </div>
           <div v-else-if="treeholeMessages.length === 0" class="treehole-empty">空空如也，没有符合条件的留言</div>
           <div v-else class="treehole-list">
@@ -1167,7 +1184,16 @@
           <input v-model="usersSearch" :placeholder="usersSearchPlaceholder" class="treehole-search" />
           <button @click="loadUsers" class="token-btn">刷新</button>
         </div>
-        <div v-if="usersLoading" class="treehole-loading"><div class="spinner-sm"></div> 加载中...</div>
+        <!-- 用户列表：加载期行骨架（头像 + 姓名/账号两行，4 条）；仅 usersLoading 期间显示，下方 <template v-else> 原样渲染异常账号提示与三视图（注册账号/未注册同学/班主任·传承人） -->
+        <div v-if="usersLoading" class="users-skeleton" aria-hidden="true">
+          <div v-for="i in 4" :key="i" class="users-skel-row">
+            <SkeletonBlock variant="circle" width="32px" height="32px" />
+            <div class="sk-lines">
+              <SkeletonBlock width="34%" height="13px" />
+              <SkeletonBlock width="24%" height="11px" />
+            </div>
+          </div>
+        </div>
         <template v-else>
           <div v-if="unknownAccounts.length" class="users-alert">
             <strong>⚠ 异常账号 {{ unknownAccounts.length }} 个（不在活跃名录）</strong>
@@ -1276,8 +1302,21 @@
       <div class="workspace-right">
       <!-- ===== 提交记录 ===== -->
       <div class="history-section">
-        <h3>📜 {{ currentTypeLabel }}·操作记录 <span class="history-count">({{ currentHistory.length }}条)</span> <span v-if="historyLoading" class="history-loading">加载中...</span></h3>
-        <div v-if="currentHistory.length === 0" class="history-empty">该模块暂无提交记录</div>
+        <h3>📜 {{ currentTypeLabel }}·操作记录 <span class="history-count">({{ currentHistory.length }}条)</span></h3>
+        <!-- 操作记录：加载期 3 张卡片骨架（状态圆标 + 类型/操作人 + 描述行 + 时间行）；空态文案原样保留 -->
+        <div v-if="historyLoading" class="history-skeleton" aria-hidden="true">
+          <div v-for="i in 3" :key="i" class="history-skel-card">
+            <div class="history-skel-row1">
+              <SkeletonBlock variant="circle" width="20px" height="20px" />
+              <SkeletonBlock width="28%" height="12px" />
+              <SkeletonBlock class="history-skel-op" width="20%" height="11px" />
+            </div>
+            <SkeletonBlock class="history-skel-desc" width="92%" height="12px" />
+            <SkeletonBlock class="history-skel-time" width="22%" height="10px" />
+          </div>
+        </div>
+        <div v-else-if="currentHistory.length === 0" class="history-empty">该模块暂无提交记录</div>
+        <template v-else>
         <div v-for="record in currentHistory" :key="record.id" class="history-item">
           <div class="history-card">
             <div class="history-row1">
@@ -1293,6 +1332,7 @@
           </div>
           <button v-if="record.status === 'success'" class="revert-btn" @click="revertCommit(record)" title="撤回此提交">↩</button>
         </div>
+        </template>
       </div>
       </div><!-- /workspace-right -->
       </div><!-- /admin-workspace -->
@@ -1314,6 +1354,7 @@ import { formatSize, translateBoth, randomHex, extFromFileName, readFileAsBase64
 import { getAdminToken, adminHeaders, throwIfNotOk, uploadFileToAdmin } from '../utils/admin/api.js'
 import ModuleBar from './admin/ModuleBar.vue'
 import ModuleTabs from './admin/ModuleTabs.vue'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 // ===== 认证（班委实名登录；登录态由 useAuth 用 localStorage 持久化，刷新/重开免登录）=====
 const { currentUser, isAuthenticated, login, logout, getToken } = useAuth()
@@ -3206,6 +3247,33 @@ watch(currentType, (val) => {
 .revert-btn { font-size: 12px; width: 26px; height: 26px; flex: none; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all 0.2s ease; line-height: 1; }
 .revert-btn:hover { background: #ff3b30; color: #fff; }
 .revert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== 列表加载态骨架：占位原子统一用 SkeletonBlock（sk-shimmer 全局动画，reduced-motion 由全局停用）；本组件样式只负责容器布局、卡片观感与锁高 ===== */
+.sk-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+
+/* 树洞留言行骨架：4 条，对齐 .treehole-item（36px 圆 + 标题行 + 正文行）；容器锁高 248px 防跳动 */
+.treehole-skeleton { display: flex; flex-direction: column; gap: 8px; min-height: 248px; }
+.treehole-skel-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-bg-secondary); }
+
+/* 用户管理行骨架：4 条，32px 头像 + 姓名行 + 账号行；圆角边框容器锁高 232px；仅 usersLoading 期间显示，加载后由 <template v-else> 渲染三视图 */
+.users-skeleton { margin-top: 4px; border: 1px solid var(--c-border); border-radius: 12px; padding: 10px 12px; min-height: 232px; display: flex; flex-direction: column; gap: 6px; }
+.users-skel-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--c-border); }
+.users-skel-row:last-child { border-bottom: none; }
+
+/* 操作记录卡片骨架：3 张，对齐 .history-item（20px 状态圆标 + 类型/操作人 + 描述行 + 时间行）；锁高 228px */
+.history-skeleton { display: flex; flex-direction: column; gap: 8px; min-height: 228px; }
+.history-skel-card { padding: 10px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-secondary); }
+.history-skel-row1 { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.history-skel-op { margin-left: auto; }
+.history-skel-desc { display: block; margin-bottom: 5px; }
+.history-skel-time { display: block; }
+
+/* 财务监督卡片骨架：2 张，标题 + 右侧金额块 + 状态行 + 票向明细行；锁高 176px */
+.supervision-skeleton { display: flex; flex-direction: column; gap: 10px; min-height: 176px; margin-top: 12px; }
+.supervision-skel-card { padding: 12px 14px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-secondary); }
+.supervision-skel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.supervision-skel-meta { display: block; margin-bottom: 8px; }
+.supervision-skel-vote { display: block; margin-bottom: 6px; }
 
 @media (max-width: 960px) {
   .admin-workspace { grid-template-columns: 1fr; }

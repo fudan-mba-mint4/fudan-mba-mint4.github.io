@@ -248,3 +248,23 @@ button.week-chip {
     opacity: 0;
   }
 }
+
+/* ============================================
+   骨架占位（2026-11-01 · 动效优化 #20/#4 第 4 项）
+   原子样式在 components/SkeletonBlock.vue（scoped）；此处只定义共享动画。
+   ============================================ */
+
+@keyframes sk-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-block {
+    animation: none !important;
+  }
+}

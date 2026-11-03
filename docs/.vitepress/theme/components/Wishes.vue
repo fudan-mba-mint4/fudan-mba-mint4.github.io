@@ -70,9 +70,32 @@
       </div>
     </div>
 
-    <!-- 首次加载状态 -->
-    <div v-if="loadingFirst" class="state-center">
-      <div class="spinner"></div>
+    <!-- 首次加载骨架：6 张高低错落卡（180/260px 交替），对齐 masonry 栅格与 wish-card；
+         与真实 masonry 共用 v-if/v-else 门控，loadingFirst 关闭后原位切换，不占用列 ref、不干扰分列时序 -->
+    <div v-if="loadingFirst" class="wish-skeleton" aria-hidden="true">
+      <div
+        v-for="n in 6"
+        :key="n"
+        class="ws-card"
+        :class="n % 2 === 1 ? 'ws-card--short' : 'ws-card--tall'"
+      >
+        <div class="ws-head">
+          <SkeletonBlock variant="circle" width="40px" height="40px" />
+          <div class="ws-meta">
+            <SkeletonBlock width="42%" height="14px" />
+            <SkeletonBlock width="30%" height="11px" />
+          </div>
+        </div>
+        <div class="ws-body">
+          <SkeletonBlock width="92%" height="14px" />
+          <SkeletonBlock width="80%" height="14px" />
+          <SkeletonBlock width="64%" height="14px" />
+        </div>
+        <div class="ws-actions">
+          <SkeletonBlock width="72px" height="16px" />
+          <SkeletonBlock width="72px" height="16px" />
+        </div>
+      </div>
     </div>
     <div v-else-if="!wishes.length && !error" class="state-center empty-state">
       <div class="empty-icon">✦</div>
@@ -267,6 +290,7 @@ import { useAuth } from '../composables/useAuth.js'
 import { useLang } from '../composables/useLang'
 import { API_PREFIX } from '../composables/apiConfig.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const PAGE_SIZE = 12
 
@@ -1164,6 +1188,41 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/* 首屏加载骨架：栅格间距对齐 .masonry，外观对齐 .wish-card；短/高卡锁高 180/260px 错落防跳动 */
+.wish-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.ws-card {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-xl);
+  padding: 15px 16px;
+}
+.ws-card--short { min-height: 180px; }
+.ws-card--tall { min-height: 260px; }
+.ws-head { display: flex; align-items: center; gap: 11px; }
+.ws-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ws-body { display: flex; flex-direction: column; gap: 8px; }
+.ws-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 16px;
+  border-top: 1px solid var(--c-border-light);
+  padding-top: 10px;
+}
+@media (max-width: 920px) {
+  .wish-skeleton { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+}
+@media (max-width: 640px) {
+  .wish-skeleton { grid-template-columns: 1fr; gap: 14px; }
 }
 
 /* 愿望卡片 */

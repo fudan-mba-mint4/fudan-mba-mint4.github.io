@@ -45,6 +45,8 @@ const { lang, t } = useLang(i18n)
 
 /* ========== 数据（数据库优先，失败/空回退静态 JSON） ========== */
 const kbData = ref(null)
+/* 加载门控：静态 JSON 返回前展示骨架；返回后立即解锁，DB 后台校准不回退骨架（SWR 语义） */
+const loading = ref(true)
 const courses = computed(() => kbData.value?.courses || [])
 const documents = computed(() => kbData.value?.documents || [])
 
@@ -68,6 +70,10 @@ async function loadKbData() {
       if (Array.isArray(j?.courses) && j.courses.length) kbData.value = j
     }
   } catch (e) { /* 保留已渲染的静态内容 */ }
+  finally {
+    // 无论静态/DB 是否成功都解锁门控：加载完由既有空态兜底，避免骨架常驻
+    loading.value = false
+  }
 }
 
 /* ========== 阅读进度（localStorage） ========== */
@@ -199,8 +205,20 @@ onUnmounted(() => {
       </button>
     </div>
 
+    <!-- 加载骨架：文档卡片占位，形态对齐真实 doc-card（纯展示，aria-hidden） -->
+    <div v-if="loading" class="kb-skeleton" aria-hidden="true">
+      <div class="sk-doc-card" v-for="i in 4" :key="i">
+        <span class="sk-doc-icon"></span>
+        <div class="sk-doc-lines">
+          <span class="sk-doc-type"></span>
+          <span class="sk-bar sk-doc-title"></span>
+          <span class="sk-bar sk-doc-meta"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- 文档卡片网格 -->
-    <div class="doc-list" v-if="filteredDocs.length > 0">
+    <div class="doc-list" v-else-if="filteredDocs.length > 0">
       <article
         v-for="doc in filteredDocs"
         :key="doc.id"
@@ -431,6 +449,52 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
+/* ========== 加载骨架（复用全局 shimmer 关键帧；底色只取现有中性/强调变量，不自创配色） ========== */
+/* 卡片表面上的骨架块：浅色次级灰、深色三级灰，保证两种主题下与卡面区分 */
+.kb-skeleton .sk-doc-icon,
+.kb-skeleton .sk-doc-type,
+.kb-skeleton .sk-bar {
+  background-size: 200% 100%;
+  background-image: linear-gradient(90deg, var(--c-bg-secondary) 25%, var(--c-accent-glow) 50%, var(--c-bg-secondary) 75%);
+  animation: shimmer 1.6s linear infinite;
+}
+:global(html.dark) .kb-skeleton .sk-doc-icon,
+:global(html.dark) .kb-skeleton .sk-doc-type,
+:global(html.dark) .kb-skeleton .sk-bar {
+  background-image: linear-gradient(90deg, var(--c-bg-tertiary) 25%, var(--c-accent-glow) 50%, var(--c-bg-tertiary) 75%);
+}
+
+/* 骨架网格对齐 .doc-list：双列、gap 12；两行 × 单卡约 80px 估算锁高 */
+.kb-skeleton {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  min-height: 184px;
+}
+/* 单卡对齐 .doc-card：padding / 边框 / 圆角 / 高度一致 */
+.sk-doc-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  min-height: 80px;
+}
+.sk-doc-icon { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; }
+.sk-doc-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+/* 类型胶囊、标题行、meta 行分别对齐真实 doc-type / doc-title / doc-meta */
+.sk-doc-type { width: 56px; height: 14px; border-radius: 6px; }
+.sk-doc-title { width: 70%; height: 13px; border-radius: 6px; }
+.sk-doc-meta { width: 45%; height: 10px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-skeleton .sk-doc-icon,
+  .kb-skeleton .sk-doc-type,
+  .kb-skeleton .sk-bar { animation: none; }
+}
+
 /* 阅读进度环 */
 .read-ring {
   flex-shrink: 0;
@@ -490,9 +554,11 @@ onUnmounted(() => {
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .doc-list {
+  .doc-list,
+  .kb-skeleton {
     grid-template-columns: 1fr;
   }
+  .kb-skeleton { min-height: 0; }
 }
 
 @media (max-width: 640px) {

@@ -391,3 +391,29 @@
 .fc-detail-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
 .confirm-mini { max-width: 420px; }
 .confirm-mini .oppose-actions { margin-top: 12px; }
+
+/* ===== 骨架占位（2026-11-01 动效优化 #20/#4，形状对齐余额卡+流水行） ===== */
+.ledger-skeleton { display: flex; flex-direction: column; gap: 14px; }
+.sk-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-bottom: 6px;
+}
+.sk-stats { display: flex; gap: 36px; }
+.sk-stat { display: flex; flex-direction: column; gap: 6px; }
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+.sk-row-main { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
+.sk-row-right { display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }

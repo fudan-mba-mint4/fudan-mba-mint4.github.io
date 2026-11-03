@@ -13,7 +13,10 @@
         <p class="mc-hero-slogan">{{ t.slogan }}</p>
         <p class="mc-hero-sub">{{ t.subtitle }}</p>
         <a v-if="isAuthenticated" :href="`${langPrefix}/profile/#coins`" class="mc-wallet-btn">
-          🍃 {{ me?.account?.balance ?? '…' }} · {{ t.myWallet }}
+          🍃
+          <!-- 个人钱包数值加载骨架（meLoading 期间轻量占位，加载失败/空账号仍回落原 “…” 文案） -->
+          <SkeletonBlock v-if="meLoading && !me" width="54px" height="14px" class="mc-wallet-sk" />
+          <span v-else>{{ me?.account?.balance ?? '…' }} · {{ t.myWallet }}</span>
         </a>
         <a v-else :href="`${langPrefix}/auth/`" class="mc-wallet-btn">{{ t.loginWallet }}</a>
       </div>
@@ -32,7 +35,20 @@
         class="mc-tab" :class="{ active: tab === key }" @click="tab = key">{{ label }}</button>
     </nav>
 
-    <section v-if="boardLoading && !board" class="mc-loading">{{ t.noData }}</section>
+    <!-- 榜单加载骨架：boardLoading 且尚无 board 数据时展示 5 行榜单行骨架（对齐排行榜卡片行）；
+         加载结束后 board 仍为空（失败/空数据）才走真实空态文案，两者必须分为两个互斥分支 -->
+    <div v-if="boardLoading && !board" class="mc-board-skeleton" aria-hidden="true">
+      <div v-for="n in 5" :key="n" class="mc-sk-row">
+        <SkeletonBlock width="30px" height="18px" class="mc-sk-rank" />
+        <SkeletonBlock variant="circle" width="40px" height="40px" />
+        <div class="mc-sk-row-main">
+          <SkeletonBlock width="52%" height="15px" />
+          <SkeletonBlock width="36%" height="12px" />
+        </div>
+        <SkeletonBlock width="72px" height="15px" class="mc-sk-earned" />
+      </div>
+    </div>
+    <div v-else-if="!boardLoading && !board" class="mc-empty">{{ t.noData }}</div>
 
     <!-- ===== 薄荷园 · 森林 ===== -->
     <section v-show="tab === 'forest'" class="mc-section">
@@ -65,7 +81,7 @@
             <div class="mc-tree-members">{{ tree.members }} {{ t.member }}</div>
           </div>
         </div>
-        <div v-if="!forest.length" class="mc-empty">{{ t.ledgerEmpty }}</div>
+        <div v-if="!boardLoading && !forest.length" class="mc-empty">{{ t.ledgerEmpty }}</div>
       </div>
     </section>
 
@@ -83,7 +99,7 @@
           <span v-if="p.group" class="mc-rank-group">{{ t.group.replace('{n}', p.group) }}</span>
           <span class="mc-rank-earned">{{ p.earned }} {{ t.coins }}</span>
         </li>
-        <li v-if="!currentBoard.length" class="mc-empty">{{ t.noData }}</li>
+        <li v-if="!boardLoading && !currentBoard.length" class="mc-empty">{{ t.noData }}</li>
       </ol>
     </section>
 
@@ -98,7 +114,7 @@
           <span class="mc-ledger-op">{{ row.operator || '' }}</span>
           <time class="mc-ledger-date">{{ shortDate(row.createdAt) }}</time>
         </div>
-        <div v-if="!board?.ledger?.length" class="mc-empty">{{ t.ledgerEmpty }}</div>
+        <div v-if="!boardLoading && !board?.ledger?.length" class="mc-empty">{{ t.ledgerEmpty }}</div>
       </div>
     </section>
 
@@ -125,7 +141,7 @@
             <li v-if="board?.honors?.kingNames?.length" class="mc-ach-item mc-ach-king">
               {{ t.king }}：{{ board.honors.kingNames.join('、') }}
             </li>
-            <li v-if="!board?.honors?.achievements?.length && !board?.honors?.kingNames?.length" class="mc-empty">{{ t.noData }}</li>
+            <li v-if="!boardLoading && !board?.honors?.achievements?.length && !board?.honors?.kingNames?.length" class="mc-empty">{{ t.noData }}</li>
           </ul>
         </div>
       </div>
@@ -139,10 +155,11 @@ import { useLang } from '../composables/useLang.js'
 import { useAuth } from '../composables/useAuth.js'
 import { COIN_I18N, useCoins } from '../composables/useCoins.js'
 import { markRead } from '../composables/useUnread.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const { t, lang } = useLang(COIN_I18N)
 const { isAuthenticated } = useAuth()
-const { board, boardLoading, fetchBoard, me, fetchMe } = useCoins()
+const { board, boardLoading, meLoading, fetchBoard, me, fetchMe } = useCoins()
 
 const langPrefix = computed(() => lang.value === 'en' ? '/en' : lang.value === 'th' ? '/th' : '')
 const isDark = ref(false)
@@ -577,7 +594,23 @@ onMounted(() => {
 .dark .mc-ach-king { color: #5ec4ac; }
 
 .mc-empty { text-align: center; color: var(--c-text-tertiary, #aeaeb2); font-size: 14px; padding: 24px 0; }
-.mc-loading { text-align: center; color: var(--c-text-tertiary, #aeaeb2); padding: 40px 0; }
+
+/* ===== 排行榜骨架：形状/间距对齐 .mc-rank-row（名次位 + 40px 圆头像 + 姓名/币值两行 + 右侧数值位），行间 8px 跟随真实列表 ===== */
+.mc-board-skeleton { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+.mc-sk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--c-bg-card, #fff);
+  border: 1px solid var(--c-border, #e5e5ea);
+  border-radius: 14px;
+  padding: 12px 18px;
+}
+.mc-sk-rank { flex-shrink: 0; }
+.mc-sk-row-main { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
+.mc-sk-earned { flex-shrink: 0; }
+/* 钱包按钮内联数值骨架居中对齐 */
+.mc-wallet-sk { vertical-align: middle; }
 
 @media (max-width: 860px) {
   .mc-forest { grid-template-columns: repeat(2, 1fr); }

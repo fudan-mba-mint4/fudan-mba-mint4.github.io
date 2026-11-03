@@ -6,7 +6,18 @@
         <h1 class="cf-title">城市足迹</h1>
         <p class="cf-subtitle">从复旦出发，被更多地方看见。</p>
 
-        <div class="cf-stats">
+        <!-- 统计骨架：统计 GET 返回前占位（纯展示，aria-hidden）；真实统计 v-else 原位替换 -->
+        <div v-if="statsLoading" class="cf-stats cf-stats--sk" aria-hidden="true">
+          <div class="cf-stat cf-stat--sk">
+            <SkeletonBlock variant="rect" width="72px" height="32px" />
+            <SkeletonBlock variant="rect" width="88px" height="12px" />
+          </div>
+          <div class="cf-stat cf-stat--sk">
+            <SkeletonBlock variant="rect" width="72px" height="32px" />
+            <SkeletonBlock variant="rect" width="88px" height="12px" />
+          </div>
+        </div>
+        <div v-else class="cf-stats">
           <div class="cf-stat">
             <div class="cf-stat-num">{{ stats.total }}</div>
             <div class="cf-stat-label">本月访问次数</div>
@@ -17,7 +28,15 @@
           </div>
         </div>
 
-        <div class="cf-top-list">
+        <!-- 城市排行骨架：6 行占位（纯展示，aria-hidden）；真实列表与空态 v-else 保留不变 -->
+        <div v-if="statsLoading" class="cf-top-list cf-top-list--sk" aria-hidden="true">
+          <div class="cf-sk-row" v-for="i in 6" :key="i">
+            <SkeletonBlock variant="rect" width="26px" height="12px" />
+            <SkeletonBlock variant="rect" width="55%" height="13px" />
+            <SkeletonBlock variant="rect" width="36px" height="12px" />
+          </div>
+        </div>
+        <div v-else class="cf-top-list">
           <div
             v-for="(city, i) in visibleCities"
             :key="city.city"
@@ -44,10 +63,9 @@
         <p class="cf-note">同一浏览器30分钟内计为一次访问；不公开或保存原始IP。</p>
       </div>
 
-      <!-- 右侧地图 -->
+      <!-- 右侧地图：静态 GeoJSON 底图始终渲染，不参与统计加载骨架门控 -->
       <div class="cf-map-area">
         <canvas ref="mapCanvas" class="cf-map"></canvas>
-        <div v-if="loading" class="cf-loading">加载地图中...</div>
       </div>
     </div>
   </div>
@@ -56,6 +74,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 import { API_PREFIX } from '../composables/apiConfig.js'
 
@@ -76,7 +95,9 @@ const sortedCities = computed(() => {
 const visibleCities = computed(() =>
   expanded.value ? sortedCities.value : sortedCities.value.slice(0, 10),
 )
-const loading = ref(true)
+// 统计数据（GET /api/city-footprint）加载门控：返回前左侧统计区展示骨架；
+// 右侧世界地图轮廓是静态 GeoJSON 底图，不参与本门控与骨架
+const statsLoading = ref(true)
 const mapCanvas = ref(null)
 const worldGeo = ref(null)
 let resizeObserver = null
@@ -317,7 +338,7 @@ async function drawMap() {
   const dpr = window.devicePixelRatio || 1
   const w = canvas.clientWidth
   const h = canvas.clientHeight
-  if (w === 0 || h === 0) { loading.value = false; return }
+  if (w === 0 || h === 0) return
   canvas.width = w * dpr
   canvas.height = h * dpr
   ctx.scale(dpr, dpr)
@@ -335,7 +356,6 @@ async function drawMap() {
       worldGeo.value = await res.json()
     } catch (e) {
       console.warn('map load failed', e)
-      loading.value = false
       return
     }
   }
@@ -371,7 +391,6 @@ async function drawMap() {
   })
 
   // 静态部分：背景 + 大陆（animate 里每帧重画，这里只做一次数据准备）
-  loading.value = false
 
   // 动画循环：扩散圆环
   if (animFrame) cancelAnimationFrame(animFrame)
@@ -477,6 +496,8 @@ onMounted(async () => {
       stats.value = data.data || data
     }
   } catch (e) { /* 静默 */ }
+  // 统计请求结束（成功/失败均解锁骨架；失败时由既有空态兜底，避免骨架常驻）
+  statsLoading.value = false
 
   if (!mounted) return
   await drawMap()
@@ -653,13 +674,30 @@ onMounted(async () => {
   background: rgba(94, 196, 172, 0.12);
 }
 
-.cf-loading {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--vp-c-text-3);
-  font-size: 14px;
+/* ========== 统计加载骨架（发光条统一由 SkeletonBlock 原子组件渲染；此处只写容器布局与锁高） ========== */
+/* 数字块 + 标签行容器，对齐真实 .cf-stat（数字 32px / 标签 12px） */
+.cf-stat--sk {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 96px;
+}
+/* 城市排行行容器，对齐真实 .cf-top-item（排名 26px + 名称 + 次数）；6 行 × 约 28px 估算锁高 168px */
+.cf-top-list--sk {
+  display: flex;
+  flex-direction: column;
+  min-height: 168px;
+}
+.cf-sk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :deep(.sk-block) { animation: none; }
 }
 
 /* 移动端 */

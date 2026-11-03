@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
 import '../finance-styles.css'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const {
   t, currentLang, loading, error, loadFinance, authToken, isAuthenticated, getToken,
@@ -86,7 +87,39 @@ const closeVouchers = () => { voucherView.value = null }
   <div class="finance-page workbench">
     <div v-if="!isAuthenticated" class="empty-state"><p>{{ t.loginFirst }}</p></div>
     <template v-else>
-      <div v-if="loading" class="fp-state">{{ t.loading }}</div>
+      <!-- 加载骨架：形状对齐页头 + 角色视图待办审批卡；本页仅挂载工作台组件，账页/预算/报销为独立页面，不存在骨架重复 -->
+      <div v-if="loading" class="wb-skeleton" aria-hidden="true">
+        <!-- 页头：标题行 + 说明行（对齐 .section-header） -->
+        <div class="sk-section-head">
+          <SkeletonBlock width="132px" height="18px" />
+          <SkeletonBlock width="240px" height="13px" />
+        </div>
+
+        <!-- 角色视图分组标题（对齐 .group-title） -->
+        <h4 class="sk-group-title"><SkeletonBlock width="150px" height="15px" /></h4>
+
+        <!-- 待办报销审批卡 2 行（对齐 .reimb-card：状态胶囊/日期、标题、元信息+金额、凭证链接、操作按钮） -->
+        <div v-for="n in 2" :key="n" class="sk-reimb-card">
+          <div class="sk-rc-head">
+            <SkeletonBlock width="64px" height="20px" radius="12px" />
+            <SkeletonBlock width="72px" height="12px" />
+          </div>
+          <SkeletonBlock width="58%" height="15px" class="sk-rc-title" />
+          <div class="sk-rc-meta">
+            <SkeletonBlock width="96px" height="12px" />
+            <SkeletonBlock width="84px" height="12px" />
+            <SkeletonBlock width="92px" height="14px" class="sk-rc-amount" />
+          </div>
+          <div class="sk-rc-foot">
+            <SkeletonBlock width="104px" height="12px" />
+          </div>
+          <div class="sk-rc-actions">
+            <SkeletonBlock variant="rect" width="76px" height="30px" radius="16px" />
+            <SkeletonBlock variant="rect" width="76px" height="30px" radius="16px" />
+            <SkeletonBlock variant="rect" width="76px" height="30px" radius="16px" />
+          </div>
+        </div>
+      </div>
       <div v-else-if="error" class="fp-state">
         {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
       </div>
@@ -197,3 +230,60 @@ const closeVouchers = () => { voucherView.value = null }
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ========== 加载骨架：形状对齐工作台页头 + 待办审批卡（.reimb-card），容器锁高防跳动 ========== */
+.wb-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 400px; /* 锁高：对齐「页头 + 分组标题 + 2 张审批卡」的真实高度量级，避免数据到达后布局跳动 */
+}
+.sk-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.sk-group-title {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  margin: 0;
+}
+/* 审批卡：底色/边框/圆角/内边距与真实 .reimb-card 一致 */
+.sk-reimb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 158px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 14px 18px;
+}
+.sk-rc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sk-rc-title { margin-top: 2px; }
+.sk-rc-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.sk-rc-amount { margin-left: auto; }
+.sk-rc-foot { display: flex; }
+.sk-rc-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+@media (max-width: 640px) {
+  .sk-section-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+</style>

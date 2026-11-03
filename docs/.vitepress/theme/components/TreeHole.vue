@@ -83,10 +83,17 @@
 
     <!-- 留言列表 -->
     <div class="message-list">
-      <!-- 加载中 -->
-      <div v-if="loading && messages.length === 0" class="state-center">
-        <div class="spinner"></div>
-        <span class="state-text">{{ t.loading }}</span>
+      <!-- 首屏加载骨架：形状对齐留言卡（圆头像 + 昵称/时间行 + 内容两行），容器锁高防跳动 -->
+      <div v-if="loading && messages.length === 0" class="th-skeleton" aria-hidden="true">
+        <div v-for="n in 5" :key="n" class="th-skel-card">
+          <div class="th-skel-head">
+            <SkeletonBlock variant="circle" width="40px" height="40px" />
+            <SkeletonBlock class="th-skel-nick" width="34%" height="14px" />
+            <SkeletonBlock class="th-skel-time" width="56px" height="11px" />
+          </div>
+          <SkeletonBlock width="85%" height="15px" />
+          <SkeletonBlock width="60%" height="15px" />
+        </div>
       </div>
 
       <!-- 空状态 -->
@@ -274,6 +281,7 @@ import { ref, reactive, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useLang } from '../composables/useLang.js'
 import { useAuth } from '../composables/useAuth.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const i18n = {
   zh: {
@@ -1137,6 +1145,21 @@ function formatTime(isoString) {
   white-space: pre-wrap;
 }
 
+/* 首屏加载骨架：对齐 .message-list 间距与 .message-card 外观，单卡锁高防跳动 */
+.th-skeleton { display: flex; flex-direction: column; gap: 12px; }
+.th-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  min-height: 112px;
+}
+.th-skel-head { display: flex; align-items: center; gap: 12px; }
+.th-skel-time { flex-shrink: 0; margin-left: auto; }
+
 /* 评论区 */
 .comment-section {
   margin-top: 12px;
@@ -1482,6 +1505,7 @@ function formatTime(isoString) {
   .treehole-title-row { flex-direction: column; align-items: stretch; gap: 14px; }
   .write-btn { width: 100%; justify-content: center; }
   .message-card { padding: 16px; }
+  .th-skel-card { padding: 16px; }
   .treehole-stats { width: 100%; justify-content: center; }
 }
 </style>

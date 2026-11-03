@@ -94,7 +94,17 @@
         <!-- 我的报名 -->
         <div class="profile-section">
           <h2 class="section-title">我的活动报名</h2>
-          <div v-if="mySignups.length === 0" class="empty-state">
+          <!-- 加载骨架：对齐 .signup-item（标题行 + meta 行 + 右侧操作位），加载结束才渲染空态/列表 -->
+          <div v-if="signupsLoading" class="signup-skeleton" aria-hidden="true">
+            <div v-for="n in 2" :key="n" class="signup-sk-item">
+              <div class="signup-sk-main">
+                <SkeletonBlock width="48%" height="15px" />
+                <SkeletonBlock width="34%" height="12px" />
+              </div>
+              <SkeletonBlock variant="rect" width="92px" height="32px" class="signup-sk-btn" />
+            </div>
+          </div>
+          <div v-else-if="mySignups.length === 0" class="empty-state">
             <div class="empty-icon">📋</div>
             <p>还没有报名任何活动</p>
             <button class="empty-btn" @click="goToActivities">去看看活动</button>
@@ -117,7 +127,19 @@
         <!-- 薄荷币（个人层：钱包 / 申报 / 明细） -->
         <div class="profile-section" id="coins">
           <h2 class="section-title">🍃 薄荷币</h2>
-          <div class="mc-wallet-card" :class="'tier-' + (coinMe?.account?.tier?.key || 'none')">
+          <!-- 钱包骨架：coinLoading 且 coinMe 尚未返回时占位（余额大数值行 + 累计/花费行 + 右侧成长位）；
+               加载失败/无账号时回落真实卡片的 “–” 与 0 兜底，不新增错误态 -->
+          <div v-if="coinLoading && !coinMe" class="mc-wallet-card mc-wallet-skeleton" aria-hidden="true">
+            <div class="mc-wallet-left">
+              <SkeletonBlock width="120px" height="34px" />
+              <SkeletonBlock width="210px" height="13px" />
+            </div>
+            <div class="mc-wallet-right">
+              <SkeletonBlock variant="circle" width="34px" height="34px" />
+              <SkeletonBlock width="64px" height="13px" />
+            </div>
+          </div>
+          <div v-else class="mc-wallet-card" :class="'tier-' + (coinMe?.account?.tier?.key || 'none')">
             <div class="mc-wallet-left">
               <div class="mc-balance">{{ coinMe?.account?.balance ?? '–' }}<span class="mc-balance-unit">币</span></div>
               <div class="mc-wallet-sub">累计获得 {{ coinMe?.account?.earned ?? 0 }} · 已花费 {{ coinMe?.account?.spent ?? 0 }}</div>
@@ -213,6 +235,7 @@ import { useData } from '../composables/useData.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { useCoins } from '../composables/useCoins.js'
 import { markRead } from '../composables/useUnread.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const router = useRouter()
 import { API_PREFIX } from '../composables/apiConfig.js'
@@ -231,7 +254,9 @@ const pwdForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const pwdSaving = ref(false)
 const pwdMsg = ref('')
 const pwdMsgType = ref('success')
+// 我的报名：原无 loading 门控，加载期间空数组会闪现“还没有报名”空态，补 loading ref 用于骨架门控
 const mySignups = ref([])
+const signupsLoading = ref(true)
 
 // 薄荷币申报
 const showClaim = ref(false)
@@ -272,11 +297,14 @@ watch(currentUser, (user) => {
 }, { immediate: true })
 
 // 加载我的报名（从API加载）
-async function loadMySignups() {
+async function loadMySignups(initial = false) {
   if (!currentUser.value) {
     mySignups.value = []
+    signupsLoading.value = false
     return
   }
+  // 仅首次进入展示骨架；activitiesData 后台静默校准触发的刷新不重复闪骨架
+  if (initial) signupsLoading.value = true
   try {
     const activities = activitiesData.value?.activities || []
     const userSignups = []
@@ -298,11 +326,14 @@ async function loadMySignups() {
   } catch (e) {
     console.warn('加载我的报名失败:', e.message)
     mySignups.value = []
+  } finally {
+    // 无论成败都结束骨架：失败后回落原有空态（不新增错误 UI，保持最小改动）
+    signupsLoading.value = false
   }
 }
 
 onMounted(() => {
-  loadMySignups()
+  loadMySignups(true)
   loadCoins()
 })
 
@@ -644,6 +675,22 @@ async function cancelSignup(eventId) {
 }
 .cancel-signup-btn:hover { background: #ff3b30; color: #fff; }
 
+/* ===== 我的报名骨架：形状/间距对齐 .signup-item（标题行 + meta 行 + 右侧操作按钮位），列表 gap 10px 跟随真实列表 ===== */
+.signup-skeleton { display: flex; flex-direction: column; gap: 10px; }
+.signup-sk-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  min-height: 84px;
+}
+.signup-sk-main { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.signup-sk-btn { flex-shrink: 0; }
+
 @media (max-width: 640px) {
   .profile-header { flex-direction: column; text-align: center; }
   .info-row { grid-template-columns: 1fr; }
@@ -673,6 +720,8 @@ async function cancelSignup(eventId) {
 .mc-balance-unit { font-size: 15px; font-weight: 600; margin-left: 4px; }
 .mc-wallet-sub { font-size: 13px; color: var(--c-text-secondary, #6e6e73); }
 .mc-wallet-right { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+/* 钱包骨架：锁高对齐真实 .mc-wallet-card（约 100px），避免 “–” 文本与完整卡片之间布局跳动 */
+.mc-wallet-skeleton { min-height: 100px; }
 .mc-tier-icon { font-size: 34px; line-height: 1; }
 .mc-tier-name { font-size: 13px; font-weight: 700; color: #2d7a6c; }
 .mc-wallet-card.tier-king .mc-tier-name { color: #b8862d; }

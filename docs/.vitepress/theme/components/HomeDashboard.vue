@@ -8,6 +8,8 @@ import { deriveActivity } from '../composables/useActivities.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import classData from '../../../public/data/class-members.json'
 import BirthdayModule from './BirthdayModule.vue'
+// 统一 shimmer 骨架原子组件（第一批已验收）：各数据区加载期占位，形状对齐真实内容
+import SkeletonBlock from './SkeletonBlock.vue'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -637,8 +639,11 @@ const financeTodoText = computed(() => {
 
 /* ===== 薄荷币角标 + 红点（登录后拉个人数据） ===== */
 const coinMeData = ref(null)
+// 个人薄荷币轻量加载态：仅用于登录后拉取期间的数值行占位，不影响业务数据与红点逻辑
+const coinMeLoading = ref(false)
 async function loadCoinMe() {
-  if (!isAuthenticated.value) { coinMeData.value = null; return }
+  if (!isAuthenticated.value) { coinMeData.value = null; coinMeLoading.value = false; return }
+  coinMeLoading.value = true
   try {
     const res = await fetchWithRetry('/api/coins/me', { headers: { Authorization: `Bearer ${getToken()}` } })
     if (!res.ok) { coinMeData.value = null; return }
@@ -648,7 +653,7 @@ async function loadCoinMe() {
     if (!isInitialized('coins')) {
       markRead('coins', (j.claims || []).map(c => `${c.id}:${c.status}`))
     }
-  } catch { coinMeData.value = null }
+  } catch { coinMeData.value = null } finally { coinMeLoading.value = false }
 }
 watch(isAuthenticated, (v) => { if (v) loadCoinMe() }, { immediate: true })
 const coinBalanceText = computed(() => {
@@ -937,14 +942,15 @@ onUnmounted(() => {
           </a>
         </div>
 
-        <!-- 骨架屏加载 -->
-        <div v-if="scheduleLoading" class="schedule-skeleton" role="status" :aria-label="t.loadingSchedule">
-          <div class="skeleton-item" v-for="i in 2" :key="i">
-            <div class="skeleton-date"></div>
-            <div class="skeleton-content">
-              <div class="skeleton-line skeleton-line--title"></div>
-              <div class="skeleton-line skeleton-line--meta"></div>
+        <!-- 加载骨架：对齐真实课表行（日期块 + 课程名/meta 两行 + 倒计时胶囊），容器锁高防跳动 -->
+        <div v-if="scheduleLoading" class="schedule-skeleton" aria-hidden="true">
+          <div v-for="i in 2" :key="i" class="sk-schedule-row">
+            <SkeletonBlock variant="rect" width="42px" height="42px" radius="var(--radius-lg)" />
+            <div class="sk-schedule-main">
+              <SkeletonBlock width="56%" height="14px" />
+              <SkeletonBlock width="42%" height="11px" />
             </div>
+            <SkeletonBlock width="58px" height="20px" radius="10px" />
           </div>
         </div>
 
@@ -1068,6 +1074,11 @@ onUnmounted(() => {
             </svg>
             <span class="quicklink-label">{{ link.label }}</span>
             <span v-if="link.key === 'finance' && financeTodoText" class="todo-badge" :aria-label="financeTodoText">{{ financeTodoText }}</span>
+            <span
+              v-if="link.key === 'coins' && coinMeLoading && !coinMeData"
+              class="todo-badge todo-badge--coins-skel"
+              aria-hidden="true"
+            ><SkeletonBlock width="46px" height="13px" radius="7px" /></span>
             <span v-if="link.key === 'coins' && coinBalanceText" class="todo-badge todo-badge--coins" :aria-label="coinBalanceText">{{ coinBalanceText }}</span>
           </a>
         </div>
@@ -1084,23 +1095,43 @@ onUnmounted(() => {
             </a>
           </div>
         </div>
-        <div class="finance-balance">
-          <span class="finance-amount">¥ {{ formatNumber(financeData.balance) }}</span>
-          <span class="finance-label">{{ t.balance }}</span>
-        </div>
-        <div class="finance-row">
-          <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.incomeDetail">
-            <span class="finance-sub finance-sub--income">+¥ {{ formatNumber(financeData.income) }}</span>
-            <span class="finance-sublabel">{{ t.income }}</span>
-            <span class="finance-tooltip" role="tooltip">{{ t.incomeDetail }}</span>
+        <!-- 加载骨架：对齐余额大数字 + 收入/支出两小块，容器锁高防跳动 -->
+        <div v-if="financeLoading" class="finance-skeleton" aria-hidden="true">
+          <div class="sk-finance-balance">
+            <SkeletonBlock width="56px" height="11px" />
+            <SkeletonBlock width="150px" height="26px" />
           </div>
-          <div class="finance-divider-v"></div>
-          <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.expenseDetail">
-            <span class="finance-sub finance-sub--expense">-¥ {{ formatNumber(financeData.expense) }}</span>
-            <span class="finance-sublabel">{{ t.expense }}</span>
-            <span class="finance-tooltip" role="tooltip">{{ t.expenseDetail }}</span>
+          <div class="sk-finance-row">
+            <div class="sk-finance-col">
+              <SkeletonBlock width="76px" height="14px" />
+              <SkeletonBlock width="48px" height="10px" />
+            </div>
+            <div class="sk-finance-divider"></div>
+            <div class="sk-finance-col">
+              <SkeletonBlock width="76px" height="14px" />
+              <SkeletonBlock width="48px" height="10px" />
+            </div>
           </div>
         </div>
+        <template v-else>
+          <div class="finance-balance">
+            <span class="finance-amount">¥ {{ formatNumber(financeData.balance) }}</span>
+            <span class="finance-label">{{ t.balance }}</span>
+          </div>
+          <div class="finance-row">
+            <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.incomeDetail">
+              <span class="finance-sub finance-sub--income">+¥ {{ formatNumber(financeData.income) }}</span>
+              <span class="finance-sublabel">{{ t.income }}</span>
+              <span class="finance-tooltip" role="tooltip">{{ t.incomeDetail }}</span>
+            </div>
+            <div class="finance-divider-v"></div>
+            <div class="finance-col finance-tooltip-wrap" :data-tooltip="t.expenseDetail">
+              <span class="finance-sub finance-sub--expense">-¥ {{ formatNumber(financeData.expense) }}</span>
+              <span class="finance-sublabel">{{ t.expense }}</span>
+              <span class="finance-tooltip" role="tooltip">{{ t.expenseDetail }}</span>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- 6. 最新公告（2x1，真实数据） -->
@@ -1114,7 +1145,19 @@ onUnmounted(() => {
             </a>
           </div>
         </div>
-        <div class="announcement-list">
+        <!-- 加载骨架：对齐 3 条公告行（分类胶囊 + 标题行 + 日期行），容器锁高防跳动；加载完才出现空态 -->
+        <div v-if="annLoading" class="ann-skeleton" aria-hidden="true">
+          <div v-for="n in 3" :key="n" class="sk-ann-row">
+            <SkeletonBlock width="48px" height="19px" radius="10px" />
+            <div class="sk-ann-main">
+              <SkeletonBlock width="100%" height="13px" />
+            </div>
+            <div class="sk-ann-date">
+              <SkeletonBlock width="64px" height="11px" />
+            </div>
+          </div>
+        </div>
+        <div v-else class="announcement-list">
           <a
             v-for="item in announcementsData"
             :key="item.id"
@@ -1137,31 +1180,49 @@ onUnmounted(() => {
       <!-- 6. 倒计时（1x1，真实数据） -->
       <div class="card card--countdown" v-tilt role="region" :aria-label="`${t.countdownTitle}: ${countdownText}`">
         <h3 class="card-title card-title--compact">{{ t.countdownTitle }}</h3>
-        <div class="countdown-ring-wrap">
-          <div
-            class="countdown-ring"
-            :class="{ 'countdown-ring--urgent': isCountdownUrgent }"
-            :style="{ '--ring-progress': semesterProgress + '%' }"
-          >
-            <div class="countdown-ring-inner">
-              <span class="countdown-number" :class="{ 'countdown-number--urgent': isCountdownUrgent }">
-                {{ daysToNextClass !== null ? daysToNextClass : '—' }}
-              </span>
+        <!-- 加载骨架：数据源自课表（scheduleLoading），对齐圆环数字 + 单位 + 学期进度条 -->
+        <div v-if="scheduleLoading" class="countdown-skeleton" aria-hidden="true">
+          <div class="sk-cd-ring">
+            <SkeletonBlock variant="circle" width="100%" height="100%" />
+          </div>
+          <div class="sk-cd-unit">
+            <SkeletonBlock width="56px" height="12px" />
+          </div>
+          <div class="sk-cd-progress">
+            <div class="sk-cd-progress-head">
+              <SkeletonBlock width="72px" height="11px" />
+              <SkeletonBlock width="34px" height="11px" />
             </div>
+            <SkeletonBlock width="100%" height="5px" radius="3px" />
           </div>
         </div>
-        <p class="countdown-unit">{{ daysToNextClass === 0 ? t.today : daysToNextClass === 1 ? t.tomorrow : t.days }}</p>
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-label">{{ t.semesterProgress }}</span>
-            <span class="progress-value">{{ semesterProgress }}%</span>
-          </div>
-          <div class="progress-bar" role="progressbar" :aria-valuenow="semesterProgress" aria-valuemin="0" aria-valuemax="100">
-            <div class="progress-fill" :style="{ width: semesterProgress + '%' }">
-              <div class="progress-shimmer" aria-hidden="true"></div>
+        <template v-else>
+          <div class="countdown-ring-wrap">
+            <div
+              class="countdown-ring"
+              :class="{ 'countdown-ring--urgent': isCountdownUrgent }"
+              :style="{ '--ring-progress': semesterProgress + '%' }"
+            >
+              <div class="countdown-ring-inner">
+                <span class="countdown-number" :class="{ 'countdown-number--urgent': isCountdownUrgent }">
+                  {{ daysToNextClass !== null ? daysToNextClass : '—' }}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+          <p class="countdown-unit">{{ daysToNextClass === 0 ? t.today : daysToNextClass === 1 ? t.tomorrow : t.days }}</p>
+          <div class="progress-section">
+            <div class="progress-header">
+              <span class="progress-label">{{ t.semesterProgress }}</span>
+              <span class="progress-value">{{ semesterProgress }}%</span>
+            </div>
+            <div class="progress-bar" role="progressbar" :aria-valuenow="semesterProgress" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-fill" :style="{ width: semesterProgress + '%' }">
+                <div class="progress-shimmer" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- 作业TODO（1x1，真实数据） -->
@@ -1170,7 +1231,21 @@ onUnmounted(() => {
           <h3 class="card-title card-title--compact">{{ t.homeworkTitle }}</h3>
           <span class="homework-count" v-if="pendingHomework.length > 0">{{ pendingHomework.length }}</span>
         </div>
-        <div class="homework-list" v-if="pendingHomework.length > 0">
+        <!-- 加载骨架：对齐待办行（课程标签 + 标题/截止两行 + 剩余天数），容器锁高防跳动；加载完才出现空态 -->
+        <div v-if="courseLoading" class="homework-skeleton" aria-hidden="true">
+          <div v-for="n in 2" :key="n" class="sk-hw-item">
+            <SkeletonBlock width="40px" height="20px" radius="6px" />
+            <div class="sk-hw-main">
+              <SkeletonBlock width="68%" height="13px" />
+              <SkeletonBlock width="56%" height="11px" />
+            </div>
+            <div class="sk-hw-days">
+              <SkeletonBlock width="22px" height="18px" />
+              <SkeletonBlock width="34px" height="9px" />
+            </div>
+          </div>
+        </div>
+        <div v-else-if="pendingHomework.length > 0" class="homework-list">
           <a
             v-for="hw in pendingHomework"
             :key="hw.id"
@@ -1192,7 +1267,7 @@ onUnmounted(() => {
             </div>
           </a>
         </div>
-        <div class="homework-empty" v-else>
+        <div v-else class="homework-empty">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
@@ -1233,7 +1308,16 @@ onUnmounted(() => {
           <h3 class="card-title">{{ t.galleryTitle }}</h3>
           <a :href="`${langPrefix}/gallery/`" class="card-link">{{ t.viewAll }}</a>
         </div>
-        <div class="gallery-grid">
+        <!-- 加载骨架：对齐 4 张 1:1 封面 + 底部标题行，同网格同比例锁高 -->
+        <div v-if="actLoading" class="gallery-skeleton" aria-hidden="true">
+          <div v-for="n in 4" :key="n" class="sk-gal-item">
+            <SkeletonBlock variant="rect" width="100%" height="100%" />
+            <div class="sk-gal-title">
+              <SkeletonBlock width="72%" height="11px" />
+            </div>
+          </div>
+        </div>
+        <div v-else class="gallery-grid">
           <a
             v-for="(act, idx) in galleryActivities"
             :key="act.id"
@@ -1860,60 +1944,170 @@ onUnmounted(() => {
   50% { opacity: 1; }
 }
 
-/* ========== 2. 近期课程 ========== */
-/* 骨架屏 */
+/* ========== 2. 近期课程（加载骨架：统一 shimmer，形状对齐真实课表行，容器锁高防跳动） ========== */
 .schedule-skeleton {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
   flex: 1;
   padding: 4px 0;
+  min-height: 92px;
 }
-
-.skeleton-item {
+.sk-schedule-row {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px 4px;
+  min-height: 44px;
+}
+.sk-schedule-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.skeleton-date {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-lg);
-  background: var(--c-bg-secondary);
-  flex-shrink: 0;
-  animation: skeletonPulse 1.5s ease-in-out infinite;
+/* ========== 班费卡片加载骨架：余额大数字 + 收入/支出两小块，锁高 96px ========== */
+.finance-skeleton {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 96px;
 }
-
-.skeleton-content {
+.sk-finance-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.sk-finance-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--c-separator);
+  margin-top: auto;
+}
+.sk-finance-col {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+}
+.sk-finance-divider {
+  width: 0.5px;
+  height: 28px;
+  background: var(--c-separator);
+  flex-shrink: 0;
 }
 
-.skeleton-line {
-  height: 12px;
-  border-radius: 6px;
+/* ========== 公告卡片加载骨架：3 行（胶囊 + 标题 + 日期），锁高 136px ========== */
+.ann-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-height: 136px;
+}
+.sk-ann-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px 9px 12px;
+  min-height: 44px;
+}
+.sk-ann-main {
+  flex: 1;
+  min-width: 0;
+}
+.sk-ann-date {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ========== 作业待办加载骨架：2 行待办，锁高 88px ========== */
+.homework-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  margin-top: 4px;
+  min-height: 88px;
+}
+.sk-hw-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--c-bg-elevated);
+  border-radius: 12px;
+}
+.sk-hw-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sk-hw-days {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+/* ========== 倒计时加载骨架（数据源自课表）：圆环 + 单位 + 进度条，圆环尺寸随响应式收窄 ========== */
+.countdown-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+.sk-cd-ring {
+  width: 100px;
+  height: 100px;
+  margin: 4px 0;
+}
+.sk-cd-unit {
+  margin: 2px 0 0;
+}
+.sk-cd-progress {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 10px;
+}
+.sk-cd-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* ========== 活动相册加载骨架：4 张 1:1 封面，与真实网格同列比 ========== */
+.gallery-skeleton {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  flex: 1;
+}
+.sk-gal-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
   background: var(--c-bg-secondary);
-  animation: skeletonPulse 1.5s ease-in-out infinite;
+  overflow: hidden;
 }
-
-.skeleton-line--title {
-  width: 60%;
-  height: 14px;
+.sk-gal-item .sk-block {
+  position: absolute;
+  inset: 0;
 }
-
-.skeleton-line--meta {
-  width: 40%;
-  height: 10px;
-  animation-delay: 0.2s;
-}
-
-@keyframes skeletonPulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.sk-gal-title {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
 }
 
 .schedule-list {
@@ -2256,6 +2450,11 @@ onUnmounted(() => {
 .todo-badge--coins {
   background: linear-gradient(135deg, #2d7a6c, #1a5c50);
   box-shadow: 0 1px 4px rgba(45, 122, 108, .45);
+}
+.todo-badge--coins-skel {
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 4px;
 }
 
 /* ========== 4. 班级统计 ========== */
@@ -3100,7 +3299,8 @@ onUnmounted(() => {
   .card--announcements { grid-column: span 2; }
   .card--gallery { grid-column: span 2; }
 
-  .countdown-ring {
+  .countdown-ring,
+  .sk-cd-ring {
     width: 90px;
     height: 90px;
   }
@@ -3160,7 +3360,8 @@ onUnmounted(() => {
     font-size: 22px;
   }
 
-  .countdown-ring {
+  .countdown-ring,
+  .sk-cd-ring {
     width: 84px;
     height: 84px;
   }
@@ -3255,8 +3456,14 @@ onUnmounted(() => {
     display: none !important;
   }
 
-  .skeleton-date,
-  .skeleton-line {
+  /* 骨架 shimmer 在减少动效偏好下停用（全局规则见 animations.css，此处组件内兜底） */
+  .schedule-skeleton .sk-block,
+  .finance-skeleton .sk-block,
+  .ann-skeleton .sk-block,
+  .homework-skeleton .sk-block,
+  .countdown-skeleton .sk-block,
+  .gallery-skeleton .sk-block,
+  .todo-badge--coins-skel .sk-block {
     animation: none !important;
   }
 

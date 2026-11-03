@@ -148,10 +148,35 @@ const typeLabel = (f) => {
       <p class="page-tip" v-if="materialsData">{{ t.tip }}</p>
     </div>
 
-    <!-- 加载 -->
-    <div v-if="loading" class="loading">
-      <div class="loading-spinner"></div>
-      <p>{{ t.loading }}</p>
+    <!-- 加载骨架：占位课程标签、课程信息带与 3 张讲次卡片，形态对齐真实结构（纯展示，aria-hidden） -->
+    <div v-if="loading" class="materials-skeleton" aria-hidden="true">
+      <div class="sk-tabs">
+        <span class="sk-chip sk-chip--1" v-for="i in 3" :key="i"></span>
+      </div>
+      <div class="sk-info-band">
+        <div class="sk-info-item" v-for="i in 3" :key="i">
+          <span class="sk-band-bar sk-panel-shimmer sk-band-bar--label"></span>
+          <span class="sk-band-bar sk-panel-shimmer sk-band-bar--value"></span>
+        </div>
+      </div>
+      <div class="sk-session-list">
+        <div class="sk-session-block" v-for="i in 3" :key="i">
+          <div class="sk-session-header">
+            <span class="sk-badge sk-shimmer"></span>
+            <div class="sk-head-lines">
+              <span class="sk-bar sk-bar--title"></span>
+              <span class="sk-bar sk-bar--date"></span>
+            </div>
+          </div>
+          <div class="sk-file-row" v-for="r in 2" :key="r">
+            <span class="sk-file-icon sk-panel-shimmer"></span>
+            <div class="sk-file-lines">
+              <span class="sk-bar sk-bar--name"></span>
+              <span class="sk-bar sk-bar--meta"></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <template v-else-if="materialsData">
@@ -388,24 +413,118 @@ const typeLabel = (f) => {
   margin: 0;
 }
 
-.loading {
-  text-align: center;
-  padding: 60px 0;
-  color: var(--c-text-secondary);
+/* ========== 加载骨架（复用全局 shimmer 关键帧；底色只取现有中性/强调变量，不自创配色） ========== */
+/* 微光动画基底：只负责动画，不决定颜色 */
+.sk-shimmer,
+.sk-bar,
+.sk-chip,
+.sk-panel-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+/* 落于卡片表面（浅色白卡 / 深色卡片）：浅色次级灰、深色三级灰，与卡面区分 */
+.sk-shimmer,
+.sk-bar,
+.sk-chip {
+  background-image: linear-gradient(90deg, var(--c-bg-secondary) 25%, var(--c-accent-glow) 50%, var(--c-bg-secondary) 75%);
+}
+/* 落于次级灰底面板（课程信息带 / 文件行）：浅色卡白、深色三级灰 */
+.sk-panel-shimmer {
+  background-image: linear-gradient(90deg, var(--c-bg-card) 25%, var(--c-accent-glow) 50%, var(--c-bg-card) 75%);
+}
+:global(html.dark) .sk-shimmer,
+:global(html.dark) .sk-bar,
+:global(html.dark) .sk-chip {
+  background-image: linear-gradient(90deg, var(--c-bg-tertiary) 25%, var(--c-accent-glow) 50%, var(--c-bg-tertiary) 75%);
+}
+:global(html.dark) .sk-panel-shimmer {
+  background-image: linear-gradient(90deg, var(--c-bg-tertiary) 25%, var(--c-accent-glow) 50%, var(--c-bg-tertiary) 75%);
 }
 
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--c-border);
-  border-top-color: var(--c-accent);
-  border-radius: 50%;
-  margin: 0 auto 16px;
-  animation: spin 0.8s linear infinite;
+/* 课程标签行占位：对齐 .course-tabs（gap 12 / 下间距 24，chip 高 48、圆角 16） */
+.sk-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.sk-chip { height: 48px; border-radius: 16px; }
+.sk-chip--1 { width: 170px; }
+.sk-chip--2 { width: 150px; }
+.sk-chip--3 { width: 120px; }
+
+/* 课程信息带占位：对齐 .course-info（padding 16/20、下间距 28、次级灰底、圆角 12） */
+.sk-info-band {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding: 16px 20px;
+  background: var(--c-bg-secondary);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+.sk-info-item { display: flex; flex-direction: column; gap: 6px; }
+.sk-band-bar { border-radius: var(--radius-xs); }
+.sk-band-bar--label { width: 64px; height: 8px; }
+.sk-band-bar--value { width: 120px; height: 14px; }
+
+/* 讲次卡片列表占位：对齐 .sessions-list（纵向 gap 24）；按首课程 3 讲 × 单卡约 264px 估算锁高 828px */
+.sk-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 828px;
+}
+/* 单卡对齐 .session-block：卡片底色/边框/圆角/padding 一致，min-height 对齐真实卡片估算 */
+.sk-session-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-xl);
+  min-height: 264px;
+}
+/* 卡头对齐 .session-header：44px 序号块 + 标题行/日期行，底部分隔线 */
+.sk-session-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--c-border);
+}
+.sk-badge { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; }
+.sk-head-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.sk-bar { border-radius: var(--radius-xs); }
+.sk-bar--title { width: 55%; height: 16px; }
+.sk-bar--date { width: 30%; height: 10px; }
+
+/* 文件行对齐 .file-card：40px 图标块 + 文件名行 + meta 行 */
+.sk-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+}
+.sk-file-icon { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
+.sk-file-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.sk-bar--name { width: 45%; height: 13px; }
+.sk-bar--meta { width: 25%; height: 10px; }
+
+/* 减少动效偏好：骨架微光停在静态底色 */
+@media (prefers-reduced-motion: reduce) {
+  .sk-shimmer, .sk-bar, .sk-chip, .sk-panel-shimmer { animation: none; }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* 窄屏：去掉列表总锁高，交给卡片自然高度；padding 对齐真实 session-block 移动端 */
+@media (max-width: 768px) {
+  .sk-session-block { padding: 18px; }
+  .sk-session-list { min-height: 0; }
 }
 
 /* 课程标签 */

@@ -5,6 +5,7 @@ import { useLang } from '../composables/useLang.js'
 import { useAuth } from '../composables/useAuth.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { markRead } from '../composables/useUnread.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const router = useRouter()
 
@@ -280,7 +281,23 @@ function formatDeadline(iso) {
       <p>{{ t.subtitle }}</p>
     </div>
 
-    <div v-if="loading" class="polls-loading">加载中...</div>
+    <!-- 加载骨架：形状对齐 poll-card（标题/标签胶囊/倒计时/截止条），容器锁高防跳动 -->
+    <div v-if="loading" class="poll-skeleton" aria-hidden="true">
+      <div v-for="n in 3" :key="n" class="poll-skeleton-card">
+        <div class="sk-head">
+          <SkeletonBlock width="42%" height="18px" />
+          <div class="sk-head-side">
+            <SkeletonBlock width="84px" height="15px" />
+          </div>
+        </div>
+        <div class="sk-tags">
+          <SkeletonBlock width="56px" height="20px" radius="10px" />
+          <SkeletonBlock width="56px" height="20px" radius="10px" />
+          <SkeletonBlock width="72px" height="20px" radius="10px" />
+        </div>
+        <SkeletonBlock width="38%" height="12px" />
+      </div>
+    </div>
     <div v-else-if="!polls.length" class="polls-empty">{{ t.noPolls }}</div>
 
     <div class="polls-list">
@@ -375,6 +392,21 @@ function formatDeadline(iso) {
 .polls-hero p { font-size: 15px; color: var(--c-text-secondary); margin: 0; }
 
 .polls-loading, .polls-empty { text-align: center; padding: 60px 0; color: var(--c-text-tertiary); font-size: 15px; }
+
+/* 投票列表骨架：形状对齐 .poll-card */
+.poll-skeleton { display: flex; flex-direction: column; gap: 16px; }
+.poll-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.poll-skeleton-card .sk-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.poll-skeleton-card .sk-head-side { display: flex; justify-content: flex-end; }
+.poll-skeleton-card .sk-tags { display: flex; gap: 8px; }
 
 .polls-list { display: flex; flex-direction: column; gap: 16px; }
 

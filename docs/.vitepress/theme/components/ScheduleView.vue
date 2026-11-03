@@ -4,6 +4,7 @@ import { useLang } from '../composables/useLang.js'
 import { useData } from '../composables/useData.js'
 import NextUpPill from './NextUpPill.vue'
 import SemesterHighway from './SemesterHighway.vue'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 /* ========== i18n ========== */
 const i18n = {
@@ -360,10 +361,24 @@ const isToday = (dateStr) => {
       </div>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading">
-      <div class="loading-spinner"></div>
-      <p>{{ t.loading }}</p>
+    <!-- 加载骨架：形状对齐下节课胶囊 + 日期块课程行，容器锁高防跳动 -->
+    <div v-if="loading" class="schedule-skeleton" aria-hidden="true">
+      <div class="sk-pill">
+        <SkeletonBlock width="260px" height="16px" />
+        <SkeletonBlock width="120px" height="16px" />
+      </div>
+      <div v-for="n in 4" :key="n" class="sk-day">
+        <div class="sk-day-head">
+          <SkeletonBlock width="96px" height="16px" />
+        </div>
+        <div class="sk-day-courses">
+          <div v-for="m in 2" :key="m" class="sk-course">
+            <SkeletonBlock width="44px" height="14px" />
+            <SkeletonBlock width="56%" height="16px" />
+            <SkeletonBlock width="18%" height="12px" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <template v-else-if="scheduleData">
@@ -759,6 +774,33 @@ const isToday = (dateStr) => {
   padding: var(--space-4xl);
   color: var(--c-text-tertiary);
 }
+
+/* 课表骨架：形状对齐下节课胶囊 + 日期块课程行 */
+.schedule-skeleton { display: flex; flex-direction: column; gap: 18px; }
+.sk-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+}
+.sk-day { display: flex; flex-direction: column; gap: 10px; }
+.sk-day-head { padding-left: 2px; }
+.sk-day-courses { display: flex; flex-direction: column; gap: 8px; }
+.sk-course {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+}
+.sk-course .sk-block:first-child { flex-shrink: 0; }
+.sk-course .sk-block:nth-child(2) { flex: 1; }
 
 .loading-spinner {
   width: 40px;

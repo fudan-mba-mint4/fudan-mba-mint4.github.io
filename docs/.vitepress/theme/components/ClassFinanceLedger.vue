@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
 import '../finance-styles.css'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const {
   t, loading, error, loadFinance,
@@ -30,7 +31,29 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
 
 <template>
   <div class="finance-page ledger">
-    <div v-if="loading" class="fp-state">{{ t.loading }}</div>
+    <!-- 加载骨架：形状对齐余额卡 + 流水行，容器锁高防跳动 -->
+    <div v-if="loading" class="ledger-skeleton" aria-hidden="true">
+      <div class="sk-balance">
+        <SkeletonBlock width="96px" height="14px" />
+        <SkeletonBlock width="170px" height="34px" />
+        <div class="sk-stats">
+          <div class="sk-stat"><SkeletonBlock width="56px" height="12px" /><SkeletonBlock width="88px" height="18px" /></div>
+          <div class="sk-stat"><SkeletonBlock width="56px" height="12px" /><SkeletonBlock width="88px" height="18px" /></div>
+          <div class="sk-stat"><SkeletonBlock width="56px" height="12px" /><SkeletonBlock width="88px" height="18px" /></div>
+        </div>
+      </div>
+      <div v-for="n in 6" :key="n" class="sk-row">
+        <SkeletonBlock variant="circle" width="36px" height="36px" />
+        <div class="sk-row-main">
+          <SkeletonBlock width="52%" height="15px" />
+          <SkeletonBlock width="34%" height="11px" />
+        </div>
+        <div class="sk-row-right">
+          <SkeletonBlock width="76px" height="15px" />
+          <SkeletonBlock width="60px" height="11px" />
+        </div>
+      </div>
+    </div>
     <div v-else-if="error" class="fp-state">
       {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
     </div>

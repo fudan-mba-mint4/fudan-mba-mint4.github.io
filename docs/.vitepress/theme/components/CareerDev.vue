@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLang, formatDate } from '../composables/useLang.js'
 import { fetchWithRetry } from '../utils/fetchWithRetry.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 /* ========== 多语言文案 ========== */
 const i18n = {
@@ -32,7 +33,6 @@ const i18n = {
     },
     viewResource: '查看',
     eventsEmpty: '暂无职业分享会活动，后续发布后将展示在这里。',
-    noData: '数据加载中…',
   },
   en: {
     title: '💼 Career Development',
@@ -61,7 +61,6 @@ const i18n = {
     },
     viewResource: 'View',
     eventsEmpty: 'No career talks yet — they will appear here once published.',
-    noData: 'Loading…',
   },
   th: {
     title: '💼 การพัฒนาอาชีพ',
@@ -90,7 +89,6 @@ const i18n = {
     },
     viewResource: 'ดู',
     eventsEmpty: 'ยังไม่มีงานเสวนาอาชีพ จะแสดงที่นี่เมื่อเผยแพร่แล้ว',
-    noData: 'กำลังโหลด…',
   },
 }
 const { lang, t } = useLang(i18n)
@@ -174,7 +172,61 @@ onMounted(async () => {
       </div>
     </header>
 
-    <div v-if="loading" class="loading">{{ t.noData }}</div>
+    <!-- 内容区加载骨架：占位环图面板 / 内推卡 / 分享会卡，形态对齐真实区块（纯展示，aria-hidden）；数据就绪由 v-else 原位替换 -->
+    <div v-if="loading" class="career-skeleton" aria-hidden="true">
+      <!-- 模块B 行业分布环图面板占位 -->
+      <section class="sk-section">
+        <div class="sk-heading">
+          <SkeletonBlock variant="rect" width="180px" height="20px" />
+          <SkeletonBlock variant="rect" width="240px" height="12px" />
+        </div>
+        <div class="sk-panel">
+          <SkeletonBlock variant="circle" width="220px" height="220px" />
+          <ul class="sk-legend">
+            <li class="sk-legend-row" v-for="i in 4" :key="i">
+              <SkeletonBlock variant="circle" width="10px" height="10px" />
+              <SkeletonBlock variant="rect" width="55%" height="12px" />
+              <SkeletonBlock variant="rect" width="40px" height="12px" />
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 模块C 内推机会卡占位（双列 2 张） -->
+      <section class="sk-section">
+        <div class="sk-heading">
+          <SkeletonBlock variant="rect" width="180px" height="20px" />
+          <SkeletonBlock variant="rect" width="240px" height="12px" />
+        </div>
+        <div class="sk-grid-2">
+          <article class="sk-card" v-for="i in 2" :key="i">
+            <div class="sk-card-top">
+              <SkeletonBlock variant="rect" width="64px" height="12px" />
+              <SkeletonBlock variant="rect" width="48px" height="18px" radius="var(--radius-full)" />
+            </div>
+            <SkeletonBlock variant="rect" width="75%" height="16px" />
+            <SkeletonBlock variant="rect" width="55%" height="11px" />
+            <SkeletonBlock variant="rect" width="38%" height="11px" />
+          </article>
+        </div>
+      </section>
+
+      <!-- 模块E 职业分享会卡占位（轻量 1 张） -->
+      <section class="sk-section">
+        <div class="sk-heading">
+          <SkeletonBlock variant="rect" width="180px" height="20px" />
+          <SkeletonBlock variant="rect" width="240px" height="12px" />
+        </div>
+        <div class="sk-event-row">
+          <article class="sk-card sk-event-card">
+            <SkeletonBlock variant="rect" width="56px" height="12px" />
+            <SkeletonBlock variant="rect" width="75%" height="16px" />
+            <SkeletonBlock variant="rect" width="55%" height="11px" />
+            <SkeletonBlock variant="rect" width="38%" height="11px" />
+          </article>
+        </div>
+      </section>
+    </div>
     <template v-else>
       <!-- 模块B：行业分布环图 -->
       <section class="block">
@@ -341,10 +393,69 @@ onMounted(async () => {
   color: var(--c-text-tertiary);
   margin: 0 0 20px;
 }
-.loading {
-  text-align: center;
-  color: var(--c-text-tertiary);
-  padding: 60px 0;
+/* ========== 内容区加载骨架（发光条/圆点统一由 SkeletonBlock 原子组件渲染；此处只写容器布局与锁高） ========== */
+/* 区块纵向间距对齐真实 .block { margin-top: 48px } */
+.sk-section { margin-top: 48px; }
+/* 区块标题/副标题行，对齐真实 .block-title + .block-sub（标题下 4px、副标题下 20px） */
+.sk-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+/* 模块B：环图面板，对齐 .ring-wrap 卡片面/边框/圆角，锁高 268px */
+.sk-panel {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 24px;
+  min-height: 268px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-2xl);
+}
+.sk-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+}
+.sk-legend-row { display: flex; align-items: center; gap: 8px; }
+
+/* 模块C：内推卡双列，对齐 .referral-grid / .referral-card，单卡锁高 140px */
+.sk-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.sk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  min-height: 140px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-xl);
+}
+.sk-card-top { display: flex; align-items: center; justify-content: space-between; }
+
+/* 模块E：分享会卡横向行，对齐 .event-row / .event-card（260px 宽），锁高 120px */
+.sk-event-row { display: flex; gap: 16px; }
+.sk-event-card { flex: 0 0 260px; min-height: 120px; }
+
+@media (prefers-reduced-motion: reduce) {
+  :deep(.sk-block) { animation: none; }
+}
+
+/* 骨架响应式跟随真实区块 */
+@media (max-width: 768px) {
+  .sk-panel { flex-direction: column; gap: 24px; min-height: 0; }
+}
+@media (max-width: 640px) {
+  .sk-grid-2 { grid-template-columns: 1fr; }
+  .sk-event-row { flex-wrap: wrap; }
+  .sk-event-card { flex: 1 1 100%; }
 }
 
 /* ========== 模块B 环图 ========== */
