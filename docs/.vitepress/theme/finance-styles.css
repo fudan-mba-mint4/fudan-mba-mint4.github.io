@@ -417,3 +417,65 @@
 }
 .sk-row-main { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
 .sk-row-right { display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }
+
+/* ===== 预算公示页骨架（budget-skeleton，形态对齐 Tab 工具栏 + 分组标题 + 公示卡） ===== */
+.budget-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 480px; /* 锁高：对齐「工具栏 + 组标题 + 3 张公示卡」真实高度量级，避免数据到达后布局跳动 */
+}
+.sk-toolbar { display: flex; align-items: center; gap: 10px; }
+.sk-toolbar-btn { margin-left: auto; }
+.sk-group-title { display: flex; align-items: center; height: 22px; margin: 0; }
+/* 公示卡：底色/边框/圆角/内边距与真实 .budget-card 一致 */
+.sk-budget-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 128px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+}
+.sk-bc-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sk-bc-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.sk-bc-vote { display: flex; gap: 10px; margin-top: 2px; }
+@media (max-width: 640px) {
+  .sk-bc-meta { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+/* ===== 报销页骨架（reimb-skeleton，形态对齐 页头 + 顶栏 + 报销卡） ===== */
+.reimb-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 420px; /* 锁高：对齐「页头 + 顶栏 + 3 张报销卡」真实高度量级 */
+}
+.sk-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.sk-topbar { display: flex; align-items: center; justify-content: space-between; }
+/* 报销卡：底色/边框/圆角/内边距与真实 .reimb-card 一致（前缀限定，避免与工作台 scoped 同名类互相干扰） */
+.reimb-skeleton .sk-reimb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 118px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 14px 18px;
+}
+.reimb-skeleton .sk-rc-head { display: flex; justify-content: space-between; align-items: center; }
+.reimb-skeleton .sk-rc-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.reimb-skeleton .sk-rc-amount { margin-left: auto; }
+.reimb-skeleton .sk-rc-foot { display: flex; }
+@media (max-width: 640px) {
+  .sk-section-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+}

@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
 import { getQueryParam } from '../utils/urlUtils.js'
 import '../finance-styles.css'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const {
   t, currentLang, loading, error, loadFinance, isAuthenticated, currentUser, authToken, router,
@@ -185,7 +186,30 @@ watch(() => router.route.path, () => {
 
 <template>
   <div class="finance-page reimb">
-    <div v-if="loading" class="fp-state">{{ t.loading }}</div>
+    <!-- 加载骨架：页头 + 顶栏 + 3 张报销卡占位，形态对齐真实结构（纯展示，aria-hidden） -->
+    <div v-if="loading" class="reimb-skeleton" aria-hidden="true">
+      <div class="sk-section-head">
+        <SkeletonBlock width="132px" height="18px" />
+        <SkeletonBlock width="240px" height="13px" />
+      </div>
+      <div class="sk-topbar">
+        <SkeletonBlock width="150px" height="15px" />
+        <SkeletonBlock width="96px" height="32px" radius="16px" class="sk-topbar-btn" />
+      </div>
+      <div v-for="n in 3" :key="n" class="sk-reimb-card">
+        <div class="sk-rc-head">
+          <SkeletonBlock width="64px" height="20px" radius="12px" />
+          <SkeletonBlock width="72px" height="12px" />
+        </div>
+        <SkeletonBlock width="58%" height="15px" class="sk-rc-title" />
+        <div class="sk-rc-meta">
+          <SkeletonBlock width="96px" height="12px" />
+          <SkeletonBlock width="84px" height="12px" />
+          <SkeletonBlock width="92px" height="14px" class="sk-rc-amount" />
+        </div>
+        <div class="sk-rc-foot"><SkeletonBlock width="120px" height="13px" /></div>
+      </div>
+    </div>
     <div v-else-if="error" class="fp-state">
       {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
     </div>

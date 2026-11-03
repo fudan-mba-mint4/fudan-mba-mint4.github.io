@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useLang } from '../composables/useLang'
 import { useActivities } from '../composables/useActivities.js'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const i18n = {
   zh: {
@@ -135,10 +136,23 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="gallery-page">
-    <!-- 加载状态 -->
-    <div v-if="loading" class="gallery-loading">
-      <div class="loading-spinner"></div>
-      <p>{{ t.loading }}</p>
+    <!-- 加载骨架：月份分组标题 + 相册卡片网格占位，形态对齐真实结构（纯展示，aria-hidden） -->
+    <div v-if="loading" class="gallery-skeleton" aria-hidden="true">
+      <div v-for="g in 2" :key="g" class="sk-month-group">
+        <div class="sk-month-head">
+          <SkeletonBlock width="96px" height="18px" />
+          <SkeletonBlock width="52px" height="12px" />
+        </div>
+        <div class="sk-albums-grid">
+          <div v-for="a in 6" :key="a" class="sk-album-card">
+            <div class="sk-album-cover"><SkeletonBlock variant="rect" width="100%" height="100%" /></div>
+            <div class="sk-album-lines">
+              <SkeletonBlock width="72%" height="14px" />
+              <SkeletonBlock width="44%" height="11px" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <template v-else>
@@ -262,6 +276,46 @@ onBeforeUnmount(() => {
   max-width: 1000px;
   margin: 0 auto;
   padding: 0 24px 60px;
+}
+
+/* 加载骨架：月份分组标题 + 3 列相册卡占位，形态对齐真实结构（纯展示，aria-hidden） */
+.gallery-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 8px 0;
+}
+.sk-month-group { display: flex; flex-direction: column; gap: 16px; }
+.sk-month-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--c-border);
+}
+.sk-albums-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.sk-album-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.sk-album-cover {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--c-bg-secondary);
+}
+.sk-album-lines { display: flex; flex-direction: column; gap: 7px; }
+@media (max-width: 768px) {
+  .sk-albums-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+}
+@media (max-width: 640px) {
+  .sk-albums-grid { grid-template-columns: 1fr; }
 }
 
 /* 加载状态 */

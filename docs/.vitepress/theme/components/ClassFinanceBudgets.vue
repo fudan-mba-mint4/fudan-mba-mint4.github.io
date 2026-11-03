@@ -5,6 +5,7 @@ import { fetchWithRetry } from '../utils/fetchWithRetry.js'
 import { getQueryParam } from '../utils/urlUtils.js'
 import { readFileAsBase64 } from '../utils/admin/utils.js'
 import '../finance-styles.css'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const {
   t, currentLang, loading, error, loadFinance, isAuthenticated, currentUser, authToken, router,
@@ -390,7 +391,30 @@ const deadlineText = (b) => {
 
 <template>
   <div class="finance-page budgets">
-    <div v-if="loading" class="fp-state">{{ t.loading }}</div>
+    <!-- 加载骨架：Tab 工具栏 + 分组标题 + 3 张公示卡占位，形态对齐真实结构（纯展示，aria-hidden） -->
+    <div v-if="loading" class="budget-skeleton" aria-hidden="true">
+      <div class="sk-toolbar">
+        <SkeletonBlock width="88px" height="30px" radius="15px" />
+        <SkeletonBlock width="88px" height="30px" radius="15px" />
+        <SkeletonBlock width="112px" height="34px" radius="17px" class="sk-toolbar-btn" />
+      </div>
+      <div class="sk-group-title"><SkeletonBlock width="110px" height="15px" /></div>
+      <div v-for="n in 3" :key="n" class="sk-budget-card">
+        <div class="sk-bc-head">
+          <SkeletonBlock width="76px" height="20px" radius="10px" />
+          <SkeletonBlock width="112px" height="12px" />
+        </div>
+        <SkeletonBlock width="58%" height="17px" class="sk-bc-title" />
+        <div class="sk-bc-meta">
+          <SkeletonBlock width="46%" height="12px" />
+          <SkeletonBlock width="96px" height="12px" />
+        </div>
+        <div class="sk-bc-vote">
+          <SkeletonBlock width="72px" height="30px" radius="15px" />
+          <SkeletonBlock width="72px" height="30px" radius="15px" />
+        </div>
+      </div>
+    </div>
     <div v-else-if="error" class="fp-state">
       {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
     </div>
