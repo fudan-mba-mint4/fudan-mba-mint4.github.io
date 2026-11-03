@@ -319,6 +319,8 @@ export function useFinanceV2() {
     }
   }
   onMounted(loadFinance)
+  // 登录态变化（登录/登出）时重新拉取：避免 SPA 内重新登录后仍停留在未登录数据（myVotes 等私有字段缺失）
+  watch(isAuthenticated, () => { loadFinance() })
 
   const transactions = computed(() => financeData.value?.transactions || [])
   const budgets = computed(() => financeData.value?.budgets || [])

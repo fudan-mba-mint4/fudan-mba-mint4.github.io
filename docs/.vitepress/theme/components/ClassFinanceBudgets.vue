@@ -339,7 +339,14 @@ async function submitVote() {
     })
     const json = await res.json().catch(() => ({}))
     if (res.ok) { cancelVoteInput(); await loadFinance() }
-    else f.msg = json.error || t.value.loadFailed
+    else {
+      f.msg = json.error || t.value.loadFailed
+      // 后端校验到"已投过票"：票确实在库里，但页面状态未同步 → 收起表单并刷新最新投票状态
+      if ((json.error || '').includes('已投过票')) {
+        cancelVoteInput()
+        await loadFinance()
+      }
+    }
   } catch (e) { f.msg = t.value.loadFailed }
   finally { f.submitting = false }
 }
