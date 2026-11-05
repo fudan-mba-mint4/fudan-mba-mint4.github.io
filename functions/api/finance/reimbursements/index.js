@@ -5,7 +5,7 @@
 // PUT /:id：待补正（need_revision）状态下由本人修改凭证/信息后重新提交
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
 import { COMMITTEE_ROLES } from '../../../_utils.js'
-import { getFinanceConfig, VOUCHER_TYPES, newId } from '../../../_finance.js'
+import { getFinanceConfig, VOUCHER_TYPES, FINANCE_CATEGORIES, newId } from '../../../_finance.js'
 import { purgePublicCache } from '../../../_cache.js'
 
 function voucherOk(url) {
@@ -30,6 +30,29 @@ function checkVouchers(vouchers, amount, config, endorsement) {
   }
   if (missing.length > 0) return { ok: false, missing, needEndorsement: false }
   return { ok: true, missing: [], needEndorsement: false }
+}
+
+
+// 校验并规范化报销明细行：每行须有支出项目 + 费用性质 + 金额>0（备注选填）；金额由服务端汇总，不信任客户端 amount
+function normalizeItems(raw) {
+  const list = Array.isArray(raw) ? raw : []
+  if (list.length === 0) return { ok: false, error: '请至少填写一行报销明细', items: [], total: 0 }
+  if (list.length > 30) return { ok: false, error: '明细行数过多（最多 30 行）', items: [], total: 0 }
+  const items = []
+  for (let i = 0; i < list.length; i++) {
+    const it = list[i] || {}
+    const name = String(it.item || it.name || '').trim()
+    if (!name) return { ok: false, error: `第 ${i + 1} 行明细缺少支出项目`, items: [], total: 0 }
+    const amount = Math.round((Number(it.amount) || 0) * 100) / 100
+    if (!(amount > 0)) return { ok: false, error: `第 ${i + 1} 行明细金额需大于 0`, items: [], total: 0 }
+    const category = String(it.category || '').trim()
+    if (!FINANCE_CATEGORIES.includes(category)) return { ok: false, error: `第 ${i + 1} 行明细的费用性质无效`, items: [], total: 0 }
+    items.push({ item: name.slice(0, 60), category, amount, note: String(it.note || '').trim().slice(0, 120) })
+  }
+  const total = Math.round(items.reduce((s, it) => s + it.amount, 0) * 100) / 100
+  if (!(total > 0)) return { ok: false, error: '报销合计需大于 0', items: [], total: 0 }
+  const cats = new Set(items.map(it => it.category))
+  return { ok: true, items, total, category: cats.size === 1 ? items[0].category : 'other' }
 }
 
 // 校验报销关联的预算公示：必须已通过（passed），且金额不超过公示预算上限（超预算部分不予支付，制度第五章）
@@ -81,8 +104,9 @@ export async function onRequest(context) {
       if (rb.applicant_id !== auth.user.id) return corsResponse({ error: '只能补正自己提交的报销单' }, 403)
       if (rb.status !== 'need_revision') return corsResponse({ error: '仅待补正的报销单可修改重新提交' }, 400)
 
-      const amount = Number(body.amount)
-      if (!amount || amount <= 0) return corsResponse({ error: '报销金额需大于 0' }, 400)
+      const ni = normalizeItems(body.items)
+      if (!ni.ok) return corsResponse({ error: ni.error }, 400)
+      const amount = ni.total
       if (!body.description || !String(body.description).trim()) return corsResponse({ error: '请填写报销事项' }, 400)
       if (!body.expenseDate) return corsResponse({ error: '请选择消费日期' }, 400)
       const vp = await verifyProposal(sql, body.proposalId, amount, env)
@@ -103,8 +127,8 @@ export async function onRequest(context) {
       await sql`
         UPDATE reimbursements
         SET proposal_id = ${body.proposalId || null}, activity_id = ${body.activityId || null},
-            expense_date = ${body.expenseDate}, amount = ${amount}, category = ${body.category || 'other'},
-            description = ${String(body.description).trim()}, vouchers = ${JSON.stringify(vouchers)},
+            expense_date = ${body.expenseDate}, amount = ${amount}, category = ${ni.category},
+            description = ${String(body.description).trim()}, items = ${JSON.stringify(ni.items)}, vouchers = ${JSON.stringify(vouchers)},
             endorsement = ${endorsement ? JSON.stringify(endorsement) : ''},
             status = 'submitted', audit_note = ''
         WHERE id = ${id}
@@ -114,8 +138,9 @@ export async function onRequest(context) {
     }
 
     // POST 新提交
-    const amount = Number(body.amount)
-    if (!amount || amount <= 0) return corsResponse({ error: '报销金额需大于 0' }, 400)
+    const ni = normalizeItems(body.items)
+    if (!ni.ok) return corsResponse({ error: ni.error }, 400)
+    const amount = ni.total
     if (!body.description || !String(body.description).trim()) return corsResponse({ error: '请填写报销事项' }, 400)
     if (!body.expenseDate) return corsResponse({ error: '请选择消费日期' }, 400)
     const vp = await verifyProposal(sql, body.proposalId, amount, env)
@@ -144,13 +169,13 @@ export async function onRequest(context) {
     const id = newId('rb')
     try {
       await sql`
-        INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, vouchers, endorsement, status)
-        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${body.expenseDate}, ${amount}, ${body.category || 'other'}, ${String(body.description).trim()}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'submitted')
+        INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, items, vouchers, endorsement, status)
+        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${body.expenseDate}, ${amount}, ${ni.category}, ${String(body.description).trim()}, ${JSON.stringify(ni.items)}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'submitted')
       `
     } catch (e) {
       if (isMissingTableError(e)) { await ensureTables(env); await sql`
-        INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, vouchers, endorsement, status)
-        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${body.expenseDate}, ${amount}, ${body.category || 'other'}, ${String(body.description).trim()}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'submitted')
+        INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, items, vouchers, endorsement, status)
+        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${body.expenseDate}, ${amount}, ${ni.category}, ${String(body.description).trim()}, ${JSON.stringify(ni.items)}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'submitted')
       ` }
       else throw e
     }

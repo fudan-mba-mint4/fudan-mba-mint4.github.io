@@ -122,6 +122,13 @@ const closeVouchers = () => { voucherView.value = null }
             <div v-for="r in pendingAudits" :key="r.id" class="reimb-card">
               <div class="rc-head"><span class="rc-status submitted">{{ reimbStatusLabel(r.status) }}</span><span class="rc-date">{{ formatDate(r.createdAt) }}</span></div>
               <div class="rc-title">{{ r.description || '—' }}</div>
+              <div v-if="(r.items || []).length" class="wb-items">
+                <div v-for="(it, i) in r.items" :key="i" class="wb-item-line">
+                  <span class="wb-item-name">{{ it.item }}</span>
+                  <span class="wb-item-cat">{{ t.categories[it.category] || it.category }}</span>
+                  <span class="wb-item-amt">¥{{ formatAmount(it.amount) }}</span>
+                </div>
+              </div>
               <div class="rc-meta">
                 <span v-if="r.activityId"><a class="link-activity" href="#" @click.prevent.stop="gotoActivity(r.activityId)">{{ t.activity }}: {{ activityTitle(r.activityId) }}</a></span>
                 <span v-if="r.proposalId"><a class="link-activity" href="#" @click.prevent.stop="gotoBudget(r.proposalId)">{{ t.relatedBudget }}</a></span>
@@ -149,6 +156,13 @@ const closeVouchers = () => { voucherView.value = null }
             <div v-for="r in pendingPays" :key="r.id" class="reimb-card">
               <div class="rc-head"><span class="rc-status approved">{{ reimbStatusLabel(r.status) }}</span><span class="rc-date">{{ formatDate(r.createdAt) }}</span></div>
               <div class="rc-title">{{ r.description || '—' }}</div>
+              <div v-if="(r.items || []).length" class="wb-items">
+                <div v-for="(it, i) in r.items" :key="i" class="wb-item-line">
+                  <span class="wb-item-name">{{ it.item }}</span>
+                  <span class="wb-item-cat">{{ t.categories[it.category] || it.category }}</span>
+                  <span class="wb-item-amt">¥{{ formatAmount(it.amount) }}</span>
+                </div>
+              </div>
               <div class="rc-meta">
                 <span v-if="r.proposalId"><a class="link-activity" href="#" @click.prevent.stop="gotoBudget(r.proposalId)">{{ t.relatedBudget }}</a></span>
                 <span>{{ t.payer }}: {{ r.applicant }}</span>

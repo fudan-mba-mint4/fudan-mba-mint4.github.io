@@ -139,6 +139,40 @@
 .rc-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--c-text-secondary); margin-bottom: 6px; }
 .rc-amount { font-weight: 600; color: var(--c-text-primary); margin-left: auto; }
 .rc-foot { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* ===== 报销明细清单：表单 5 列网格（项目 / 费用性质 / 金额 / 备注 / 删除），与预算公示共用行样式 ===== */
+.reimb-items .detail-table-head,
+.reimb-items .detail-row { grid-template-columns: 2fr 1.5fr 104px 1.5fr 30px; }
+.reimb-items .detail-table-head .dt-amt,
+.reimb-items .detail-row .dt-amt { text-align: right; }
+.reimb-items .detail-row .dt-amt { font-variant-numeric: tabular-nums; }
+
+/* ===== 报销卡片内的明细清单（只读展示，同样一行一条，网格与表单同列比） ===== */
+.rc-items { margin: 10px 0 8px; border-top: 1px dashed var(--c-border); padding-top: 8px; }
+.rc-items-head, .rc-item-row { display: grid; grid-template-columns: 22px 2fr 1.2fr 1.6fr 92px; gap: 10px; align-items: center; }
+.rc-items-head { font-size: 11px; color: var(--c-text-tertiary); font-weight: 600; padding: 0 2px 4px; }
+.rc-item-row { font-size: 13px; color: var(--c-text-secondary); padding: 3px 2px; border-radius: 6px; }
+.rc-item-row:hover { background: var(--c-bg-tertiary, rgba(0,0,0,0.03)); }
+.ci-idx { color: var(--c-text-tertiary); font-variant-numeric: tabular-nums; }
+.ci-name { color: var(--c-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-cat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-note { color: var(--c-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-amt { text-align: right; font-variant-numeric: tabular-nums; color: var(--c-text-primary); }
+.rc-items-total { display: flex; justify-content: flex-end; align-items: baseline; gap: 4px; font-size: 13px; color: var(--c-text-secondary); padding: 6px 2px 0; }
+.rc-items-total b { font-size: 15px; color: var(--c-accent); font-variant-numeric: tabular-nums; }
+.ci-count { color: var(--c-text-tertiary); font-size: 12px; }
+
+/* 财务工作台（审核 / 出纳）报销卡上的明细行：项目 · 费用性质 · 金额 */
+.wb-items { margin: 6px 0 8px; padding: 6px 0 0; border-top: 1px dashed var(--c-border); }
+.wb-item-line { display: grid; grid-template-columns: 2fr 1fr 92px; gap: 10px; align-items: center; font-size: 13px; padding: 2px 0; }
+.wb-item-name { color: var(--c-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-item-cat { color: var(--c-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-item-amt { text-align: right; font-variant-numeric: tabular-nums; color: var(--c-text-primary); }
+
+@media (max-width: 720px) {
+  .rc-items-head, .rc-item-row { grid-template-columns: 18px 1.6fr 1fr 92px; }
+  .ci-note, .rc-items-head .ci-note { display: none; }
+}
 .rc-note { font-size: 12px; color: var(--c-text-tertiary); }
 
 /* 汇总 */

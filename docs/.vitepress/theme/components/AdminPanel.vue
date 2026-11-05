@@ -814,10 +814,22 @@
               <span class="existing-meta">
                 消费 {{ (r.expenseDate || '').slice(0, 10) }} · 提交 {{ (r.createdAt || '').slice(0, 10) }}<template v-if="r.proposalId"> · 关联公示: {{ finBudgetTitle(r.proposalId) }}</template>{{ r.auditNote ? ' · 审批意见: ' + r.auditNote : '' }}
               </span>
+              <!-- 明细清单：程枭审核时逐行核对提交内容 -->
+              <details v-if="(r.items || []).length" class="budget-objections" open>
+                <summary>报销明细（{{ r.items.length }} 行 · 合计 ¥{{ r.amount }}）</summary>
+                <div v-for="(it, i) in r.items" :key="i" class="obj-row">
+                  {{ i + 1 }}. {{ it.item }} · {{ reimbCatLabel(it.category) }} · ¥{{ formatAmount(it.amount) }}<template v-if="it.note"> · 备注: {{ it.note }}</template>
+                </div>
+              </details>
+              <details v-else class="budget-objections">
+                <summary>报销明细（旧单，未填明细行）</summary>
+                <div class="obj-row">{{ r.description }} · ¥{{ formatAmount(r.amount) }}</div>
+              </details>
               <details v-if="r.vouchers && r.vouchers.length" class="budget-objections">
                 <summary>查看凭证（{{ r.vouchers.length }}）</summary>
-                <div v-for="(v, i) in r.vouchers" :key="i" class="obj-row"><a :href="v.url" target="_blank" rel="noopener">{{ v.type }} · {{ v.name }}</a></div>
+                <div v-for="(v, i) in r.vouchers" :key="i" class="obj-row"><a :href="v.url" target="_blank" rel="noopener">{{ voucherLabel(v.type) }} · {{ v.name || v.url }}</a></div>
               </details>
+              <div v-if="r.endorsement?.committee?.name" class="existing-meta">签字背书：{{ r.endorsement.committee.name }}</div>
             </div>
             <div class="reimb-actions">
               <button v-if="r.status === 'submitted'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'approve')">通过</button>
@@ -2683,6 +2695,15 @@ const finCatOptions = computed(() => {
   const src = finForm.value.type === 'income' ? incomeCats : expenseCats
   return src.map(c => ({ key: c, label: labels[c] || c }))
 })
+// 报销明细/凭证的中文标签（后台只看中文，供程枭审核时核对提交内容）
+const REIMB_CAT_LABELS = {
+  dining:'餐饮费', marketing:'宣传物料', transport:'交通费', venue:'场地设备', speaker:'讲师嘉宾',
+  lodging:'住宿', ticket:'门票', prize:'奖品纪念品', insurance:'保险', supplies:'物资文具',
+  tuition:'班费缴纳', sponsor:'赞助/奖金', interest:'利息收入', other:'其他',
+}
+const reimbCatLabel = (k) => REIMB_CAT_LABELS[k] || k || '—'
+const VOUCHER_LABELS = { invoice: '发票', payment: '付款凭证', receipt: '收据/小票', other: '其他凭证' }
+const voucherLabel = (k) => VOUCHER_LABELS[k] || k
 watch(() => finForm.value.type, (v) => { finForm.value.category = v === 'income' ? 'tuition' : 'dining' })
 async function publishBudget() {
   submitting.value = true

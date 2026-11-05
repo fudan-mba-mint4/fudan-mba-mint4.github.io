@@ -112,10 +112,13 @@ export async function onRequest(context) {
       }
     }
     const parseVouchers = (v) => { try { return JSON.parse(v || '[]') } catch (e) { return [] } }
+    // 明细行解析；旧数据（items 为空）由前端按 description/amount 单行兜底展示
+    const parseItems = (v) => { try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : [] } catch (e) { return [] } }
     const reimbursementsOut = reimbursements.map(r => ({
       id: r.id, proposalId: r.proposal_id, activityId: r.activity_id,
       applicant: r.applicant, expenseDate: r.expense_date, amount: r.amount,
       category: r.category, description: r.description || '',
+      items: parseItems(r.items),
       vouchers: parseVouchers(r.vouchers),
       endorsement: (() => { try { return JSON.parse(r.endorsement || 'null') } catch (e) { return null } })(),
       status: r.status,

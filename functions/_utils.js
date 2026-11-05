@@ -316,6 +316,7 @@ CREATE TABLE IF NOT EXISTS reimbursements (
   amount REAL NOT NULL,
   category TEXT,
   description TEXT DEFAULT '',
+  items TEXT DEFAULT '[]',         -- JSON [{item,category,amount,note}] 报销明细行（amount=各行合计）
   vouchers TEXT DEFAULT '[]',      -- JSON [{type,url,name}]
   endorsement TEXT DEFAULT '',     -- 签字背书 JSON {committee:{name,at}}（≥500 无发票场景）
   status TEXT DEFAULT 'submitted', -- submitted / need_revision / approved / paid / rejected

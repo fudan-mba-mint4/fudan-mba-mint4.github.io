@@ -36,27 +36,42 @@ function checkReimbStatusChange() {
 watch(reimbursements, () => checkReimbStatusChange(), { immediate: true })
 
 const showReimbForm = ref(false)
+function emptyItemRow() { return { item: '', category: 'dining', amount: null, note: '' } }
 function emptyReimbForm() {
   return {
-    activityId: '', proposalId: '', expenseDate: '', amount: null,
-    category: 'dining', description: '', vouchers: [],
+    activityId: '', proposalId: '', expenseDate: '',
+    description: '', items: [emptyItemRow()], vouchers: [],
     endorserName: '', uploading: false, submitting: false, msg: '',
     editingId: null,
   }
 }
 const reimbForm = ref(emptyReimbForm())
 
+/* 费用性质只列支出大类（收入类 tuition/sponsor/interest 不属于报销） */
+const EXPENSE_CATEGORY_KEYS = ['dining', 'marketing', 'transport', 'venue', 'speaker', 'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'other']
+const expenseCategories = computed(() =>
+  EXPENSE_CATEGORY_KEYS.filter(k => t.value.categories[k]).map(k => ({ key: k, label: t.value.categories[k] }))
+)
+
+/* 明细行：与预算公示同一套网格，金额逐行填写，总报销金额由合计派生（不手填） */
+const itemsTotal = computed(() => {
+  const sum = reimbForm.value.items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
+  return Math.round(sum * 100) / 100
+})
+function addReimbItem() { reimbForm.value.items.push(emptyItemRow()) }
+function removeReimbItem(i) { if (reimbForm.value.items.length > 1) reimbForm.value.items.splice(i, 1) }
+
 const requiredVouchers = computed(() => {
-  const amt = Number(reimbForm.value.amount) || 0
+  const amt = itemsTotal.value
   return amt >= (config.value.largeAmount || 500) ? (config.value.largeVouchers || ['invoice', 'payment']) : (config.value.smallVouchers || ['payment', 'receipt'])
 })
 const needsEndorsement = computed(() => {
-  const amt = Number(reimbForm.value.amount) || 0
+  const amt = itemsTotal.value
   const have = new Set(reimbForm.value.vouchers.map(v => v.type))
   return amt >= (config.value.largeAmount || 500) && !have.has('invoice')
 })
 const requiredHintText = computed(() => {
-  const amt = Number(reimbForm.value.amount) || 0
+  const amt = itemsTotal.value
   const list = requiredVouchers.value.map(v => t.value['v' + v[0].toUpperCase() + v.slice(1)]).join('、')
   return amt >= (config.value.largeAmount || 500)
     ? t.value.requiredHint.replace('{n}', config.value.largeAmount).replace('{list}', list)
@@ -64,7 +79,8 @@ const requiredHintText = computed(() => {
 })
 const reimbCanSubmit = computed(() => {
   const f = reimbForm.value
-  if (!f.proposalId || !f.expenseDate || !(Number(f.amount) > 0) || !f.description.trim()) return false
+  if (!f.proposalId || !f.expenseDate || !(itemsTotal.value > 0) || !f.description.trim()) return false
+  if (!f.items.length || !f.items.every(it => String(it.item || '').trim() && Number(it.amount) > 0 && it.category)) return false
   const have = new Set(f.vouchers.map(v => v.type))
   if (!requiredVouchers.value.every(v => have.has(v))) return false
   if (needsEndorsement.value && !String(f.endorserName || '').trim()) return false
@@ -72,10 +88,14 @@ const reimbCanSubmit = computed(() => {
 })
 
 function editReimb(r) {
+  const items = (r.items && r.items.length)
+    ? r.items.map(it => ({ item: it.item || '', category: it.category || 'other', amount: it.amount ?? null, note: it.note || '' }))
+    // 旧单行数据（无 items）：把原金额/类别/事项回填成一行，便于补正
+    : [{ item: r.description || '报销事项', category: r.category || 'other', amount: r.amount, note: '' }]
   reimbForm.value = {
     activityId: r.activityId || '', proposalId: r.proposalId || '',
-    expenseDate: r.expenseDate || '', amount: r.amount, category: r.category || 'dining',
-    description: r.description || '', vouchers: [...(r.vouchers || [])],
+    expenseDate: r.expenseDate || '',
+    description: r.description || '', items, vouchers: [...(r.vouchers || [])],
     endorserName: r.endorsement?.committee?.name || '', uploading: false, submitting: false, msg: '',
     editingId: r.id,
   }
@@ -155,7 +175,9 @@ async function submitReimb() {
     const payload = {
       id: f.editingId || undefined,
       activityId: f.activityId || null, proposalId: f.proposalId || null,
-      expenseDate: f.expenseDate, amount: Number(f.amount), category: f.category,
+      expenseDate: f.expenseDate, amount: itemsTotal.value,
+      category: f.items[0]?.category || 'other',
+      items: f.items.map(it => ({ item: String(it.item).trim(), category: it.category, amount: Number(it.amount), note: String(it.note || '').trim() })),
       description: f.description.trim(), vouchers: f.vouchers, endorsement,
     }
     const res = await fetch('/api/finance/reimbursements', {
@@ -227,15 +249,31 @@ watch(() => router.route.path, () => {
           <label class="f-label">{{ t.reimbDate }} *</label>
           <input v-model="reimbForm.expenseDate" type="date" class="fp-input" />
         </div>
-        <div class="form-row">
-          <label class="f-label">{{ t.reimbAmount }} *</label>
-          <input v-model.number="reimbForm.amount" type="number" step="0.01" min="0" class="fp-input" placeholder="0.00" />
-        </div>
-        <div class="form-row">
-          <label class="f-label">{{ t.reimbCategory }}</label>
-          <select v-model="reimbForm.category" class="fp-select">
-            <option v-for="(label, key) in t.categories" :key="key" :value="key">{{ label }}</option>
-          </select>
+        <!-- 报销明细清单：与预算公示同一套网格（项目 / 费用性质 / 金额 / 备注 / 删除），总报销金额由逐行金额合计 -->
+        <div class="form-row col">
+          <label class="f-label">{{ t.reimbItemsTitle }} *</label>
+          <div class="detail-scroll reimb-items">
+            <div class="detail-table-head">
+              <span class="dt-item">{{ t.itemName }} <i class="req">*</i></span>
+              <span class="dt-cat">{{ t.itemCategory }} <i class="req">*</i></span>
+              <span class="dt-amt">{{ t.reimbItemAmount }} <i class="req">*</i></span>
+              <span class="dt-note">{{ t.itemNote }}</span>
+              <span class="dt-del"></span>
+            </div>
+            <div v-for="(it, i) in reimbForm.items" :key="i" class="detail-row">
+              <input v-model="it.item" class="fp-input dt-item" placeholder="如：活动物料采购" />
+              <select v-model="it.category" class="fp-select dt-cat">
+                <option v-for="c in expenseCategories" :key="c.key" :value="c.key">{{ c.label }}</option>
+              </select>
+              <input v-model.number="it.amount" type="number" step="0.01" min="0" class="fp-input dt-amt" placeholder="0.00" />
+              <input v-model="it.note" class="fp-input dt-note" placeholder="备注（选填）" />
+              <button type="button" class="mini-del" @click="removeReimbItem(i)" :disabled="reimbForm.items.length <= 1">×</button>
+            </div>
+            <div class="detail-total">
+              <button type="button" class="mini-add" @click="addReimbItem">{{ t.addItem }}</button>
+              <span class="dt-total">{{ t.reimbTotal }}：<b>¥{{ formatAmount(itemsTotal) }}</b></span>
+            </div>
+          </div>
         </div>
         <div class="form-row">
           <label class="f-label">{{ t.reimbDesc }} *</label>
@@ -283,7 +321,11 @@ watch(() => router.route.path, () => {
           <div class="rc-meta">
             <SkeletonBlock width="96px" height="12px" />
             <SkeletonBlock width="84px" height="12px" />
-            <span class="rc-amount"><SkeletonBlock width="92px" height="14px" /></span>
+          </div>
+          <div class="rc-items">
+            <SkeletonBlock width="100%" height="12px" />
+            <div style="height:8px"></div>
+            <SkeletonBlock width="62%" height="12px" />
           </div>
           <div class="rc-foot"><SkeletonBlock width="120px" height="13px" /></div>
         </div>
@@ -299,7 +341,24 @@ watch(() => router.route.path, () => {
             <span v-if="r.activityId"><a class="link-activity" href="#" @click.prevent.stop="gotoActivity(r.activityId)">{{ t.activity }}: {{ activityTitle(r.activityId) }}</a></span>
             <span v-if="r.proposalId"><a class="link-activity" href="#" @click.prevent.stop="gotoBudget(r.proposalId)">{{ t.relatedBudget }}</a></span>
             <span v-if="canViewAllReimb">{{ t.payer }}: {{ r.applicant }}</span>
-            <span class="rc-amount">¥{{ formatAmount(r.amount) }}</span>
+          </div>
+          <!-- 明细清单：一行一条，网格与表单一致；旧数据（无 items）按原金额单行兜底 -->
+          <div class="rc-items">
+            <div class="rc-items-head">
+              <span class="ci-idx">#</span>
+              <span class="ci-name">{{ t.itemName }}</span>
+              <span class="ci-cat">{{ t.itemCategory }}</span>
+              <span class="ci-note">{{ t.itemNote }}</span>
+              <span class="ci-amt">{{ t.reimbItemAmount }}</span>
+            </div>
+            <div v-for="(it, i) in (r.items && r.items.length ? r.items : [{ item: r.description || '—', category: r.category, amount: r.amount, note: '' }])" :key="i" class="rc-item-row">
+              <span class="ci-idx">{{ i + 1 }}</span>
+              <span class="ci-name">{{ it.item || '—' }}</span>
+              <span class="ci-cat">{{ t.categories[it.category] || it.category || '—' }}</span>
+              <span class="ci-note">{{ it.note || '' }}</span>
+              <span class="ci-amt">¥{{ formatAmount(it.amount) }}</span>
+            </div>
+            <div class="rc-items-total">{{ t.reimbTotal }}：<b>¥{{ formatAmount(r.amount) }}</b><span v-if="(r.items || []).length > 1" class="ci-count">（{{ r.items.length }}{{ t.itemCountUnit }}）</span></div>
           </div>
           <div class="rc-foot">
             <button v-if="r.vouchers && r.vouchers.length" class="link-btn" @click="openVouchers(r)">📎 {{ t.voucher }} ({{ r.vouchers.length }})</button>
