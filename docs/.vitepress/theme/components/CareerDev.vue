@@ -156,73 +156,87 @@ onMounted(async () => {
       <p class="hero-sub">{{ t.subtitle }}</p>
       <div class="hero-stats">
         <div class="stat">
-          <span class="stat-num">{{ stats.totalStudents }}</span>
+          <span class="stat-num"><SkeletonBlock v-if="loading" width="44px" height="26px" /><template v-else>{{ stats.totalStudents }}</template></span>
           <span class="stat-label">{{ t.students }}</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <span class="stat-num">{{ stats.industries }}</span>
+          <span class="stat-num"><SkeletonBlock v-if="loading" width="32px" height="26px" /><template v-else>{{ stats.industries }}</template></span>
           <span class="stat-label">{{ t.industries }}</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <span class="stat-num">{{ stats.referrals }}</span>
+          <span class="stat-num"><SkeletonBlock v-if="loading" width="32px" height="26px" /><template v-else>{{ stats.referrals }}</template></span>
           <span class="stat-label">{{ t.referrals }}</span>
         </div>
       </div>
     </header>
 
-    <!-- 内容区加载骨架：占位环图面板 / 内推卡 / 分享会卡，形态对齐真实区块（纯展示，aria-hidden）；数据就绪由 v-else 原位替换 -->
-    <div v-if="loading" class="career-skeleton" aria-hidden="true">
-      <!-- 模块B 行业分布环图面板占位 -->
-      <section class="sk-section">
-        <div class="sk-heading">
-          <SkeletonBlock variant="rect" width="180px" height="20px" />
-          <SkeletonBlock variant="rect" width="240px" height="12px" />
-        </div>
-        <div class="sk-panel">
-          <SkeletonBlock variant="circle" width="220px" height="220px" />
-          <ul class="sk-legend">
-            <li class="sk-legend-row" v-for="i in 4" :key="i">
-              <SkeletonBlock variant="circle" width="10px" height="10px" />
-              <SkeletonBlock variant="rect" width="55%" height="12px" />
-              <SkeletonBlock variant="rect" width="40px" height="12px" />
+    <!-- 内容区加载：各模块标题/副标题与卡片外壳全部真实渲染，仅数据值位放骨架（纯展示，aria-hidden） -->
+    <div v-if="loading" aria-hidden="true">
+      <!-- 模块B 行业分布环图：标题真实，环图与图例数值为骨架 -->
+      <section class="block">
+        <h2 class="block-title">{{ t.industryTitle }}</h2>
+        <p class="block-sub">{{ t.industrySub }}</p>
+        <div class="ring-wrap">
+          <div class="ring-chart">
+            <SkeletonBlock variant="circle" width="200px" height="200px" />
+          </div>
+          <ul class="ring-legend">
+            <li v-for="i in 4" :key="i" class="legend-item">
+              <span class="legend-dot sk-dot"></span>
+              <span class="legend-name"><SkeletonBlock width="72px" height="12px" /></span>
+              <span class="legend-count"><SkeletonBlock width="24px" height="12px" /></span>
+              <span class="legend-pct"><SkeletonBlock width="34px" height="12px" /></span>
             </li>
           </ul>
         </div>
       </section>
 
-      <!-- 模块C 内推机会卡占位（双列 2 张） -->
-      <section class="sk-section">
-        <div class="sk-heading">
-          <SkeletonBlock variant="rect" width="180px" height="20px" />
-          <SkeletonBlock variant="rect" width="240px" height="12px" />
-        </div>
-        <div class="sk-grid-2">
-          <article class="sk-card" v-for="i in 2" :key="i">
-            <div class="sk-card-top">
-              <SkeletonBlock variant="rect" width="64px" height="12px" />
-              <SkeletonBlock variant="rect" width="48px" height="18px" radius="var(--radius-full)" />
+      <!-- 模块C 内推机会：标题真实，卡片壳真实，仅公司/岗位/发布人/截止为骨架 -->
+      <section class="block">
+        <h2 class="block-title">{{ t.referralTitle }}</h2>
+        <p class="block-sub">{{ t.referralSub }}</p>
+        <div class="referral-grid">
+          <article v-for="i in 2" :key="i" class="referral-card">
+            <div class="ref-top">
+              <SkeletonBlock width="96px" height="15px" />
+              <SkeletonBlock width="48px" height="18px" radius="var(--radius-full)" />
             </div>
-            <SkeletonBlock variant="rect" width="75%" height="16px" />
-            <SkeletonBlock variant="rect" width="55%" height="11px" />
-            <SkeletonBlock variant="rect" width="38%" height="11px" />
+            <h3 class="ref-role"><SkeletonBlock width="70%" height="17px" /></h3>
+            <div class="ref-meta">
+              <SkeletonBlock width="120px" height="12px" />
+              <SkeletonBlock width="96px" height="12px" />
+            </div>
+            <SkeletonBlock width="140px" height="13px" />
           </article>
         </div>
       </section>
 
-      <!-- 模块E 职业分享会卡占位（轻量 1 张） -->
-      <section class="sk-section">
-        <div class="sk-heading">
-          <SkeletonBlock variant="rect" width="180px" height="20px" />
-          <SkeletonBlock variant="rect" width="240px" height="12px" />
+      <!-- 模块D 职业资源：标题真实，书签卡壳真实 -->
+      <section class="block">
+        <h2 class="block-title">{{ t.resourceTitle }}</h2>
+        <p class="block-sub">{{ t.resourceSub }}</p>
+        <div class="resource-grid">
+          <div v-for="i in 3" :key="i" class="resource-card">
+            <SkeletonBlock width="56px" height="12px" />
+            <h3 class="resource-title"><SkeletonBlock width="72%" height="16px" /></h3>
+            <p class="resource-desc"><SkeletonBlock width="92%" height="12px" /></p>
+            <span class="resource-cta"><SkeletonBlock width="88px" height="12px" /></span>
+          </div>
         </div>
-        <div class="sk-event-row">
-          <article class="sk-card sk-event-card">
-            <SkeletonBlock variant="rect" width="56px" height="12px" />
-            <SkeletonBlock variant="rect" width="75%" height="16px" />
-            <SkeletonBlock variant="rect" width="55%" height="11px" />
-            <SkeletonBlock variant="rect" width="38%" height="11px" />
+      </section>
+
+      <!-- 模块E 职业分享会：标题真实，分享会卡壳真实 -->
+      <section class="block">
+        <h2 class="block-title">{{ t.eventTitle }}</h2>
+        <p class="block-sub">{{ t.eventSub }}</p>
+        <div class="event-row">
+          <article class="event-card">
+            <span class="event-date"><SkeletonBlock width="82px" height="12px" /></span>
+            <h3 class="event-title"><SkeletonBlock width="76%" height="16px" /></h3>
+            <p class="event-location"><SkeletonBlock width="56%" height="12px" /></p>
+            <p class="event-organizer"><SkeletonBlock width="42%" height="12px" /></p>
           </article>
         </div>
       </section>
@@ -393,70 +407,8 @@ onMounted(async () => {
   color: var(--c-text-tertiary);
   margin: 0 0 20px;
 }
-/* ========== 内容区加载骨架（发光条/圆点统一由 SkeletonBlock 原子组件渲染；此处只写容器布局与锁高） ========== */
-/* 区块纵向间距对齐真实 .block { margin-top: 48px } */
-.sk-section { margin-top: 48px; }
-/* 区块标题/副标题行，对齐真实 .block-title + .block-sub（标题下 4px、副标题下 20px） */
-.sk-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 20px;
-}
-
-/* 模块B：环图面板，对齐 .ring-wrap 卡片面/边框/圆角，锁高 268px */
-.sk-panel {
-  display: flex;
-  align-items: center;
-  gap: 40px;
-  padding: 24px;
-  min-height: 268px;
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-2xl);
-}
-.sk-legend {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 20px;
-}
-.sk-legend-row { display: flex; align-items: center; gap: 8px; }
-
-/* 模块C：内推卡双列，对齐 .referral-grid / .referral-card，单卡锁高 140px */
-.sk-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.sk-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 20px;
-  min-height: 140px;
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-xl);
-}
-.sk-card-top { display: flex; align-items: center; justify-content: space-between; }
-
-/* 模块E：分享会卡横向行，对齐 .event-row / .event-card（260px 宽），锁高 120px */
-.sk-event-row { display: flex; gap: 16px; }
-.sk-event-card { flex: 0 0 260px; min-height: 120px; }
-
-@media (prefers-reduced-motion: reduce) {
-  :deep(.sk-block) { animation: none; }
-}
-
-/* 骨架响应式跟随真实区块 */
-@media (max-width: 768px) {
-  .sk-panel { flex-direction: column; gap: 24px; min-height: 0; }
-}
-@media (max-width: 640px) {
-  .sk-grid-2 { grid-template-columns: 1fr; }
-  .sk-event-row { flex-wrap: wrap; }
-  .sk-event-card { flex: 1 1 100%; }
-}
+/* ========== 加载态：与真实区块共用容器，仅数据值为骨架 ========== */
+.sk-dot { background: var(--c-border); }
 
 /* ========== 模块B 环图 ========== */
 .ring-wrap {

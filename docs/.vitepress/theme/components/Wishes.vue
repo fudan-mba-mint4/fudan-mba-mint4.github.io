@@ -72,31 +72,32 @@
 
     <!-- 首次加载骨架：6 张高低错落卡（180/260px 交替），对齐 masonry 栅格与 wish-card；
          与真实 masonry 共用 v-if/v-else 门控，loadingFirst 关闭后原位切换，不占用列 ref、不干扰分列时序 -->
+    <!-- 首次加载：复用真实 wish-card 外壳（头像位/点赞/评论文案真实且禁用），仅作者/时间/正文为骨架 -->
     <div v-if="loadingFirst" class="wish-skeleton" aria-hidden="true">
       <div
         v-for="n in 6"
         :key="n"
-        class="ws-card"
+        class="wish-card"
         :class="n % 2 === 1 ? 'ws-card--short' : 'ws-card--tall'"
       >
-        <div class="ws-head">
-          <SkeletonBlock variant="circle" width="40px" height="40px" />
-          <div class="ws-meta">
-            <SkeletonBlock width="42%" height="14px" />
-            <SkeletonBlock width="30%" height="11px" />
+        <div class="wish-head">
+          <div class="avatar"><SkeletonBlock variant="circle" width="40px" height="40px" /></div>
+          <div class="wish-meta">
+            <strong class="wish-author"><SkeletonBlock width="42%" height="14px" /></strong>
+            <span class="wish-time"><SkeletonBlock width="30%" height="11px" /></span>
           </div>
         </div>
-        <div class="ws-body">
+        <p class="wish-content">
           <SkeletonBlock width="92%" height="14px" />
-          <SkeletonBlock width="80%" height="14px" />
-          <SkeletonBlock width="64%" height="14px" />
-        </div>
-        <div class="ws-actions">
-          <SkeletonBlock width="72px" height="16px" />
-          <SkeletonBlock width="72px" height="16px" />
+          <SkeletonBlock width="76%" height="14px" />
+        </p>
+        <div class="wish-actions">
+          <button class="action-btn" disabled><span>{{ t.like }}</span></button>
+          <button class="action-btn" disabled><span>{{ t.comment }}</span></button>
         </div>
       </div>
     </div>
+
     <div v-else-if="!wishes.length && !error" class="state-center empty-state">
       <div class="empty-icon">✦</div>
       <p>{{ t.empty }}</p>

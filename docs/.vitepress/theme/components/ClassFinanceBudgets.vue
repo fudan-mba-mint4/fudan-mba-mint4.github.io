@@ -391,49 +391,49 @@ const deadlineText = (b) => {
 
 <template>
   <div class="finance-page budgets">
-    <!-- 加载骨架：Tab 工具栏 + 分组标题 + 3 张公示卡占位，形态对齐真实结构（纯展示，aria-hidden） -->
-    <div v-if="loading" class="budget-skeleton" aria-hidden="true">
-      <div class="sk-toolbar">
-        <SkeletonBlock width="88px" height="30px" radius="15px" />
-        <SkeletonBlock width="88px" height="30px" radius="15px" />
-        <SkeletonBlock width="112px" height="34px" radius="17px" class="sk-toolbar-btn" />
+    <!-- Tab 切换 + 发起公示：静态结构，首帧即渲染；数据未到位时置灰禁用 -->
+    <div class="budget-toolbar">
+      <div class="budget-tabs">
+        <button class="budget-tab" :class="{ active: tab === 'all' }" :disabled="loading" @click="tab = 'all'">{{ t.tabAllBudgets }}</button>
+        <button class="budget-tab" :class="{ active: tab === 'mine' }" :disabled="loading" @click="tab = 'mine'">{{ t.tabMyBudgets }}</button>
       </div>
-      <div class="sk-group-title"><SkeletonBlock width="110px" height="15px" /></div>
-      <div v-for="n in 3" :key="n" class="sk-budget-card">
-        <div class="sk-bc-head">
-          <SkeletonBlock width="76px" height="20px" radius="10px" />
-          <SkeletonBlock width="112px" height="12px" />
-        </div>
-        <SkeletonBlock width="58%" height="17px" class="sk-bc-title" />
-        <div class="sk-bc-meta">
-          <SkeletonBlock width="46%" height="12px" />
-          <SkeletonBlock width="96px" height="12px" />
-        </div>
-        <div class="sk-bc-vote">
-          <SkeletonBlock width="72px" height="30px" radius="15px" />
-          <SkeletonBlock width="72px" height="30px" radius="15px" />
-        </div>
-      </div>
+      <button v-if="isAuthenticated" class="btn-oppose primary" :disabled="loading" @click="openForm()">{{ t.newBudgetPropose }}</button>
+      <button v-else class="btn-oppose" @click="router.go('/auth/')">{{ t.loginFirst }}</button>
     </div>
-    <div v-else-if="error" class="fp-state">
+
+    <div v-if="error && !loading" class="fp-state">
       {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
     </div>
-    <template v-else>
-      <div class="section-header">
-        <h3 class="section-title">{{ t.budgetTitle }}</h3>
-        <span class="section-desc">{{ t.budgetDesc }}</span>
-      </div>
 
-      <!-- Tab 切换 + 发起公示 -->
-      <div class="budget-toolbar">
-        <div class="budget-tabs">
-          <button class="budget-tab" :class="{ active: tab === 'all' }" @click="tab = 'all'">{{ t.tabAllBudgets }}</button>
-          <button class="budget-tab" :class="{ active: tab === 'mine' }" @click="tab = 'mine'">{{ t.tabMyBudgets }}</button>
+    <!-- 加载中：真实分组标题 + 真实公示卡壳，仅卡片内数值位放骨架（纯展示，aria-hidden） -->
+    <div v-else-if="loading" class="budget-group" aria-hidden="true">
+      <h4 class="group-title">{{ t.inProgress }}</h4>
+      <div v-for="n in 3" :key="n" class="budget-card open budget-card--sk">
+        <div class="bc-head">
+          <SkeletonBlock width="76px" height="20px" radius="10px" />
+          <span class="bc-head-right">
+            <SkeletonBlock width="126px" height="12px" />
+            <SkeletonBlock width="92px" height="12px" />
+          </span>
         </div>
-        <button v-if="isAuthenticated" class="btn-oppose primary" @click="openForm()">{{ t.newBudgetPropose }}</button>
-        <button v-else class="btn-oppose" @click="router.go('/auth/')">{{ t.loginFirst }}</button>
+        <div class="bc-title"><SkeletonBlock width="58%" height="17px" /></div>
+        <div class="bc-meta">
+          <SkeletonBlock width="48%" height="12px" />
+          <span class="bc-amount"><SkeletonBlock width="120px" height="14px" /></span>
+        </div>
+        <div class="bc-vote">
+          <div class="anon-note"><SkeletonBlock width="184px" height="12px" /></div>
+          <div class="vote-row"><SkeletonBlock width="230px" height="12px" /></div>
+          <div class="vote-bar"><SkeletonBlock variant="rect" width="100%" height="6px" radius="3px" /></div>
+          <div class="vote-actions">
+            <SkeletonBlock width="78px" height="30px" radius="15px" />
+            <SkeletonBlock width="78px" height="30px" radius="15px" />
+          </div>
+        </div>
       </div>
+    </div>
 
+    <template v-else>
       <!-- 发起/重交表单 -->
       <div v-if="showForm" class="budget-form-card">
         <h4 class="form-title">{{ t.proposeTitle }}</h4>

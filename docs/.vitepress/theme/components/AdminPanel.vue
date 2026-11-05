@@ -885,16 +885,13 @@
           <h3>🔍 监督视图（仅本人可见）</h3>
           <p class="empty-hint">票向实名明细：显示每条公示的赞成/反对名单与留言人身份，仅本人可查看。</p>
           <div v-if="supervisionMsg" class="empty-hint">{{ supervisionMsg }}</div>
-          <!-- 监督视图：加载期 2 张卡片骨架（标题 + 金额大数字 + 明细行）；错误提示 supervisionMsg 与“暂无公示记录”空态原样保留 -->
-          <div v-else-if="!finSupervision" class="supervision-skeleton" aria-hidden="true">
-            <div v-for="i in 2" :key="i" class="supervision-skel-card">
-              <div class="supervision-skel-head">
-                <SkeletonBlock width="52%" height="13px" />
-                <SkeletonBlock width="96px" height="20px" radius="8px" />
+          <!-- 监督视图：加载期复用真实条目外壳，「状态 / 公示至」等标签真实，仅取值为骨架 -->
+          <div v-else-if="!finSupervision" class="existing-list" aria-hidden="true">
+            <div v-for="i in 2" :key="i" class="existing-item supervision-item">
+              <div class="existing-info">
+                <span class="existing-title"><SkeletonBlock width="46%" height="13px" /> · ¥<SkeletonBlock width="72px" height="13px" /></span>
+                <span class="existing-meta">状态 <SkeletonBlock width="52px" height="11px" /> · 公示至 <SkeletonBlock width="80px" height="11px" /></span>
               </div>
-              <SkeletonBlock class="supervision-skel-meta" width="64%" height="11px" />
-              <SkeletonBlock class="supervision-skel-vote" width="88%" height="11px" />
-              <SkeletonBlock class="supervision-skel-vote" width="58%" height="11px" />
             </div>
           </div>
           <template v-else>
@@ -1106,13 +1103,21 @@
             <button v-if="treeholeSelected.length > 0" @click="clearSelection" class="treehole-clear-btn">清除选择</button>
           </div>
 
-          <!-- 留言列表：加载期行骨架（纯展示 aria-hidden，4 条圆头像+两行文本）；空态/真实列表分支保持原判断 -->
-          <div v-if="treeholeLoading" class="treehole-skeleton" aria-hidden="true">
-            <div v-for="i in 4" :key="i" class="treehole-skel-item">
-              <SkeletonBlock variant="circle" width="36px" height="36px" />
-              <div class="sk-lines">
-                <SkeletonBlock width="46%" height="14px" />
-                <SkeletonBlock width="86%" height="12px" />
+          <!-- 留言列表：加载期复用真实 .treehole-item 外壳（「匿名同学」「🕵️ 匿名」「IP:」文案真实），仅时间/IP/正文为骨架 -->
+          <div v-if="treeholeLoading" class="treehole-list" aria-hidden="true">
+            <div v-for="i in 4" :key="i" class="treehole-item">
+              <div class="treehole-item-check">
+                <input type="checkbox" disabled />
+              </div>
+              <div class="treehole-item-content">
+                <div class="treehole-item-header">
+                  <span class="treehole-item-nickname">匿名同学</span>
+                  <span class="treehole-anon-badge">🕵️ 匿名</span>
+                  <span class="treehole-item-time"><SkeletonBlock width="72px" height="11px" /></span>
+                  <span class="treehole-item-ip">IP: <SkeletonBlock width="54px" height="11px" /></span>
+                  <span class="treehole-expand-icon">▼</span>
+                </div>
+                <p class="treehole-item-text"><SkeletonBlock width="88%" height="12px" /></p>
               </div>
             </div>
           </div>
@@ -1184,15 +1189,26 @@
           <input v-model="usersSearch" :placeholder="usersSearchPlaceholder" class="treehole-search" />
           <button @click="loadUsers" class="token-btn">刷新</button>
         </div>
-        <!-- 用户列表：加载期行骨架（头像 + 姓名/账号两行，4 条）；仅 usersLoading 期间显示，下方 <template v-else> 原样渲染异常账号提示与三视图（注册账号/未注册同学/班主任·传承人） -->
-        <div v-if="usersLoading" class="users-skeleton" aria-hidden="true">
-          <div v-for="i in 4" :key="i" class="users-skel-row">
-            <SkeletonBlock variant="circle" width="32px" height="32px" />
-            <div class="sk-lines">
-              <SkeletonBlock width="34%" height="13px" />
-              <SkeletonBlock width="24%" height="11px" />
-            </div>
-          </div>
+        <!-- 用户列表：加载期直接渲染真实表头 + 4 行空值骨架（表头/列宽真实，仅单元格取值为骨架） -->
+        <div v-if="usersLoading" class="users-table-wrap" aria-hidden="true">
+          <table class="users-table">
+            <thead>
+              <tr><th>ID</th><th>用户名</th><th>真名</th><th>昵称</th><th>小组</th><th>班委职务</th><th>名录身份</th><th>注册时间</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="i in 4" :key="i">
+                <td><SkeletonBlock width="26px" height="12px" /></td>
+                <td class="mono"><SkeletonBlock width="64px" height="12px" /></td>
+                <td><SkeletonBlock width="52px" height="12px" /></td>
+                <td><SkeletonBlock width="44px" height="12px" /></td>
+                <td><SkeletonBlock width="36px" height="12px" /></td>
+                <td><SkeletonBlock width="56px" height="12px" /></td>
+                <td><SkeletonBlock width="48px" height="18px" radius="9px" /></td>
+                <td><SkeletonBlock width="96px" height="12px" /></td>
+                <td><SkeletonBlock width="72px" height="24px" radius="6px" /></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         <template v-else>
           <div v-if="unknownAccounts.length" class="users-alert">
@@ -1303,16 +1319,18 @@
       <!-- ===== 提交记录 ===== -->
       <div class="history-section">
         <h3>📜 {{ currentTypeLabel }}·操作记录 <span class="history-count">({{ currentHistory.length }}条)</span></h3>
-        <!-- 操作记录：加载期 3 张卡片骨架（状态圆标 + 类型/操作人 + 描述行 + 时间行）；空态文案原样保留 -->
-        <div v-if="historyLoading" class="history-skeleton" aria-hidden="true">
-          <div v-for="i in 3" :key="i" class="history-skel-card">
-            <div class="history-skel-row1">
-              <SkeletonBlock variant="circle" width="20px" height="20px" />
-              <SkeletonBlock width="28%" height="12px" />
-              <SkeletonBlock class="history-skel-op" width="20%" height="11px" />
+        <!-- 操作记录：加载期复用真实卡片外壳（状态圆标/类型/操作人/描述/时间位），仅取值为骨架 -->
+        <div v-if="historyLoading" aria-hidden="true">
+          <div v-for="i in 3" :key="i" class="history-item">
+            <div class="history-card">
+              <div class="history-row1">
+                <SkeletonBlock variant="circle" width="20px" height="20px" />
+                <span class="history-type"><SkeletonBlock width="72px" height="12px" /></span>
+                <span class="history-operator"><SkeletonBlock width="56px" height="11px" /></span>
+              </div>
+              <div class="history-desc"><SkeletonBlock width="92%" height="12px" /></div>
+              <div class="history-time"><SkeletonBlock width="88px" height="10px" /></div>
             </div>
-            <SkeletonBlock class="history-skel-desc" width="92%" height="12px" />
-            <SkeletonBlock class="history-skel-time" width="22%" height="10px" />
           </div>
         </div>
         <div v-else-if="currentHistory.length === 0" class="history-empty">该模块暂无提交记录</div>
@@ -3251,29 +3269,9 @@ watch(currentType, (val) => {
 /* ===== 列表加载态骨架：占位原子统一用 SkeletonBlock（sk-shimmer 全局动画，reduced-motion 由全局停用）；本组件样式只负责容器布局、卡片观感与锁高 ===== */
 .sk-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 
-/* 树洞留言行骨架：4 条，对齐 .treehole-item（36px 圆 + 标题行 + 正文行）；容器锁高 248px 防跳动 */
-.treehole-skeleton { display: flex; flex-direction: column; gap: 8px; min-height: 248px; }
-.treehole-skel-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--c-border); border-radius: 12px; background: var(--c-bg-secondary); }
+/* 树洞管理加载态：已复用真实 .treehole-item 外壳，仅时间/IP/正文为骨架 */
 
-/* 用户管理行骨架：4 条，32px 头像 + 姓名行 + 账号行；圆角边框容器锁高 232px；仅 usersLoading 期间显示，加载后由 <template v-else> 渲染三视图 */
-.users-skeleton { margin-top: 4px; border: 1px solid var(--c-border); border-radius: 12px; padding: 10px 12px; min-height: 232px; display: flex; flex-direction: column; gap: 6px; }
-.users-skel-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--c-border); }
-.users-skel-row:last-child { border-bottom: none; }
-
-/* 操作记录卡片骨架：3 张，对齐 .history-item（20px 状态圆标 + 类型/操作人 + 描述行 + 时间行）；锁高 228px */
-.history-skeleton { display: flex; flex-direction: column; gap: 8px; min-height: 228px; }
-.history-skel-card { padding: 10px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-secondary); }
-.history-skel-row1 { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
-.history-skel-op { margin-left: auto; }
-.history-skel-desc { display: block; margin-bottom: 5px; }
-.history-skel-time { display: block; }
-
-/* 财务监督卡片骨架：2 张，标题 + 右侧金额块 + 状态行 + 票向明细行；锁高 176px */
-.supervision-skeleton { display: flex; flex-direction: column; gap: 10px; min-height: 176px; margin-top: 12px; }
-.supervision-skel-card { padding: 12px 14px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-secondary); }
-.supervision-skel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.supervision-skel-meta { display: block; margin-bottom: 8px; }
-.supervision-skel-vote { display: block; margin-bottom: 6px; }
+/* 用户管理/操作记录/财务监督加载态：已改用真实 .users-table / .history-item / .existing-item 外壳 */
 
 @media (max-width: 960px) {
   .admin-workspace { grid-template-columns: 1fr; }

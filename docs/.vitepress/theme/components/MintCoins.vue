@@ -14,18 +14,18 @@
         <p class="mc-hero-sub">{{ t.subtitle }}</p>
         <a v-if="isAuthenticated" :href="`${langPrefix}/profile/#coins`" class="mc-wallet-btn">
           🍃
-          <!-- 个人钱包数值加载骨架（meLoading 期间轻量占位，加载失败/空账号仍回落原 “…” 文案） -->
-          <SkeletonBlock v-if="meLoading && !me" width="54px" height="14px" class="mc-wallet-sk" />
+          <!-- 个人钱包数值加载中：只占位余额数字，「我的钱包」标签首帧即显示 -->
+          <template v-if="meLoading && !me"><SkeletonBlock width="54px" height="14px" /> · {{ t.myWallet }}</template>
           <span v-else>{{ me?.account?.balance ?? '…' }} · {{ t.myWallet }}</span>
         </a>
         <a v-else :href="`${langPrefix}/auth/`" class="mc-wallet-btn">{{ t.loginWallet }}</a>
       </div>
-      <!-- 概览指标 -->
-      <div class="mc-overview fx-fade-in" v-if="board">
-        <div class="mc-stat"><span class="mc-stat-num">{{ board.overview.totalCirculating }}</span><span class="mc-stat-label">{{ t.totalCirculating }}</span></div>
-        <div class="mc-stat"><span class="mc-stat-num">+{{ board.overview.issuedThisMonth }}</span><span class="mc-stat-label">{{ t.issuedThisMonth }}</span></div>
-        <div class="mc-stat"><span class="mc-stat-num">{{ board.overview.participants }}</span><span class="mc-stat-label">{{ t.participants }}</span></div>
-        <div class="mc-stat"><span class="mc-stat-num">{{ board.overview.bloomedTrees }}</span><span class="mc-stat-label">{{ t.bloomedTrees }}</span></div>
+      <!-- 概览指标：四个指标名是静态文案，首帧即真实；仅数值在 board 未返回时为骨架 -->
+      <div class="mc-overview">
+        <div class="mc-stat"><span class="mc-stat-num"><SkeletonBlock v-if="!board" width="52px" height="26px" /><template v-else>{{ board.overview.totalCirculating }}</template></span><span class="mc-stat-label">{{ t.totalCirculating }}</span></div>
+        <div class="mc-stat"><span class="mc-stat-num"><SkeletonBlock v-if="!board" width="52px" height="26px" /><template v-else>+{{ board.overview.issuedThisMonth }}</template></span><span class="mc-stat-label">{{ t.issuedThisMonth }}</span></div>
+        <div class="mc-stat"><span class="mc-stat-num"><SkeletonBlock v-if="!board" width="40px" height="26px" /><template v-else>{{ board.overview.participants }}</template></span><span class="mc-stat-label">{{ t.participants }}</span></div>
+        <div class="mc-stat"><span class="mc-stat-num"><SkeletonBlock v-if="!board" width="40px" height="26px" /><template v-else>{{ board.overview.bloomedTrees }}</template></span><span class="mc-stat-label">{{ t.bloomedTrees }}</span></div>
       </div>
     </section>
 
@@ -35,20 +35,6 @@
         class="mc-tab" :class="{ active: tab === key }" @click="tab = key">{{ label }}</button>
     </nav>
 
-    <!-- 榜单加载骨架：boardLoading 且尚无 board 数据时展示 5 行榜单行骨架（对齐排行榜卡片行）；
-         加载结束后 board 仍为空（失败/空数据）才走真实空态文案，两者必须分为两个互斥分支 -->
-    <div v-if="boardLoading && !board" class="mc-board-skeleton" aria-hidden="true">
-      <div v-for="n in 5" :key="n" class="mc-sk-row">
-        <SkeletonBlock width="30px" height="18px" class="mc-sk-rank" />
-        <SkeletonBlock variant="circle" width="40px" height="40px" />
-        <div class="mc-sk-row-main">
-          <SkeletonBlock width="52%" height="15px" />
-          <SkeletonBlock width="36%" height="12px" />
-        </div>
-        <SkeletonBlock width="72px" height="15px" class="mc-sk-earned" />
-      </div>
-    </div>
-    <div v-else-if="!boardLoading && !board" class="mc-empty">{{ t.noData }}</div>
 
     <!-- ===== 薄荷园 · 森林 ===== -->
     <section v-show="tab === 'forest'" class="mc-section fx-fade-in">
@@ -92,6 +78,14 @@
           @click="boardTab = key">{{ label }}</button>
       </div>
       <ol class="mc-rank-list">
+        <template v-if="boardLoading && !board">
+          <li v-for="n in 5" :key="'sk' + n" class="mc-rank-row">
+            <span class="mc-rank-no"><SkeletonBlock width="22px" height="18px" /></span>
+            <span class="mc-rank-avatar"><SkeletonBlock variant="circle" width="40px" height="40px" /></span>
+            <span class="mc-rank-name"><SkeletonBlock width="52%" height="15px" /></span>
+            <span class="mc-rank-earned"><SkeletonBlock width="46px" height="15px" /> {{ t.coins }}</span>
+          </li>
+        </template>
         <li v-for="(p, i) in currentBoard" :key="p.userId" class="mc-rank-row" :class="'rank-' + (i + 1)">
           <span class="mc-rank-no">{{ i < 3 ? medal(i) : i + 1 }}</span>
           <span class="mc-rank-avatar">{{ (p.name || '?').charAt(0) }}</span>
@@ -595,22 +589,7 @@ onMounted(() => {
 
 .mc-empty { text-align: center; color: var(--c-text-tertiary, #aeaeb2); font-size: 14px; padding: 24px 0; }
 
-/* ===== 排行榜骨架：形状/间距对齐 .mc-rank-row（名次位 + 40px 圆头像 + 姓名/币值两行 + 右侧数值位），行间 8px 跟随真实列表 ===== */
-.mc-board-skeleton { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
-.mc-sk-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--c-bg-card, #fff);
-  border: 1px solid var(--c-border, #e5e5ea);
-  border-radius: 14px;
-  padding: 12px 18px;
-}
-.mc-sk-rank { flex-shrink: 0; }
-.mc-sk-row-main { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
-.mc-sk-earned { flex-shrink: 0; }
-/* 钱包按钮内联数值骨架居中对齐 */
-.mc-wallet-sk { vertical-align: middle; }
+/* 榜单与概览加载态：已复用真实 .mc-rank-row / .mc-stat 外壳，仅数值为骨架 */
 
 @media (max-width: 860px) {
   .mc-forest { grid-template-columns: repeat(2, 1fr); }

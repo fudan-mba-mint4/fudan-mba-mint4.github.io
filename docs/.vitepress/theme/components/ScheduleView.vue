@@ -361,21 +361,70 @@ const isToday = (dateStr) => {
       </div>
     </div>
 
+    <!-- 切换标签：静态结构，首帧即渲染；加载期禁用 -->
+    <div class="tab-switcher reveal">
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'week' }"
+        :disabled="loading"
+        @click="activeTab = 'week'"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        {{ t.tabWeek }}
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'course' }"
+        :disabled="loading"
+        @click="activeTab = 'course'"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        {{ t.tabCourse }}
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'calendar' }"
+        :disabled="loading"
+        @click="activeTab = 'calendar'"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+        {{ t.tabCalendar }}
+      </button>
+    </div>
+
     <!-- 加载骨架：形状对齐下节课胶囊 + 日期块课程行，容器锁高防跳动 -->
     <div v-if="loading" class="schedule-skeleton" aria-hidden="true">
       <div class="sk-pill">
         <SkeletonBlock width="260px" height="16px" />
         <SkeletonBlock width="120px" height="16px" />
       </div>
-      <div v-for="n in 4" :key="n" class="sk-day">
-        <div class="sk-day-head">
-          <SkeletonBlock width="96px" height="16px" />
+      <div v-for="n in 4" :key="n" class="day-block">
+        <div class="day-header">
+          <div class="day-date">
+            <SkeletonBlock width="32px" height="18px" />
+            <SkeletonBlock width="28px" height="12px" />
+          </div>
+          <div class="day-info">
+            <h3><SkeletonBlock width="180px" height="18px" /></h3>
+            <span class="course-count"><SkeletonBlock width="64px" height="12px" /></span>
+          </div>
         </div>
-        <div class="sk-day-courses">
-          <div v-for="m in 2" :key="m" class="sk-course">
-            <SkeletonBlock width="44px" height="14px" />
-            <SkeletonBlock width="56%" height="16px" />
-            <SkeletonBlock width="18%" height="12px" />
+        <div class="day-courses">
+          <div v-for="m in 2" :key="m" class="course-item">
+            <div class="course-time"><SkeletonBlock width="44px" height="14px" /></div>
+            <div class="course-detail">
+              <h4><SkeletonBlock width="56%" height="16px" /></h4>
+              <div class="course-meta">
+                <SkeletonBlock width="72px" height="12px" />
+                <SkeletonBlock width="96px" height="12px" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -385,40 +434,6 @@ const isToday = (dateStr) => {
       <!-- 下节课胶囊 + 学期高速公路 -->
       <NextUpPill :data="scheduleData" />
       <SemesterHighway :courses="scheduleData.courses" :data="scheduleData" />
-
-      <!-- 切换标签 -->
-      <div class="tab-switcher reveal">
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'week' }"
-          @click="activeTab = 'week'"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          {{ t.tabWeek }}
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'course' }"
-          @click="activeTab = 'course'"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          </svg>
-          {{ t.tabCourse }}
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'calendar' }"
-          @click="activeTab = 'calendar'"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-          </svg>
-          {{ t.tabCalendar }}
-        </button>
-      </div>
 
       <!-- 按日期视图（正序；已过去日期折叠） -->
       <div v-if="activeTab === 'week'" class="week-view">
@@ -787,20 +802,6 @@ const isToday = (dateStr) => {
   border-radius: var(--radius-lg);
   padding: 14px 18px;
 }
-.sk-day { display: flex; flex-direction: column; gap: 10px; }
-.sk-day-head { padding-left: 2px; }
-.sk-day-courses { display: flex; flex-direction: column; gap: 8px; }
-.sk-course {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-}
-.sk-course .sk-block:first-child { flex-shrink: 0; }
-.sk-course .sk-block:nth-child(2) { flex: 1; }
 
 .loading-spinner {
   width: 40px;

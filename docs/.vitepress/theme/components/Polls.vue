@@ -281,21 +281,26 @@ function formatDeadline(iso) {
       <p>{{ t.subtitle }}</p>
     </div>
 
-    <!-- 加载骨架：形状对齐 poll-card（标题/标签胶囊/倒计时/截止条），容器锁高防跳动 -->
-    <div v-if="loading" class="poll-skeleton" aria-hidden="true">
-      <div v-for="n in 3" :key="n" class="poll-skeleton-card">
-        <div class="sk-head">
-          <SkeletonBlock width="42%" height="18px" />
-          <div class="sk-head-side">
-            <SkeletonBlock width="84px" height="15px" />
+    <!-- 加载中：真实投票卡外壳（卡头/标签胶囊/天·小时单位/截止文案真实），仅标题、标签内容、倒计时数字为骨架 -->
+    <div v-if="loading" class="polls-list" aria-hidden="true">
+      <div v-for="n in 3" :key="n" class="poll-card">
+        <div class="poll-head">
+          <div class="poll-head-main">
+            <h3 class="poll-title"><SkeletonBlock width="42%" height="18px" /></h3>
+            <div class="poll-tags">
+              <span class="poll-tag"><SkeletonBlock width="40px" height="11px" /></span>
+              <span class="poll-tag"><SkeletonBlock width="40px" height="11px" /></span>
+              <span class="poll-tag tag-visibility"><SkeletonBlock width="52px" height="11px" /></span>
+            </div>
+          </div>
+          <div class="poll-head-side">
+            <div class="poll-countdown">
+              <SkeletonBlock width="22px" height="18px" /><span class="countdown-unit">{{ t.days }}</span>
+              <SkeletonBlock width="22px" height="18px" /><span class="countdown-unit">{{ t.hours }}</span>
+            </div>
+            <div class="poll-deadline">{{ t.deadline }}: <SkeletonBlock width="110px" height="11px" /></div>
           </div>
         </div>
-        <div class="sk-tags">
-          <SkeletonBlock width="56px" height="20px" radius="10px" />
-          <SkeletonBlock width="56px" height="20px" radius="10px" />
-          <SkeletonBlock width="72px" height="20px" radius="10px" />
-        </div>
-        <SkeletonBlock width="38%" height="12px" />
       </div>
     </div>
     <div v-else-if="!polls.length" class="polls-empty">{{ t.noPolls }}</div>
@@ -393,21 +398,7 @@ function formatDeadline(iso) {
 
 .polls-loading, .polls-empty { text-align: center; padding: 60px 0; color: var(--c-text-tertiary); font-size: 15px; }
 
-/* 投票列表骨架：形状对齐 .poll-card */
-.poll-skeleton { display: flex; flex-direction: column; gap: 16px; }
-.poll-skeleton-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
-  padding: 18px 20px;
-}
-.poll-skeleton-card .sk-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.poll-skeleton-card .sk-head-side { display: flex; justify-content: flex-end; }
-.poll-skeleton-card .sk-tags { display: flex; gap: 8px; }
-
+/* 投票列表加载态：与真实列表共用 .polls-list / .poll-card */
 .polls-list { display: flex; flex-direction: column; gap: 16px; }
 
 .poll-card {

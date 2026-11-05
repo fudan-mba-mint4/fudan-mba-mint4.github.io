@@ -94,14 +94,14 @@
         <!-- 我的报名 -->
         <div class="profile-section">
           <h2 class="section-title">我的活动报名</h2>
-          <!-- 加载骨架：对齐 .signup-item（标题行 + meta 行 + 右侧操作位），加载结束才渲染空态/列表 -->
-          <div v-if="signupsLoading" class="signup-skeleton" aria-hidden="true">
-            <div v-for="n in 2" :key="n" class="signup-sk-item">
-              <div class="signup-sk-main">
-                <SkeletonBlock width="48%" height="15px" />
-                <SkeletonBlock width="34%" height="12px" />
+          <!-- 加载中：复用真实报名条目外壳，「取消报名」按钮真实但禁用，仅活动名/时间地点为骨架 -->
+          <div v-if="signupsLoading" class="signup-list" aria-hidden="true">
+            <div v-for="n in 2" :key="n" class="signup-item">
+              <div class="signup-info">
+                <h3 class="signup-title"><SkeletonBlock width="48%" height="15px" /></h3>
+                <p class="signup-meta"><SkeletonBlock width="130px" height="12px" /></p>
               </div>
-              <SkeletonBlock variant="rect" width="92px" height="32px" class="signup-sk-btn" />
+              <button class="cancel-signup-btn" disabled>取消报名</button>
             </div>
           </div>
           <div v-else-if="mySignups.length === 0" class="empty-state">
@@ -127,12 +127,12 @@
         <!-- 薄荷币（个人层：钱包 / 申报 / 明细） -->
         <div class="profile-section" id="coins">
           <h2 class="section-title">🍃 薄荷币</h2>
-          <!-- 钱包骨架：coinLoading 且 coinMe 尚未返回时占位（余额大数值行 + 累计/花费行 + 右侧成长位）；
+          <!-- 钱包加载中：卡面与「币」「累计获得 / 已花费」标签真实，仅数字为骨架；
                加载失败/无账号时回落真实卡片的 “–” 与 0 兜底，不新增错误态 -->
-          <div v-if="coinLoading && !coinMe" class="mc-wallet-card mc-wallet-skeleton" aria-hidden="true">
+          <div v-if="coinLoading && !coinMe" class="mc-wallet-card" aria-hidden="true">
             <div class="mc-wallet-left">
-              <SkeletonBlock width="120px" height="34px" />
-              <SkeletonBlock width="210px" height="13px" />
+              <div class="mc-balance"><SkeletonBlock width="120px" height="34px" /><span class="mc-balance-unit">币</span></div>
+              <div class="mc-wallet-sub">累计获得 <SkeletonBlock width="42px" height="13px" /> · 已花费 <SkeletonBlock width="38px" height="13px" /></div>
             </div>
             <div class="mc-wallet-right">
               <SkeletonBlock variant="circle" width="34px" height="34px" />

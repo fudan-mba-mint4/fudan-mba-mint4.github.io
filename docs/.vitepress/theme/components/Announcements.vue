@@ -244,27 +244,43 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
       </div>
     </div>
 
-    <!-- 加载骨架：形状对齐置顶巨幕卡 + 时间线行，容器锁高防跳动 -->
-    <div v-if="loadingAnn" class="ann-skeleton" aria-hidden="true">
-      <div class="sk-hero-grid">
-        <div v-for="n in 2" :key="n" class="sk-hero">
-          <div class="sk-hero-meta">
-            <SkeletonBlock width="52px" height="20px" radius="10px" />
-            <SkeletonBlock width="72px" height="16px" />
+    <!-- 加载中：置顶卡与时间线外壳真实（置顶角标/发布于/展开等静态文案真实），仅分类、标题、摘要、日期为骨架 -->
+    <div v-if="loadingAnn" aria-hidden="true">
+      <section class="pinned-hero">
+        <div class="pinned-grid">
+          <article v-for="n in 2" :key="n" class="hero-card">
+            <div class="hero-meta">
+              <SkeletonBlock width="52px" height="20px" radius="10px" />
+              <span class="pinned-badge">📌 {{ t.pinnedTitle }}</span>
+              <SkeletonBlock width="72px" height="16px" />
+            </div>
+            <h3 class="hero-title"><SkeletonBlock width="72%" height="22px" /></h3>
+            <p class="hero-summary"><SkeletonBlock width="92%" height="13px" /></p>
+            <div class="hero-foot">
+              <span class="announcement-date">{{ t.postedOn }} <SkeletonBlock width="88px" height="12px" /></span>
+            </div>
+          </article>
+        </div>
+      </section>
+      <div class="timeline">
+        <article v-for="n in 5" :key="n" class="tl-item">
+          <div class="tl-node-col">
+            <div class="tl-node">
+              <SkeletonBlock width="22px" height="15px" />
+              <SkeletonBlock width="26px" height="11px" />
+            </div>
+            <div class="tl-line"></div>
           </div>
-          <SkeletonBlock width="72%" height="22px" />
-          <SkeletonBlock width="92%" height="13px" />
-          <SkeletonBlock width="40%" height="12px" />
-        </div>
-      </div>
-      <div v-for="n in 5" :key="n" class="sk-tl-row">
-        <div class="sk-tl-node">
-          <SkeletonBlock variant="circle" width="15px" height="15px" />
-        </div>
-        <div class="sk-tl-main">
-          <SkeletonBlock width="58%" height="16px" />
-          <SkeletonBlock width="84%" height="12px" />
-        </div>
+          <div class="announcement-card">
+            <div class="announcement-meta">
+              <SkeletonBlock width="52px" height="18px" radius="9px" />
+              <SkeletonBlock width="72px" height="12px" />
+            </div>
+            <h3 class="announcement-title"><SkeletonBlock width="58%" height="16px" /></h3>
+            <p class="announcement-summary"><SkeletonBlock width="84%" height="12px" /></p>
+            <button class="expand-btn" disabled>{{ t.expand }}</button>
+          </div>
+        </article>
       </div>
     </div>
 
@@ -647,36 +663,6 @@ const categoryLabel = (cat) => categories.value.find(c => c.key === cat)?.label 
 }
 .empty-state svg { margin-bottom: var(--space-4); opacity: 0.5; }
 .empty-state p { font-size: var(--text-base); margin: 0; }
-
-/* ========== 加载骨架：形状对齐置顶巨幕卡 + 时间线行 ========== */
-.ann-skeleton { display: flex; flex-direction: column; gap: var(--space-5); }
-.sk-hero-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
-.sk-hero {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  min-height: 148px;
-}
-.sk-hero-meta { display: flex; gap: var(--space-3); align-items: center; }
-.sk-tl-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
-  min-height: 64px;
-}
-.sk-tl-node { width: 28px; flex-shrink: 0; display: flex; justify-content: center; }
-.sk-tl-main { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
-@media (max-width: 640px) {
-  .sk-hero-grid { grid-template-columns: 1fr; }
-}
 
 /* ========== 移动端 ========== */
 @media (max-width: 640px) {

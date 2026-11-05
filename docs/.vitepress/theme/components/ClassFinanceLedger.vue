@@ -31,77 +31,83 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
 
 <template>
   <div class="finance-page ledger">
-    <!-- 加载骨架：形状对齐余额卡 + 流水行，容器锁高防跳动 -->
-    <div v-if="loading" class="ledger-skeleton" aria-hidden="true">
-      <div class="sk-balance">
-        <SkeletonBlock width="96px" height="14px" />
-        <SkeletonBlock width="170px" height="34px" />
-        <div class="sk-stats">
-          <div class="sk-stat"><SkeletonBlock width="56px" height="12px" /><SkeletonBlock width="88px" height="18px" /></div>
-          <div class="sk-stat"><SkeletonBlock width="56px" height="12px" /><SkeletonBlock width="88px" height="18px" /></div>
-          <div class="sk-stat"><SkeletonBlock width="56px" height="12px" /><SkeletonBlock width="88px" height="18px" /></div>
-        </div>
-      </div>
-      <div v-for="n in 6" :key="n" class="sk-row">
-        <SkeletonBlock variant="circle" width="36px" height="36px" />
-        <div class="sk-row-main">
-          <SkeletonBlock width="52%" height="15px" />
-          <SkeletonBlock width="34%" height="11px" />
-        </div>
-        <div class="sk-row-right">
-          <SkeletonBlock width="76px" height="15px" />
-          <SkeletonBlock width="60px" height="11px" />
-        </div>
-      </div>
-    </div>
-    <div v-else-if="error" class="fp-state">
+    <div v-if="error && !loading" class="fp-state">
       {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
     </div>
     <template v-else>
-      <!-- 余额总览 + 预警 -->
+      <!-- 余额总览 + 预警（卡面与标签真实，仅金额数值用骨架） -->
       <div class="balance-card fx-fade-in">
         <div class="balance-main">
           <span class="balance-label">{{ t.balance }}</span>
-          <span class="balance-amount" :class="{ 'low': config.warnLine && balance < config.warnLine }">¥ {{ formatAmount(balance) }}</span>
-          <div v-if="config.warnLine && balance < config.warnLine" class="warn-bar inline">
+          <span v-if="loading" class="balance-amount"><SkeletonBlock width="150px" height="30px" radius="8px" /></span>
+          <span v-else class="balance-amount" :class="{ 'low': config.warnLine && balance < config.warnLine }">¥ {{ formatAmount(balance) }}</span>
+          <div v-if="!loading && config.warnLine && balance < config.warnLine" class="warn-bar inline">
             <span class="warn-icon">⚠️</span><span>{{ t.lowBalance.replace('{n}', config.warnLine) }}</span>
           </div>
         </div>
         <div class="balance-stats">
-          <div class="stat-col"><span class="stat-label">{{ t.income }}</span><span class="stat-value stat-income">+¥ {{ formatAmount(totalIncome) }}</span></div>
+          <div class="stat-col">
+            <span class="stat-label">{{ t.income }}</span>
+            <SkeletonBlock v-if="loading" width="92px" height="18px" />
+            <span v-else class="stat-value stat-income">+¥ {{ formatAmount(totalIncome) }}</span>
+          </div>
           <div class="stat-divider"></div>
-          <div class="stat-col"><span class="stat-label">{{ t.expense }}</span><span class="stat-value stat-expense">-¥ {{ formatAmount(totalExpense) }}</span></div>
+          <div class="stat-col">
+            <span class="stat-label">{{ t.expense }}</span>
+            <SkeletonBlock v-if="loading" width="92px" height="18px" />
+            <span v-else class="stat-value stat-expense">-¥ {{ formatAmount(totalExpense) }}</span>
+          </div>
           <div class="stat-divider"></div>
-          <div class="stat-col"><span class="stat-label">{{ t.initialBalance }}</span><span class="stat-value stat-balance">¥ {{ formatAmount(config.initialBalance || 69000) }}</span></div>
+          <div class="stat-col">
+            <span class="stat-label">{{ t.initialBalance }}</span>
+            <SkeletonBlock v-if="loading" width="92px" height="18px" />
+            <span v-else class="stat-value stat-balance">¥ {{ formatAmount(config.initialBalance || 69000) }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- 过滤 -->
+      <!-- 过滤：静态结构，数据未到位时禁用 -->
       <div class="filter-bar">
         <span class="details-title">{{ t.details }}</span>
         <div class="filters">
-          <select v-model="filterType" class="fp-select" aria-label="type">
+          <select v-model="filterType" class="fp-select" aria-label="type" :disabled="loading">
             <option value="all">{{ t.all }}</option>
             <option value="income">{{ t.incomeOnly }}</option>
             <option value="expense">{{ t.expenseOnly }}</option>
           </select>
-          <select v-model="filterCategory" class="fp-select">
+          <select v-model="filterCategory" class="fp-select" :disabled="loading">
             <option value="all">{{ t.filterCategory }} · {{ t.all }}</option>
             <option v-for="(label, key) in t.categories" :key="key" :value="key">{{ label }}</option>
           </select>
-          <select v-model="filterMonth" class="fp-select">
+          <select v-model="filterMonth" class="fp-select" :disabled="loading">
             <option value="all">{{ t.filterMonth }} · {{ t.all }}</option>
             <option v-for="m in months" :key="m" :value="m">{{ m }}</option>
           </select>
-          <select v-model="filterActivity" class="fp-select">
+          <select v-model="filterActivity" class="fp-select" :disabled="loading">
             <option value="all">{{ t.filterActivity }} · {{ t.all }}</option>
             <option v-for="id in activitiesWithTx" :key="id" :value="id">{{ activityTitle(id) }}</option>
           </select>
         </div>
       </div>
 
-      <!-- 流水列表 -->
-      <div class="tx-list" v-if="filtered.length > 0">
+      <!-- 流水列表：加载中 → 真实行壳 + 值级骨架 -->
+      <div v-if="loading" class="tx-list" aria-hidden="true">
+        <div v-for="n in 6" :key="n" class="tx-item">
+          <SkeletonBlock variant="rect" width="38px" height="38px" radius="12px" />
+          <div class="tx-info">
+            <div class="tx-desc"><SkeletonBlock width="52%" height="15px" /></div>
+            <div class="tx-meta">
+              <SkeletonBlock width="76px" height="12px" radius="6px" />
+              <SkeletonBlock width="84px" height="12px" />
+            </div>
+          </div>
+          <div class="tx-right">
+            <SkeletonBlock width="76px" height="15px" />
+            <SkeletonBlock width="60px" height="11px" />
+          </div>
+        </div>
+      </div>
+      <div class="tx-list" v-else-if="filtered.length > 0">
         <div v-for="tx in filtered" :key="tx.id" class="tx-item clickable" :class="{ 'hl-flash': flash === tx.reimbursementId }" @click="openTxDetail(tx)">
           <div class="tx-icon" :class="tx.type">
             <svg v-if="tx.type === 'income'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
@@ -127,21 +133,21 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
       </div>
       <div v-else class="empty-state"><p>{{ t.noRecords }}</p></div>
 
-      <!-- ===== 收支汇总 ===== -->
+      <!-- ===== 收支汇总：标题与统计标签静态，仅数值骨架 ===== -->
       <div class="sum-section ledger-sum">
         <div class="sum-head">
           <h3 class="section-title">{{ t.summaryTitle }}</h3>
           <div class="period-bar">
-            <select v-model="period" class="fp-select">
+            <select v-model="period" class="fp-select" :disabled="loading">
               <option value="all">{{ t.periodAll }}</option>
               <option value="month">{{ t.periodMonth }}</option>
               <option value="semester">{{ t.periodSemester }}</option>
             </select>
-            <select v-if="period === 'month'" v-model="monthSel" class="fp-select">
+            <select v-if="period === 'month'" v-model="monthSel" class="fp-select" :disabled="loading">
               <option value="all">{{ t.periodAll }}</option>
               <option v-for="m in months" :key="m" :value="m">{{ m }}</option>
             </select>
-            <select v-if="period === 'semester'" v-model="semSel" class="fp-select">
+            <select v-if="period === 'semester'" v-model="semSel" class="fp-select" :disabled="loading">
               <option v-for="s in semesters" :key="s.key" :value="s.key">{{ s.label }}</option>
             </select>
           </div>
@@ -149,24 +155,38 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
         <div class="dash-cards">
           <div class="dash-card">
             <span class="dash-label">{{ t.income }}</span>
-            <span class="dash-value income">+¥ {{ formatAmount(pIncome) }}</span>
-            <span class="dash-sub">{{ t.incomeTx }} {{ pIncomeCount }}</span>
+            <SkeletonBlock v-if="loading" width="112px" height="22px" />
+            <span v-else class="dash-value income">+¥ {{ formatAmount(pIncome) }}</span>
+            <SkeletonBlock v-if="loading" width="80px" height="11px" />
+            <span v-else class="dash-sub">{{ t.incomeTx }} {{ pIncomeCount }}</span>
           </div>
           <div class="dash-card">
             <span class="dash-label">{{ t.expense }}</span>
-            <span class="dash-value expense">-¥ {{ formatAmount(pExpense) }}</span>
-            <span class="dash-sub">{{ t.expenseTx }} {{ pExpenseCount }}</span>
+            <SkeletonBlock v-if="loading" width="112px" height="22px" />
+            <span v-else class="dash-value expense">-¥ {{ formatAmount(pExpense) }}</span>
+            <SkeletonBlock v-if="loading" width="80px" height="11px" />
+            <span v-else class="dash-sub">{{ t.expenseTx }} {{ pExpenseCount }}</span>
           </div>
-          <div class="dash-card" :class="{ 'warn-card': config.warnLine && pBalance < config.warnLine }">
+          <div class="dash-card" :class="{ 'warn-card': !loading && config.warnLine && pBalance < config.warnLine }">
             <span class="dash-label">{{ t.balance }}</span>
-            <span class="dash-value balance">¥ {{ formatAmount(pBalance) }}</span>
-            <span v-if="config.warnLine && pBalance < config.warnLine" class="dash-tag warn">⚠️ {{ t.lowBalance.replace('{n}', config.warnLine) }}</span>
+            <SkeletonBlock v-if="loading" width="112px" height="22px" />
+            <span v-else class="dash-value balance">¥ {{ formatAmount(pBalance) }}</span>
+            <template v-if="loading"><SkeletonBlock width="80px" height="11px" /></template>
+            <span v-else-if="config.warnLine && pBalance < config.warnLine" class="dash-tag warn">⚠️ {{ t.lowBalance.replace('{n}', config.warnLine) }}</span>
             <span v-else class="dash-sub">{{ t.txCount }} {{ pTxCount }}</span>
           </div>
         </div>
         <div class="sum-section">
           <h4 class="group-title">{{ t.expenseBy }}</h4>
-          <div v-if="catBreakdown.length" class="cat-bars">
+          <div v-if="loading" class="cat-bars" aria-hidden="true">
+            <div v-for="n in 4" :key="n" class="cat-bar">
+              <SkeletonBlock width="64px" height="12px" />
+              <div class="cat-track"><SkeletonBlock variant="rect" width="100%" height="12px" radius="6px" /></div>
+              <SkeletonBlock width="56px" height="12px" />
+              <SkeletonBlock width="36px" height="12px" />
+            </div>
+          </div>
+          <div v-else-if="catBreakdown.length" class="cat-bars">
             <div v-for="(c, i) in catBreakdown" :key="c.cat" class="cat-bar">
               <span class="cat-name">{{ catLabel(c.cat) }}</span>
               <div class="cat-track"><div class="cat-fill" :style="{ width: (pExpense ? c.amt / pExpense * 100 : 0) + '%', background: catPalette[i % catPalette.length] }"></div></div>
@@ -178,7 +198,14 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
         </div>
         <div class="sum-section">
           <h4 class="group-title">{{ t.byActivity }}</h4>
-          <div v-if="actBreakdown.length" class="act-bars">
+          <div v-if="loading" class="act-bars" aria-hidden="true">
+            <div v-for="n in 3" :key="n" class="act-bar">
+              <SkeletonBlock width="42%" height="14px" />
+              <SkeletonBlock width="56px" height="12px" />
+              <SkeletonBlock width="72px" height="14px" />
+            </div>
+          </div>
+          <div v-else-if="actBreakdown.length" class="act-bars">
             <div v-for="a in actBreakdown" :key="a.id" class="act-bar">
               <span class="act-name">{{ activityTitle(a.id) }}</span>
               <span class="act-count">{{ a.count }} {{ t.expenseOnly }}</span>

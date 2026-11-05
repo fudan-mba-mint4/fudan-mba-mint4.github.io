@@ -379,25 +379,34 @@ const tr = (obj, key) => {
       ></div>
       <div class="hero-scrim"></div>
 
-      <div v-if="loading" class="hero-body hero-body--sk" aria-hidden="true">
-        <!-- 骨架：形状对齐 hero 三栏（倒计时/标题+meta/名额环） -->
+      <!-- 加载中：hero 三栏真实骨架（下一场/天/小时/剩余名额等静态文案真实，仅数值位放骨架） -->
+      <div v-if="loading" class="hero-body" aria-hidden="true">
         <div class="hero-left">
-          <SkeletonBlock width="88px" height="14px" />
-          <div class="sk-cd-row">
-            <SkeletonBlock width="46px" height="30px" />
-            <SkeletonBlock width="46px" height="30px" />
+          <span class="hero-eyebrow">{{ t.nextEvent }}</span>
+          <div class="hero-countdown">
+            <span class="hero-cd-block">
+              <span class="hero-cd-num"><SkeletonBlock width="46px" height="30px" /></span>
+              <span class="hero-cd-unit">{{ t.days }}</span>
+            </span>
+            <span class="hero-cd-block">
+              <span class="hero-cd-num"><SkeletonBlock width="46px" height="30px" /></span>
+              <span class="hero-cd-unit">{{ t.hours }}</span>
+            </span>
           </div>
-          <SkeletonBlock width="64px" height="12px" />
+          <span class="hero-countdown-label">{{ t.countdownLabel }}</span>
         </div>
         <div class="hero-main">
-          <SkeletonBlock width="58%" height="26px" />
-          <div class="sk-hero-meta">
-            <SkeletonBlock width="120px" height="14px" />
-            <SkeletonBlock width="140px" height="14px" />
+          <h2 class="hero-title"><SkeletonBlock width="58%" height="26px" /></h2>
+          <div class="hero-meta">
+            <span class="hero-meta-item"><SkeletonBlock width="120px" height="14px" /></span>
+            <span class="hero-meta-item"><SkeletonBlock width="140px" height="14px" /></span>
           </div>
         </div>
-        <div class="hero-right sk-hero-ring">
-          <SkeletonBlock variant="circle" width="64px" height="64px" />
+        <div class="hero-right">
+          <div class="hero-ring-wrap">
+            <SkeletonBlock variant="circle" width="64px" height="64px" />
+          </div>
+          <span class="hero-ring-label">{{ t.spotsLeft }}</span>
         </div>
       </div>
 
@@ -476,47 +485,39 @@ const tr = (obj, key) => {
       </div>
     </section>
 
-    <!-- ===== 月历视图（右栏）：加载期骨架（42 格与真实月历等高等宽，原位替换不跳动） ===== -->
-    <div v-if="view === 'calendar' && loading" class="cal-skeleton" aria-hidden="true">
-      <div class="cal-sk-toolbar">
-        <SkeletonBlock variant="rect" width="32px" height="32px" />
-        <SkeletonBlock width="150px" height="20px" />
-        <SkeletonBlock variant="rect" width="32px" height="32px" />
-        <SkeletonBlock width="56px" height="28px" radius="14px" />
-      </div>
-      <SkeletonBlock width="130px" height="14px" class="cal-sk-summary" />
-      <div class="cal-sk-weekdays">
-        <span v-for="n in 7" :key="n"><SkeletonBlock width="26px" height="12px" /></span>
-      </div>
-      <div class="cal-sk-grid">
-        <div v-for="n in 42" :key="n" class="cal-sk-cell">
-          <SkeletonBlock width="22px" height="13px" />
-        </div>
-      </div>
-    </div>
+    <!-- ===== 月历视图（右栏）：加载期由组件自身渲染真实外壳（月份/星期表头/按钮文案真实），仅日期与日程为骨架 ===== -->
     <ActivityCalendar
-      v-else-if="view === 'calendar'"
-      class="pane-calendar fx-fade-in"
+      v-if="view === 'calendar'"
+      class="pane-calendar"
+      :class="{ 'fx-fade-in': !loading }"
       :activities="activities"
       :is-authenticated="isAuthenticated"
       :actions="calendarActions"
       :focus-date="focusDate"
+      :skeleton="loading"
     />
 
-    <!-- ===== 垂直脊柱时间线 ===== -->
-    <div v-if="view === 'timeline' && loading" class="acts-tl-skeleton" aria-hidden="true">
-      <div v-for="n in 4" :key="n" class="sk-tl-card">
-        <div class="sk-tl-date">
-          <SkeletonBlock width="52px" height="15px" />
-        </div>
-        <div class="sk-tl-body">
-          <SkeletonBlock width="48%" height="18px" />
-          <div class="sk-tl-meta">
-            <SkeletonBlock width="110px" height="12px" />
-            <SkeletonBlock width="130px" height="12px" />
+    <!-- ===== 垂直脊柱时间线：加载中复用真实卡片外壳（日期块脊柱/标题位/元信息位，仅内容为骨架） ===== -->
+    <div v-if="view === 'timeline' && loading" class="timeline" aria-hidden="true">
+      <div v-for="n in 4" :key="n" class="timeline-item future">
+        <article class="tl-card">
+          <div class="tl-card-head">
+            <div class="tl-date-block">
+              <span class="tl-date-dot"></span>
+              <span class="tl-month"><SkeletonBlock width="52px" height="15px" /></span>
+            </div>
+            <div class="tl-main">
+              <div class="tl-title-row">
+                <h3 class="tl-title"><SkeletonBlock width="48%" height="18px" /></h3>
+              </div>
+              <div class="tl-meta">
+                <span class="tl-meta-item"><SkeletonBlock width="110px" height="12px" /></span>
+                <span class="tl-meta-item"><SkeletonBlock width="130px" height="12px" /></span>
+              </div>
+              <p class="tl-desc"><SkeletonBlock width="86%" height="12px" /></p>
+            </div>
           </div>
-          <SkeletonBlock width="86%" height="12px" />
-        </div>
+        </article>
       </div>
     </div>
     <div class="timeline fx-fade-in" v-if="view === 'timeline' && !loading && sortedEvents.length">
@@ -835,24 +836,6 @@ const tr = (obj, key) => {
   color: var(--c-card-accent-text);
 }
 
-/* ===== 活动骨架：形状对齐 hero 三栏 / 时间线卡片 ===== */
-.hero-body--sk { color: inherit; min-height: 312px; }
-.sk-cd-row { display: flex; gap: 8px; margin: 10px 0 8px; }
-.sk-hero-meta { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
-.sk-hero-ring { justify-content: center; }
-.acts-tl-skeleton { display: flex; flex-direction: column; gap: 18px; }
-.sk-tl-card {
-  display: flex;
-  gap: 18px;
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-  min-height: 104px;
-}
-.sk-tl-date { width: 96px; flex-shrink: 0; padding-top: 4px; }
-.sk-tl-body { display: flex; flex-direction: column; gap: 9px; flex: 1; min-width: 0; }
-.sk-tl-meta { display: flex; gap: 12px; }
 /* 有封面图时保持白字（深色遮罩上） */
 .hero--cover .hero-body {
   color: #ffffff;
@@ -1306,40 +1289,4 @@ html.dark .timeline-item.past .tl-month {
   .signup-btn { width: 100%; padding: 11px; }
 }
 
-/* 月历加载骨架：网格 42 格（6 行×7 列），与真实月历 .cal-cell min-height:72px 对齐，防替换跳动 */
-.cal-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.cal-sk-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.cal-sk-summary {
-  margin: 2px 0 8px;
-}
-.cal-sk-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  text-align: center;
-}
-.cal-sk-weekdays span {
-  display: flex;
-  justify-content: center;
-}
-.cal-sk-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-}
-.cal-sk-cell {
-  min-height: 72px;
-  min-width: 0;
-  border: 1px solid var(--c-border-light);
-  border-radius: var(--radius-md);
-  padding: 5px;
-}
 </style>

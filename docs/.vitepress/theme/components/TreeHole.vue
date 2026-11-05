@@ -84,15 +84,17 @@
     <!-- 留言列表 -->
     <div class="message-list fx-fade-in">
       <!-- 首屏加载骨架：形状对齐留言卡（圆头像 + 昵称/时间行 + 内容两行），容器锁高防跳动 -->
+      <!-- 加载中：复用真实留言卡外壳（「匿名同学」称呼首帧真实），仅昵称/时间/正文为骨架 -->
       <div v-if="loading && messages.length === 0" class="th-skeleton" aria-hidden="true">
-        <div v-for="n in 5" :key="n" class="th-skel-card">
-          <div class="th-skel-head">
-            <SkeletonBlock variant="circle" width="40px" height="40px" />
-            <SkeletonBlock class="th-skel-nick" width="34%" height="14px" />
-            <SkeletonBlock class="th-skel-time" width="56px" height="11px" />
+        <div v-for="n in 3" :key="n" class="message-card">
+          <div class="message-header">
+            <span class="message-nickname">{{ t.anonymous }}</span>
+            <span class="message-time"><SkeletonBlock width="56px" height="11px" /></span>
           </div>
-          <SkeletonBlock width="85%" height="15px" />
-          <SkeletonBlock width="60%" height="15px" />
+          <p class="message-content">
+            <SkeletonBlock width="88%" height="15px" />
+            <SkeletonBlock width="58%" height="15px" />
+          </p>
         </div>
       </div>
 

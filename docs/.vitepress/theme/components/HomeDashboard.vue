@@ -942,15 +942,20 @@ onUnmounted(() => {
           </a>
         </div>
 
-        <!-- 加载骨架：对齐真实课表行（日期块 + 课程名/meta 两行 + 倒计时胶囊），容器锁高防跳动 -->
-        <div v-if="scheduleLoading" class="schedule-skeleton" aria-hidden="true">
-          <div v-for="i in 2" :key="i" class="sk-schedule-row">
-            <SkeletonBlock variant="rect" width="42px" height="42px" radius="var(--radius-lg)" />
-            <div class="sk-schedule-main">
-              <SkeletonBlock width="56%" height="14px" />
-              <SkeletonBlock width="42%" height="11px" />
+        <!-- 加载态：复用真实课表行外壳（日期块/课程名/meta/倒计时胶囊），仅内容为骨架 -->
+        <div v-if="scheduleLoading" class="schedule-list" aria-hidden="true">
+          <div v-for="i in 2" :key="i" class="schedule-item">
+            <div class="schedule-item-main">
+              <div class="schedule-date">
+                <SkeletonBlock width="26px" height="20px" />
+                <SkeletonBlock width="26px" height="11px" />
+              </div>
+              <div class="schedule-info">
+                <span class="schedule-course"><SkeletonBlock width="56%" height="14px" /></span>
+                <span class="schedule-meta"><SkeletonBlock width="42%" height="11px" /></span>
+              </div>
+              <SkeletonBlock width="58px" height="20px" radius="10px" />
             </div>
-            <SkeletonBlock width="58px" height="20px" radius="10px" />
           </div>
         </div>
 
@@ -1095,21 +1100,21 @@ onUnmounted(() => {
             </a>
           </div>
         </div>
-        <!-- 加载骨架：对齐余额大数字 + 收入/支出两小块，容器锁高防跳动 -->
+        <!-- 加载态：余额/收入/支出标签是静态文案，首帧即真实；仅金额数字为骨架 -->
         <div v-if="financeLoading" class="finance-skeleton" aria-hidden="true">
-          <div class="sk-finance-balance">
-            <SkeletonBlock width="56px" height="11px" />
-            <SkeletonBlock width="150px" height="26px" />
+          <div class="finance-balance">
+            <span class="finance-amount"><SkeletonBlock width="150px" height="26px" /></span>
+            <span class="finance-label">{{ t.balance }}</span>
           </div>
-          <div class="sk-finance-row">
-            <div class="sk-finance-col">
-              <SkeletonBlock width="76px" height="14px" />
-              <SkeletonBlock width="48px" height="10px" />
+          <div class="finance-row">
+            <div class="finance-col">
+              <span class="finance-sub finance-sub--income"><SkeletonBlock width="76px" height="14px" /></span>
+              <span class="finance-sublabel">{{ t.income }}</span>
             </div>
-            <div class="sk-finance-divider"></div>
-            <div class="sk-finance-col">
-              <SkeletonBlock width="76px" height="14px" />
-              <SkeletonBlock width="48px" height="10px" />
+            <div class="finance-divider-v"></div>
+            <div class="finance-col">
+              <span class="finance-sub finance-sub--expense"><SkeletonBlock width="76px" height="14px" /></span>
+              <span class="finance-sublabel">{{ t.expense }}</span>
             </div>
           </div>
         </div>
@@ -1145,16 +1150,16 @@ onUnmounted(() => {
             </a>
           </div>
         </div>
-        <!-- 加载骨架：对齐 3 条公告行（分类胶囊 + 标题行 + 日期行），容器锁高防跳动；加载完才出现空态 -->
-        <div v-if="annLoading" class="ann-skeleton" aria-hidden="true">
-          <div v-for="n in 3" :key="n" class="sk-ann-row">
-            <SkeletonBlock width="48px" height="19px" radius="10px" />
-            <div class="sk-ann-main">
-              <SkeletonBlock width="100%" height="13px" />
-            </div>
-            <div class="sk-ann-date">
-              <SkeletonBlock width="64px" height="11px" />
-            </div>
+        <!-- 加载中：复用真实公告行外壳（左侧指示条与箭头为本地静态元素），仅分类胶囊/标题/日期为骨架 -->
+        <div v-if="annLoading" class="announcement-list" aria-hidden="true">
+          <div v-for="n in 3" :key="n" class="announcement-item">
+            <span class="announcement-indicator" aria-hidden="true"></span>
+            <span class="announcement-tag"><SkeletonBlock width="34px" height="16px" radius="8px" /></span>
+            <span class="announcement-title"><SkeletonBlock width="100%" height="13px" /></span>
+            <span class="announcement-date"><SkeletonBlock width="50px" height="11px" /></span>
+            <svg class="announcement-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
           </div>
         </div>
         <div v-else class="announcement-list fx-fade-in">
@@ -1180,17 +1185,15 @@ onUnmounted(() => {
       <!-- 6. 倒计时（1x1，真实数据） -->
       <div class="card card--countdown" v-tilt role="region" :aria-label="`${t.countdownTitle}: ${countdownText}`">
         <h3 class="card-title card-title--compact">{{ t.countdownTitle }}</h3>
-        <!-- 加载骨架：数据源自课表（scheduleLoading），对齐圆环数字 + 单位 + 学期进度条 -->
+        <!-- 加载态：数据源自课表（scheduleLoading）；「天」「学期进度」为静态文案，首帧真实，仅数字为骨架 -->
         <div v-if="scheduleLoading" class="countdown-skeleton" aria-hidden="true">
           <div class="sk-cd-ring">
             <SkeletonBlock variant="circle" width="100%" height="100%" />
           </div>
-          <div class="sk-cd-unit">
-            <SkeletonBlock width="56px" height="12px" />
-          </div>
+          <p class="countdown-unit">{{ t.days }}</p>
           <div class="sk-cd-progress">
             <div class="sk-cd-progress-head">
-              <SkeletonBlock width="72px" height="11px" />
+              <span class="progress-label">{{ t.semesterProgress }}</span>
               <SkeletonBlock width="34px" height="11px" />
             </div>
             <SkeletonBlock width="100%" height="5px" radius="3px" />
@@ -1241,7 +1244,7 @@ onUnmounted(() => {
             </div>
             <div class="sk-hw-days">
               <SkeletonBlock width="22px" height="18px" />
-              <SkeletonBlock width="34px" height="9px" />
+              <span class="homework-days-unit">{{ t.days }}</span>
             </div>
           </div>
         </div>
@@ -1308,7 +1311,7 @@ onUnmounted(() => {
           <h3 class="card-title">{{ t.galleryTitle }}</h3>
           <a :href="`${langPrefix}/gallery/`" class="card-link">{{ t.viewAll }}</a>
         </div>
-        <!-- 加载骨架：对齐 4 张 1:1 封面 + 底部标题行，同网格同比例锁高 -->
+        <!-- 加载骨架：4 张封面骨架 + 末位真实的「查看全部」瓦片，网格列比与加载后一致 -->
         <div v-if="actLoading" class="gallery-skeleton" aria-hidden="true">
           <div v-for="n in 4" :key="n" class="sk-gal-item">
             <SkeletonBlock variant="rect" width="100%" height="100%" />
@@ -1316,6 +1319,7 @@ onUnmounted(() => {
               <SkeletonBlock width="72%" height="11px" />
             </div>
           </div>
+          <span class="gallery-item gallery-item--more"><span>{{ t.viewAll }}</span></span>
         </div>
         <div v-else class="gallery-grid">
           <a
@@ -1944,7 +1948,7 @@ onUnmounted(() => {
   50% { opacity: 1; }
 }
 
-/* ========== 2. 近期课程（加载骨架：统一 shimmer，形状对齐真实课表行，容器锁高防跳动） ========== */
+/* ========== 2. 近期课程（加载态复用真实 .schedule-list / .schedule-item） ========== */
 .schedule-skeleton {
   display: flex;
   flex-direction: column;
@@ -1953,78 +1957,16 @@ onUnmounted(() => {
   padding: 4px 0;
   min-height: 92px;
 }
-.sk-schedule-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 4px;
-  min-height: 44px;
-}
-.sk-schedule-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
 
-/* ========== 班费卡片加载骨架：余额大数字 + 收入/支出两小块，锁高 96px ========== */
+/* ========== 班费卡片加载态：复用真实 .finance-balance / .finance-row（标签真实、金额骨架） ========== */
 .finance-skeleton {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 96px;
 }
-.sk-finance-balance {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-bottom: 12px;
-}
-.sk-finance-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 10px;
-  border-top: 0.5px solid var(--c-separator);
-  margin-top: auto;
-}
-.sk-finance-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.sk-finance-divider {
-  width: 0.5px;
-  height: 28px;
-  background: var(--c-separator);
-  flex-shrink: 0;
-}
 
-/* ========== 公告卡片加载骨架：3 行（胶囊 + 标题 + 日期），锁高 136px ========== */
-.ann-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-height: 136px;
-}
-.sk-ann-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 8px 9px 12px;
-  min-height: 44px;
-}
-.sk-ann-main {
-  flex: 1;
-  min-width: 0;
-}
-.sk-ann-date {
-  margin-left: auto;
-  flex-shrink: 0;
-}
+/* ========== 公告卡片加载态：已复用真实 .announcement-item 外壳，仅胶囊/标题/日期为骨架 ========== */
 
 /* ========== 作业待办加载骨架：2 行待办，锁高 88px ========== */
 .homework-skeleton {
@@ -2069,9 +2011,6 @@ onUnmounted(() => {
   width: 100px;
   height: 100px;
   margin: 4px 0;
-}
-.sk-cd-unit {
-  margin: 2px 0 0;
 }
 .sk-cd-progress {
   width: 100%;
@@ -2535,6 +2474,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 2px;
   flex: 1;
+  min-height: 136px; /* 3 条 × 44px，加载前后锁高防跳动 */
 }
 
 .announcement-item {
@@ -3459,7 +3399,6 @@ onUnmounted(() => {
   /* 骨架 shimmer 在减少动效偏好下停用（全局规则见 animations.css，此处组件内兜底） */
   .schedule-skeleton .sk-block,
   .finance-skeleton .sk-block,
-  .ann-skeleton .sk-block,
   .homework-skeleton .sk-block,
   .countdown-skeleton .sk-block,
   .gallery-skeleton .sk-block,

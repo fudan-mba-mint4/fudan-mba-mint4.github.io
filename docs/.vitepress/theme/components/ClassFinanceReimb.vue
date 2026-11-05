@@ -186,141 +186,130 @@ watch(() => router.route.path, () => {
 
 <template>
   <div class="finance-page reimb">
-    <!-- 加载骨架：页头 + 顶栏 + 3 张报销卡占位，形态对齐真实结构（纯展示，aria-hidden） -->
-    <div v-if="loading" class="reimb-skeleton" aria-hidden="true">
-      <div class="sk-section-head">
-        <SkeletonBlock width="132px" height="18px" />
-        <SkeletonBlock width="240px" height="13px" />
-      </div>
-      <div class="sk-topbar">
-        <SkeletonBlock width="150px" height="15px" />
-        <SkeletonBlock width="96px" height="32px" radius="16px" class="sk-topbar-btn" />
-      </div>
-      <div v-for="n in 3" :key="n" class="sk-reimb-card">
-        <div class="sk-rc-head">
-          <SkeletonBlock width="64px" height="20px" radius="12px" />
-          <SkeletonBlock width="72px" height="12px" />
-        </div>
-        <SkeletonBlock width="58%" height="15px" class="sk-rc-title" />
-        <div class="sk-rc-meta">
-          <SkeletonBlock width="96px" height="12px" />
-          <SkeletonBlock width="84px" height="12px" />
-          <SkeletonBlock width="92px" height="14px" class="sk-rc-amount" />
-        </div>
-        <div class="sk-rc-foot"><SkeletonBlock width="120px" height="13px" /></div>
-      </div>
-    </div>
-    <div v-else-if="error" class="fp-state">
+    <div v-if="error && !loading" class="fp-state">
       {{ t.loadFailed }} <button class="link-btn" @click="loadFinance">{{ t.retry }}</button>
     </div>
+    <div v-else-if="!loading && !isAuthenticated" class="empty-state"><p>{{ t.noLoginReimb }}</p></div>
     <template v-else>
-      <div class="section-header">
-        <h3 class="section-title">{{ t.reimbTitle }}</h3>
-        <span class="section-desc">{{ t.reimbDesc }}</span>
-      </div>
-      <div v-if="statusBanners.length" class="reimb-banners">
+      <div v-if="!loading && statusBanners.length" class="reimb-banners">
         <div v-for="(b, i) in statusBanners" :key="i" class="reimb-banner">
           <span class="banner-ico">📣</span><span class="banner-text">{{ b }}</span>
           <button class="banner-close" @click="statusBanners.splice(i, 1)">×</button>
         </div>
       </div>
-      <div v-if="!isAuthenticated" class="empty-state"><p>{{ t.noLoginReimb }}</p></div>
-      <template v-else>
-        <div class="reimb-topbar">
-          <span class="group-title">{{ canViewAllReimb ? t.allReimb : t.myReimb }}（{{ reimbursements.length }}）</span>
-          <button class="btn-oppose primary" @click="showReimbForm = !showReimbForm">{{ showReimbForm ? t.close : t.newReimb }}</button>
-        </div>
 
-        <!-- 新建表单 -->
-        <div v-if="showReimbForm" class="reimb-form">
-          <h4 class="form-title">{{ t.reimbFormTitle }}</h4>
-          <div class="form-row">
-            <label class="f-label">{{ t.reimbActivity }}</label>
-            <select v-model="reimbForm.activityId" class="fp-select">
-              <option value="">—</option>
-              <option v-for="(act, id) in activitiesMap" :key="id" :value="id">{{ act.date || '' }} · {{ act.title?.[currentLang] || act.title?.zh || id }}</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label class="f-label">{{ t.reimbBudget }} *</label>
-            <select v-model="reimbForm.proposalId" class="fp-select" required>
-              <option value="">请选择已通过的预算公示（先公示后花钱）</option>
-              <option v-for="b in passedBudgets" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ formatAmount(b.amount) }}{{ b.proposalNo ? '（' + b.proposalNo + '）' : '' }}</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label class="f-label">{{ t.reimbDate }} *</label>
-            <input v-model="reimbForm.expenseDate" type="date" class="fp-input" />
-          </div>
-          <div class="form-row">
-            <label class="f-label">{{ t.reimbAmount }} *</label>
-            <input v-model.number="reimbForm.amount" type="number" step="0.01" min="0" class="fp-input" placeholder="0.00" />
-          </div>
-          <div class="form-row">
-            <label class="f-label">{{ t.reimbCategory }}</label>
-            <select v-model="reimbForm.category" class="fp-select">
-              <option v-for="(label, key) in t.categories" :key="key" :value="key">{{ label }}</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label class="f-label">{{ t.reimbDesc }} *</label>
-            <input v-model="reimbForm.description" class="fp-input" :placeholder="t.reimbDesc" />
-          </div>
-          <div class="form-row col">
-            <label class="f-label">{{ t.reimbVouchers }} *</label>
-            <p class="required-hint">{{ requiredHintText }}</p>
-            <div class="voucher-grid">
-              <div v-for="type in ['invoice', 'payment', 'receipt', 'other']" :key="type" class="voucher-cell">
-                <span class="v-name">{{ voucherTypeLabel(type) }}</span>
-                <label class="v-upload btn-oppose" :class="{ primary: reimbForm.vouchers.some(v => v.type === type) }">
-                  {{ reimbForm.vouchers.some(v => v.type === type) ? t.uploaded + ' ✓' : t.uploadVoucher }}
-                  <input type="file" accept="image/*,.pdf" style="display:none" @change="addVoucherFile(type, $event)" />
-                </label>
-                <div v-for="(v, i) in reimbForm.vouchers.filter(x => x.type === type)" :key="i" class="v-file">
-                  <a :href="v.url" target="_blank" rel="noopener">{{ v.name }}</a>
-                  <button class="v-rm" @click="removeVoucher(reimbForm.vouchers.indexOf(v))">×</button>
-                </div>
+      <!-- 顶栏：标题与新建按钮是静态结构，首帧即渲染；条数用值级骨架等数据 -->
+      <div class="reimb-topbar">
+        <span class="group-title">
+          {{ canViewAllReimb ? t.allReimb : t.myReimb }}<template v-if="loading"> <SkeletonBlock width="30px" height="14px" /></template><template v-else>（{{ reimbursements.length }}）</template>
+        </span>
+        <button class="btn-oppose primary" :disabled="loading" @click="showReimbForm = !showReimbForm">{{ showReimbForm ? t.close : t.newReimb }}</button>
+      </div>
+
+      <!-- 新建表单：数据就绪后才允许打开 -->
+      <div v-if="showReimbForm && !loading" class="reimb-form">
+        <h4 class="form-title">{{ t.reimbFormTitle }}</h4>
+        <div class="form-row">
+          <label class="f-label">{{ t.reimbActivity }}</label>
+          <select v-model="reimbForm.activityId" class="fp-select">
+            <option value="">—</option>
+            <option v-for="(act, id) in activitiesMap" :key="id" :value="id">{{ act.date || '' }} · {{ act.title?.[currentLang] || act.title?.zh || id }}</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">{{ t.reimbBudget }} *</label>
+          <select v-model="reimbForm.proposalId" class="fp-select" required>
+            <option value="">请选择已通过的预算公示（先公示后花钱）</option>
+            <option v-for="b in passedBudgets" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ formatAmount(b.amount) }}{{ b.proposalNo ? '（' + b.proposalNo + '）' : '' }}</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">{{ t.reimbDate }} *</label>
+          <input v-model="reimbForm.expenseDate" type="date" class="fp-input" />
+        </div>
+        <div class="form-row">
+          <label class="f-label">{{ t.reimbAmount }} *</label>
+          <input v-model.number="reimbForm.amount" type="number" step="0.01" min="0" class="fp-input" placeholder="0.00" />
+        </div>
+        <div class="form-row">
+          <label class="f-label">{{ t.reimbCategory }}</label>
+          <select v-model="reimbForm.category" class="fp-select">
+            <option v-for="(label, key) in t.categories" :key="key" :value="key">{{ label }}</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="f-label">{{ t.reimbDesc }} *</label>
+          <input v-model="reimbForm.description" class="fp-input" :placeholder="t.reimbDesc" />
+        </div>
+        <div class="form-row col">
+          <label class="f-label">{{ t.reimbVouchers }} *</label>
+          <p class="required-hint">{{ requiredHintText }}</p>
+          <div class="voucher-grid">
+            <div v-for="type in ['invoice', 'payment', 'receipt', 'other']" :key="type" class="voucher-cell">
+              <span class="v-name">{{ voucherTypeLabel(type) }}</span>
+              <label class="v-upload btn-oppose" :class="{ primary: reimbForm.vouchers.some(v => v.type === type) }">
+                {{ reimbForm.vouchers.some(v => v.type === type) ? t.uploaded + ' ✓' : t.uploadVoucher }}
+                <input type="file" accept="image/*,.pdf" style="display:none" @change="addVoucherFile(type, $event)" />
+              </label>
+              <div v-for="(v, i) in reimbForm.vouchers.filter(x => x.type === type)" :key="i" class="v-file">
+                <a :href="v.url" target="_blank" rel="noopener">{{ v.name }}</a>
+                <button class="v-rm" @click="removeVoucher(reimbForm.vouchers.indexOf(v))">×</button>
               </div>
             </div>
           </div>
-          <div class="form-row col" v-if="needsEndorsement">
-            <label class="f-label">{{ t.endorsementTitle }}</label>
-            <input v-model="reimbForm.endorserName" class="fp-input" :placeholder="t.endorserName" />
-            <p class="required-hint">{{ t.endorserHint.replace('{n}', config.largeAmount || 500) }}</p>
-          </div>
-          <div class="form-actions">
-            <span v-if="reimbForm.msg" class="oppose-msg">{{ reimbForm.msg }}</span>
-            <button class="btn-oppose primary" :disabled="!reimbCanSubmit || reimbForm.submitting || reimbForm.uploading" @click="submitReimb">
-              {{ reimbForm.submitting ? t.submitting : (reimbForm.editingId ? t.needRevise : t.submit) }}
-            </button>
-            <button v-if="reimbForm.editingId" class="btn-ghost" @click="reimbForm = emptyReimbForm(); showReimbForm = false">{{ t.close }}</button>
-          </div>
         </div>
+        <div class="form-row col" v-if="needsEndorsement">
+          <label class="f-label">{{ t.endorsementTitle }}</label>
+          <input v-model="reimbForm.endorserName" class="fp-input" :placeholder="t.endorserName" />
+          <p class="required-hint">{{ t.endorserHint.replace('{n}', config.largeAmount || 500) }}</p>
+        </div>
+        <div class="form-actions">
+          <span v-if="reimbForm.msg" class="oppose-msg">{{ reimbForm.msg }}</span>
+          <button class="btn-oppose primary" :disabled="!reimbCanSubmit || reimbForm.submitting || reimbForm.uploading" @click="submitReimb">
+            {{ reimbForm.submitting ? t.submitting : (reimbForm.editingId ? t.needRevise : t.submit) }}
+          </button>
+          <button v-if="reimbForm.editingId" class="btn-ghost" @click="reimbForm = emptyReimbForm(); showReimbForm = false">{{ t.close }}</button>
+        </div>
+      </div>
 
-        <!-- 列表 -->
-        <div class="reimb-list" v-if="reimbursements.length">
-          <div v-for="r in reimbursements" :key="r.id" class="reimb-card" :class="{ 'hl-flash': hlId === r.id }">
-            <div class="rc-head">
-              <span class="rc-status" :class="r.status">{{ reimbStatusLabel(r.status) }}</span>
-              <span class="rc-date">{{ formatDate(r.createdAt) }}</span>
-            </div>
-            <div class="rc-title">{{ r.description || '—' }}</div>
-            <div class="rc-meta">
-              <span v-if="r.activityId"><a class="link-activity" href="#" @click.prevent.stop="gotoActivity(r.activityId)">{{ t.activity }}: {{ activityTitle(r.activityId) }}</a></span>
-              <span v-if="r.proposalId"><a class="link-activity" href="#" @click.prevent.stop="gotoBudget(r.proposalId)">{{ t.relatedBudget }}</a></span>
-              <span v-if="canViewAllReimb">{{ t.payer }}: {{ r.applicant }}</span>
-              <span class="rc-amount">¥{{ formatAmount(r.amount) }}</span>
-            </div>
-            <div class="rc-foot">
-              <button v-if="r.vouchers && r.vouchers.length" class="link-btn" @click="openVouchers(r)">📎 {{ t.voucher }} ({{ r.vouchers.length }})</button>
-              <span v-if="r.endorsement?.committee?.name" class="rc-note">{{ t.endorsementTitle }}: {{ r.endorsement.committee.name }}</span>
-              <span v-if="r.auditNote" class="rc-note">{{ t.auditNote }}: {{ r.auditNote }}</span>
-              <button v-if="r.status === 'need_revision'" class="link-btn" @click="editReimb(r)">{{ t.needRevise }}</button>
-            </div>
+      <!-- 列表：加载中 → 真实报销卡壳 + 值级骨架；数据到手后原位切换 -->
+      <div v-if="loading" class="reimb-list" aria-hidden="true">
+        <div v-for="n in 3" :key="n" class="reimb-card reimb-card--sk">
+          <div class="rc-head">
+            <SkeletonBlock width="64px" height="20px" radius="12px" />
+            <SkeletonBlock width="72px" height="12px" />
+          </div>
+          <div class="rc-title"><SkeletonBlock width="58%" height="15px" /></div>
+          <div class="rc-meta">
+            <SkeletonBlock width="96px" height="12px" />
+            <SkeletonBlock width="84px" height="12px" />
+            <span class="rc-amount"><SkeletonBlock width="92px" height="14px" /></span>
+          </div>
+          <div class="rc-foot"><SkeletonBlock width="120px" height="13px" /></div>
+        </div>
+      </div>
+      <div class="reimb-list" v-else-if="reimbursements.length">
+        <div v-for="r in reimbursements" :key="r.id" class="reimb-card" :class="{ 'hl-flash': hlId === r.id }">
+          <div class="rc-head">
+            <span class="rc-status" :class="r.status">{{ reimbStatusLabel(r.status) }}</span>
+            <span class="rc-date">{{ formatDate(r.createdAt) }}</span>
+          </div>
+          <div class="rc-title">{{ r.description || '—' }}</div>
+          <div class="rc-meta">
+            <span v-if="r.activityId"><a class="link-activity" href="#" @click.prevent.stop="gotoActivity(r.activityId)">{{ t.activity }}: {{ activityTitle(r.activityId) }}</a></span>
+            <span v-if="r.proposalId"><a class="link-activity" href="#" @click.prevent.stop="gotoBudget(r.proposalId)">{{ t.relatedBudget }}</a></span>
+            <span v-if="canViewAllReimb">{{ t.payer }}: {{ r.applicant }}</span>
+            <span class="rc-amount">¥{{ formatAmount(r.amount) }}</span>
+          </div>
+          <div class="rc-foot">
+            <button v-if="r.vouchers && r.vouchers.length" class="link-btn" @click="openVouchers(r)">📎 {{ t.voucher }} ({{ r.vouchers.length }})</button>
+            <span v-if="r.endorsement?.committee?.name" class="rc-note">{{ t.endorsementTitle }}: {{ r.endorsement.committee.name }}</span>
+            <span v-if="r.auditNote" class="rc-note">{{ t.auditNote }}: {{ r.auditNote }}</span>
+            <button v-if="r.status === 'need_revision'" class="link-btn" @click="editReimb(r)">{{ t.needRevise }}</button>
           </div>
         </div>
-        <div v-else class="empty-state"><p>{{ t.emptyReimb }}</p></div>
-      </template>
+      </div>
+      <div v-else class="empty-state"><p>{{ t.emptyReimb }}</p></div>
     </template>
 
     <!-- 凭证弹层 -->

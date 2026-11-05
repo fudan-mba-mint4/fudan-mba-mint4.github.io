@@ -1,24 +1,33 @@
 <template>
   <div class="cal-wrap">
     <div class="cal-grid-pane">
-    <!-- 月份切换 -->
+    <!-- 月份切换：按钮文案与月份是本地推导的真实结构，加载期禁用 -->
     <div class="cal-toolbar">
-      <button class="cal-nav" @click="shiftMonth(-1)" aria-label="上个月">‹</button>
+      <button class="cal-nav" :disabled="skeleton" @click="shiftMonth(-1)" aria-label="上个月">‹</button>
       <div class="cal-title">{{ monthTitle }}</div>
-      <button class="cal-nav" @click="shiftMonth(1)" aria-label="下个月">›</button>
-      <button class="cal-today" @click="goToday">{{ t.today }}</button>
-      <button class="cal-export" @click="exportICS">{{ t.exportIcs }}</button>
-      <button class="cal-export" @click="openPlan">{{ t.plan }}</button>
+      <button class="cal-nav" :disabled="skeleton" @click="shiftMonth(1)" aria-label="下个月">›</button>
+      <button class="cal-today" :disabled="skeleton" @click="goToday">{{ t.today }}</button>
+      <button class="cal-export" :disabled="skeleton" @click="exportICS">{{ t.exportIcs }}</button>
+      <button class="cal-export" :disabled="skeleton" @click="openPlan">{{ t.plan }}</button>
     </div>
-    <div class="cal-summary">{{ monthSummary }}</div>
+    <div class="cal-summary">
+      <SkeletonBlock v-if="skeleton" width="130px" height="14px" />
+      <template v-else>{{ monthSummary }}</template>
+    </div>
 
     <!-- 星期表头（周一起点） -->
     <div class="cal-weekdays">
       <span v-for="(w, i) in weekdays" :key="i" :class="{ weekend: i >= 5 }">{{ w }}</span>
     </div>
 
-    <!-- 月历网格 -->
+    <!-- 月历网格：加载期仍是 42 个真实格子，只把日期数字换成骨架 -->
     <div class="cal-grid">
+      <template v-if="skeleton">
+        <div v-for="(c, n) in skCells" :key="'sk' + n" class="cal-cell" :class="{ muted: !c.inMonth }">
+          <span class="cell-num"><SkeletonBlock width="22px" height="13px" /></span>
+        </div>
+      </template>
+      <template v-else>
       <div
         v-for="(cell, i) in cells"
         :key="i"
@@ -49,10 +58,11 @@
           <span v-if="cell.events.length > 3" class="ev-more">+{{ cell.events.length - 3 }}</span>
         </div>
       </div>
+      </template>
     </div>
     </div><!-- /cal-grid-pane -->
 
-    <div class="cal-detail-pane">
+    <div class="cal-detail-pane" v-if="!skeleton">
     <!-- 选中日期详情 -->
     <div v-if="selectedCell" class="day-detail">
       <h4 class="day-detail-title">{{ selectedTitle }}</h4>
@@ -124,6 +134,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useLang } from '../composables/useLang'
+import SkeletonBlock from './SkeletonBlock.vue'
 
 const i18n = {
   zh: {
@@ -197,6 +208,8 @@ const props = defineProps({
   isAuthenticated: { type: Boolean, default: false },
   actions: { type: Object, default: () => ({}) },
   focusDate: { type: String, default: '' },
+  // 加载中：保留真实月历外壳（月份/星期表头/按钮文案），仅日期数字与日程为骨架
+  skeleton: { type: Boolean, default: false },
 })
 
 const weekdays = computed(() => t.value.weekdays)
@@ -290,8 +303,18 @@ const year = computed(() => cursor.value?.getFullYear())
 const month = computed(() => cursor.value?.getMonth())
 
 const monthTitle = computed(() => {
-  if (!cursor.value) return ''
-  return new Intl.DateTimeFormat(dateLocale.value, { year: 'numeric', month: 'long' }).format(cursor.value)
+  // 加载期 cursor 可能尚未初始化，用本机当月兜底，保证月份文案首帧即真实
+  const d = cursor.value || new Date()
+  return new Intl.DateTimeFormat(dateLocale.value, { year: 'numeric', month: 'long' }).format(d)
+})
+
+// 加载期 42 格骨架：按本机当月排布，非本月前后置灰，保证网格形状与真实月历一致
+const skCells = computed(() => {
+  const d = cursor.value || new Date()
+  const first = new Date(d.getFullYear(), d.getMonth(), 1)
+  const offset = (first.getDay() + 6) % 7
+  const days = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+  return Array.from({ length: 42 }, (_, i) => ({ inMonth: i >= offset && i < offset + days }))
 })
 
 const exactEvents = computed(() => {
