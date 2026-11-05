@@ -756,6 +756,73 @@
           </div>
         </div>
 
+        <!-- 报销详情弹层：完整展示提交内容（明细 / 事由 / 凭证 / 背书 / 审批留痕） -->
+        <div v-if="reimbDetail" class="modal-mask" @click.self="closeReimbDetail">
+          <div class="modal bd-modal">
+            <div class="modal-head"><span class="modal-title">报销详情</span><button class="modal-close" @click="closeReimbDetail">×</button></div>
+            <div class="modal-body">
+              <div class="bd-head">
+                <span :class="'bc-' + reimbDetail.status">[{{ reimbDetail.status }}]</span>
+                <span class="existing-title" style="font-weight:600">{{ reimbDetail.description || '报销单' }}</span>
+                <span class="bd-amount">总报销金额 ¥{{ formatAmount(reimbDetail.amount) }}</span>
+              </div>
+              <div class="bd-grid">
+                <div class="bd-field"><span class="bd-label">经办人</span><span>{{ reimbDetail.applicant || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">消费日期</span><span>{{ (reimbDetail.expenseDate || '').slice(0, 10) || '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">提交时间</span><span>{{ shortTime(reimbDetail.createdAt) }}</span></div>
+                <div class="bd-field"><span class="bd-label">关联活动</span><span>{{ reimbDetail.activityId ? bdActivityTitle(reimbDetail.activityId) : '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">关联预算公示</span><span>{{ reimbDetail.proposalId ? finBudgetTitle(reimbDetail.proposalId) : '—' }}</span></div>
+                <div class="bd-field"><span class="bd-label">审批人 / 时间</span><span>{{ reimbDetail.auditBy || '—' }}{{ reimbDetail.auditAt ? ' · ' + shortTime(reimbDetail.auditAt) : '' }}</span></div>
+                <div v-if="reimbDetail.paidBy || reimbDetail.paidAt" class="bd-field"><span class="bd-label">打款人 / 时间</span><span>{{ reimbDetail.paidBy || '—' }}{{ reimbDetail.paidAt ? ' · ' + shortTime(reimbDetail.paidAt) : '' }}</span></div>
+                <div class="bd-field"><span class="bd-label">签字背书</span><span>{{ reimbDetail.endorsement?.committee?.name || '—' }}</span></div>
+              </div>
+
+              <div class="bd-section">
+                <div class="bd-label-row"><span class="bd-label">报销明细（{{ (reimbDetail.items || []).length || 1 }} 行）</span></div>
+                <table class="bd-table">
+                  <thead><tr><th>#</th><th>支出项目</th><th>费用性质</th><th>金额</th><th>备注</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(it, i) in ((reimbDetail.items || []).length ? reimbDetail.items : [{ item: reimbDetail.description || '—', category: reimbDetail.category, amount: reimbDetail.amount, note: '' }])" :key="i">
+                      <td>{{ i + 1 }}</td><td>{{ it.item }}</td><td>{{ reimbCatLabel(it.category) }}</td><td>¥{{ formatAmount(it.amount) }}</td><td>{{ it.note || '' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="bd-total">明细合计 ¥{{ formatAmount(rdItemsTotal) }} · 总报销金额 ¥{{ formatAmount(reimbDetail.amount) }}</div>
+              </div>
+
+              <div class="bd-section">
+                <div class="bd-label-row"><span class="bd-label">报销事由</span></div>
+                <p class="bd-text">{{ reimbDetail.description || '—' }}</p>
+              </div>
+
+              <div class="bd-section">
+                <div class="bd-label-row"><span class="bd-label">报销凭证（{{ (reimbDetail.vouchers || []).length }}）</span></div>
+                <div v-if="(reimbDetail.vouchers || []).length" class="rd-vouchers">
+                  <a v-for="(v, i) in reimbDetail.vouchers" :key="i" :href="v.url" target="_blank" rel="noopener" class="rd-voucher">
+                    <img v-if="/\.(png|jpe?g|webp|gif)(\?|$)/i.test(v.url || '')" :src="v.url" :alt="v.name" loading="lazy" />
+                    <span v-else class="rd-voucher-file">📄</span>
+                    <span class="rd-voucher-name">{{ voucherLabel(v.type) }} · {{ v.name || '凭证' }}</span>
+                  </a>
+                </div>
+                <p v-else class="bd-text dim">未上传凭证</p>
+              </div>
+
+              <div v-if="reimbDetail.auditNote" class="bd-section bd-return">
+                <div class="bd-label-row"><span class="bd-label">审批意见</span></div>
+                <p class="bd-text">{{ reimbDetail.auditNote }}</p>
+              </div>
+
+              <div class="form-actions bd-actions">
+                <button v-if="reimbDetail.status === 'submitted'" type="button" class="submit-btn" :disabled="submitting" @click="openReimbAudit(reimbDetail, 'approve')">通过</button>
+                <button v-if="reimbDetail.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(reimbDetail, 'revision')">退回补正</button>
+                <button v-if="reimbDetail.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(reimbDetail, 'reject')">驳回</button>
+                <button v-if="reimbDetail.status === 'approved'" type="button" class="submit-btn" :disabled="submitting" @click="openReimbAudit(reimbDetail, 'pay')">确认打款</button>
+                <button type="button" class="existing-del detail" @click="closeReimbDetail">关闭</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 公开确认弹层（页面内，非系统弹窗） -->
         <div v-if="budgetApproveConfirm" class="modal-mask" @click.self="closeBudgetApprove">
           <div class="modal">
@@ -832,6 +899,7 @@
               <div v-if="r.endorsement?.committee?.name" class="existing-meta">签字背书：{{ r.endorsement.committee.name }}</div>
             </div>
             <div class="reimb-actions">
+              <button type="button" class="existing-del detail" @click="openReimbDetail(r)">详情</button>
               <button v-if="r.status === 'submitted'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'approve')">通过</button>
               <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'revision')">退回补正</button>
               <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'reject')">驳回</button>
@@ -2505,6 +2573,14 @@ const budgetApproveConfirm = ref(null) // { id, title }
 const budgetDetail = ref(null) // 当前查看的公示对象
 function openBudgetDetail(b) { budgetDetail.value = b }
 function closeBudgetDetail() { budgetDetail.value = null }
+// 报销详情弹层（与公示详情同构，完整展示提交内容，供程枭核对）
+const reimbDetail = ref(null)
+function openReimbDetail(r) { reimbDetail.value = r }
+function closeReimbDetail() { reimbDetail.value = null }
+const rdItemsTotal = computed(() => {
+  const items = reimbDetail.value?.items || []
+  return Math.round(items.reduce((s, it) => s + (Number(it.amount) || 0), 0) * 100) / 100
+})
 const bdItemsTotal = computed(() => {
   const items = budgetDetail.value?.detailItems || []
   return Math.round(items.reduce((s, it) => s + (Number(it.amount) || 0), 0) * 100) / 100
@@ -3544,6 +3620,11 @@ watch(currentType, (val) => {
 .bd-table th, .bd-table td { border: 1px solid var(--c-border); padding: 5px 8px; text-align: left; vertical-align: top; }
 .bd-table th { background: var(--c-bg-secondary); font-weight: 600; white-space: nowrap; }
 .bd-table td:first-child { width: 28px; color: var(--c-text-tertiary); }
+.rd-vouchers { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.rd-voucher { display: flex; flex-direction: column; gap: 4px; width: 120px; text-decoration: none; }
+.rd-voucher img { width: 120px; height: 84px; object-fit: cover; border: 1px solid var(--c-border); border-radius: 8px; }
+.rd-voucher-file { display: flex; align-items: center; justify-content: center; width: 120px; height: 84px; border: 1px solid var(--c-border); border-radius: 8px; font-size: 26px; background: var(--c-bg-secondary); }
+.rd-voucher-name { font-size: 12px; color: var(--c-text-secondary); line-height: 1.4; word-break: break-all; }
 .bd-total { margin-top: 6px; font-size: 13px; font-weight: 600; }
 .bd-total .ok { color: #16a34a; }
 .bd-total .bad { color: #c92a2a; }
