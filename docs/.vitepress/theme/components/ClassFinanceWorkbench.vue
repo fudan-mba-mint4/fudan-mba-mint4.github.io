@@ -7,8 +7,8 @@ import SkeletonBlock from './SkeletonBlock.vue'
 const {
   t, currentLang, loading, error, loadFinance, authToken, isAuthenticated, getToken,
   workbench, pendingAudits, pendingPays, reimbursements, activitiesMap, activitiesWithTx,
-  activityTitle, gotoActivity, gotoBudget, formatAmount, formatDate,
-  reimbStatusLabel, voucherTypeLabel, isImage, budgets,
+  activityTitle, gotoActivity, gotoBudget, gotoReimb, formatAmount, formatDate,
+  reimbStatusLabel, voucherTypeLabel, isImage, budgets, currentUser,
 } = useFinanceV2()
 
 const workbenchBusy = ref('')
@@ -49,29 +49,74 @@ async function payReimb(r) {
 }
 
 /* ===== 小荷包变动登记（出纳）：收入/支出登记进收支明细，账页即小荷包台账 ===== */
-const txForm = ref({ date: '', type: 'income', category: 'tuition', amount: null, description: '', activityId: '', proposalId: '', submitting: false })
-watch(() => txForm.value.type, (v) => { txForm.value.category = v === 'income' ? 'tuition' : 'dining' })
+const txForm = ref({ date: '', type: 'income', category: 'tuition', amount: null, description: '', activityId: '', proposalId: '', reimbursementId: '', vouchers: [], submitting: false })
+watch(() => txForm.value.type, (v) => {
+  txForm.value.category = v === 'income' ? 'tuition' : 'dining'
+  if (v === 'income') { txForm.value.proposalId = ''; txForm.value.reimbursementId = ''; txForm.value.vouchers = [] }
+})
 const txCatOptions = computed(() => {
   const cats = txForm.value.type === 'income'
     ? ['tuition', 'sponsor', 'interest', 'other']
-    : ['dining', 'marketing', 'transport', 'venue', 'speaker', 'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'other']
+    : ['dining', 'marketing', 'transport', 'venue', 'speaker', 'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'care', 'activityprops', 'other']
   return cats.map(c => ({ key: c, label: t.value.categories[c] || c }))
 })
+// 直接付款凭证（支付凭证 / 订单页面截图）
+const wbProofUploading = ref('')
+const wbVoucher = (type) => (txForm.value.vouchers || []).find(v => v.type === type)
+function removeWbVoucher(type) { txForm.value.vouchers = (txForm.value.vouchers || []).filter(v => v.type !== type) }
+function readFileBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result || ''))
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
+}
+async function onWbVoucher(type, e) {
+  const input = e.target
+  const file = input.files && input.files[0]
+  input.value = ''
+  if (!file) return
+  const isPdf = /pdf/i.test(file.type) || /\.pdf$/i.test(file.name)
+  if (type === 'order' && isPdf) { alert(t.value.directProofTitle); return }
+  wbProofUploading.value = type
+  try {
+    const username = (currentUser.value?.username || 'workbench').replace(/[^\w-]/g, '_')
+    const safeName = file.name.replace(/[^\w.\-]/g, '_').slice(-60)
+    const key = `receipts/${username}/${Date.now()}-${safeName}`
+    const dataUrl = await readFileBase64(file)
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ key, contentType: file.type || 'application/octet-stream', dataBase64: dataUrl }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok || !json.url) { alert(json.error || t.value.loadFailed); return }
+    txForm.value.vouchers = (txForm.value.vouchers || []).filter(v => v.type !== type)
+    txForm.value.vouchers.push({ type, url: json.url, name: file.name.slice(-40) })
+  } catch (err) { alert(t.value.loadFailed) }
+  finally { wbProofUploading.value = '' }
+}
 async function registerTx() {
   const f = txForm.value
   if (!f.date || !(Number(f.amount) > 0) || !f.description.trim()) return
-  // 财务制度：支出必须关联预算公示（事前公示）
-  if (f.type === 'expense' && !f.proposalId) { alert(t.value.needBudgetForExpense); return }
+  // 财务制度：支出二选一——关联「已审批通过」的报销单，或直接付款（须关联已通过预算 + 支付凭证 + 订单截图）
+  if (f.type === 'expense' && !f.reimbursementId) {
+    if (!f.proposalId) { alert(t.value.needBudgetForExpense); return }
+    const hasPayment = (f.vouchers || []).some(v => v.type === 'payment')
+    const hasOrder = (f.vouchers || []).some(v => v.type === 'order')
+    if (!hasPayment || !hasOrder) { alert(t.value.needReimbOrProof); return }
+  }
   f.submitting = true
   try {
     const res = await fetch('/api/admin/finance/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ date: f.date, type: f.type, category: f.category, amount: Number(f.amount), description: f.description.trim(), activityId: f.activityId || null, proposalId: f.proposalId || null }),
+      body: JSON.stringify({ date: f.date, type: f.type, category: f.category, amount: Number(f.amount), description: f.description.trim(), activityId: f.activityId || null, proposalId: f.proposalId || null, reimbursementId: f.reimbursementId || null, vouchers: f.vouchers || [] }),
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) { alert(json.error || t.value.loadFailed); return }
-    txForm.value = { date: '', type: 'income', category: 'tuition', amount: null, description: '', activityId: '', proposalId: '', submitting: false }
+    txForm.value = { date: '', type: 'income', category: 'tuition', amount: null, description: '', activityId: '', proposalId: '', reimbursementId: '', vouchers: [], submitting: false }
     await loadFinance()
   } catch (e) { alert(t.value.loadFailed) }
   finally { f.submitting = false }
@@ -131,6 +176,7 @@ const closeVouchers = () => { voucherView.value = null }
               </div>
               <div class="rc-meta">
                 <span v-if="r.activityId"><a class="link-activity" href="#" @click.prevent.stop="gotoActivity(r.activityId)">{{ t.activity }}: {{ activityTitle(r.activityId) }}</a></span>
+                <span v-if="r.reimbursementId"><a class="link-activity" href="#" @click.prevent.stop="gotoReimb(r.reimbursementId)">{{ t.relatedReimb }}</a></span>
                 <span v-if="r.proposalId"><a class="link-activity" href="#" @click.prevent.stop="gotoBudget(r.proposalId)">{{ t.relatedBudget }}</a></span>
                 <span>{{ t.payer }}: {{ r.applicant }}</span>
                 <span class="rc-amount">¥{{ formatAmount(r.amount) }}</span>
@@ -164,6 +210,7 @@ const closeVouchers = () => { voucherView.value = null }
                 </div>
               </div>
               <div class="rc-meta">
+                <span v-if="r.reimbursementId"><a class="link-activity" href="#" @click.prevent.stop="gotoReimb(r.reimbursementId)">{{ t.relatedReimb }}</a></span>
                 <span v-if="r.proposalId"><a class="link-activity" href="#" @click.prevent.stop="gotoBudget(r.proposalId)">{{ t.relatedBudget }}</a></span>
                 <span>{{ t.payer }}: {{ r.applicant }}</span>
                 <span class="rc-amount">¥{{ formatAmount(r.amount) }}</span>
@@ -197,8 +244,39 @@ const closeVouchers = () => { voucherView.value = null }
               <input v-model.number="txForm.amount" type="number" step="0.01" min="0" class="fp-input" placeholder="0.00" />
               <label class="f-label">{{ t.description }}</label>
               <input v-model="txForm.description" class="fp-input" placeholder="如：补缴班费 / 聚餐支出" />
-              <label class="f-label">{{ t.relatedBudget }}<span v-if="txForm.type === 'expense'" class="req-star">*</span></label>
-              <select v-model="txForm.proposalId" class="fp-select" :required="txForm.type === 'expense'"><option value="">—</option><option v-for="b in budgets" :key="b.id" :value="b.id">{{ b.title }}</option></select>
+              <label class="f-label">{{ t.relatedReimb }}<span v-if="txForm.type === 'expense'" class="req-star">*</span></label>
+              <select v-model="txForm.reimbursementId" class="fp-select" :disabled="txForm.type !== 'expense'">
+                <option value="">{{ txForm.type === 'expense' ? t.noReimbDirectOption : '—' }}</option>
+                <option v-for="r in reimbursements.filter(x => x.status === 'approved')" :key="r.id" :value="r.id">{{ r.applicant }} · {{ r.description }} · {{ formatAmount(r.amount) }}</option>
+              </select>
+              <template v-if="txForm.type === 'expense' && !txForm.reimbursementId">
+                <label class="f-label">{{ t.relatedBudget }}<span class="req-star">*</span></label>
+                <select v-model="txForm.proposalId" class="fp-select">
+                  <option value="">{{ t.selectPassedBudget }}</option>
+                  <option v-for="b in budgets.filter(x => x.status === 'passed')" :key="b.id" :value="b.id">{{ b.title }} · {{ formatAmount(b.amount) }}</option>
+                </select>
+                <label class="f-label wb-proof-span">{{ t.directProofTitle }}</label>
+                <div class="wb-proof-slots wb-proof-span">
+                  <div class="wb-proof-slot">
+                    <template v-if="wbVoucher('payment')">
+                      <a :href="wbVoucher('payment').url" target="_blank" rel="noopener" class="wb-proof-file">📎 {{ wbVoucher('payment').name || t.uploadedLabel }}</a>
+                      <button type="button" class="wb-proof-del" @click="removeWbVoucher('payment')">✕</button>
+                    </template>
+                    <label v-else class="wb-proof-upload">{{ wbProofUploading === 'payment' ? t.submitting : t.uploadPaymentProof }}
+                      <input type="file" accept="image/*,.pdf" :disabled="wbProofUploading === 'payment'" @change="onWbVoucher('payment', $event)" hidden />
+                    </label>
+                  </div>
+                  <div class="wb-proof-slot">
+                    <template v-if="wbVoucher('order')">
+                      <a :href="wbVoucher('order').url" target="_blank" rel="noopener" class="wb-proof-file">📎 {{ wbVoucher('order').name || t.uploadedLabel }}</a>
+                      <button type="button" class="wb-proof-del" @click="removeWbVoucher('order')">✕</button>
+                    </template>
+                    <label v-else class="wb-proof-upload">{{ wbProofUploading === 'order' ? t.submitting : t.uploadOrderShot }}
+                      <input type="file" accept="image/*" :disabled="wbProofUploading === 'order'" @change="onWbVoucher('order', $event)" hidden />
+                    </label>
+                  </div>
+                </div>
+              </template>
               <label class="f-label">{{ t.activity }}</label>
               <select v-model="txForm.activityId" class="fp-select"><option value="">—</option><option v-for="id in activitiesWithTx" :key="id" :value="id">{{ activityTitle(id) }}</option></select>
               <button class="btn-oppose primary" :disabled="txForm.submitting" @click="registerTx">{{ txForm.submitting ? t.submitting : t.reconcile }}</button>

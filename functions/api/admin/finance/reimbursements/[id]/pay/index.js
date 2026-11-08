@@ -36,6 +36,12 @@ export async function onRequest(context) {
     let endorsement = null
     try { endorsement = JSON.parse(rb.endorsement || 'null') } catch (e) {}
 
+    // 防重复入账：若该报销单已在「记一笔」时关联登记过流水，不允许再次打款生成流水
+    let existTx
+    try { existTx = await sql`SELECT id FROM finance_tx WHERE reimbursement_id = ${id} LIMIT 1` }
+    catch (e) { if (isMissingTableError(e)) { await ensureTables(env); existTx = await sql`SELECT id FROM finance_tx WHERE reimbursement_id = ${id} LIMIT 1` } else throw e }
+    if (existTx.length) return corsResponse({ error: '该报销单已登记过流水（可能通过「记一笔」入账），请勿重复打款' }, 400)
+
     // 生成支出流水（自动分配可读凭证编号 FT-YYYY-NNN，入账公示）
     const txId = newId('ft')
     const voucherNo = await nextVoucherNo(sql)

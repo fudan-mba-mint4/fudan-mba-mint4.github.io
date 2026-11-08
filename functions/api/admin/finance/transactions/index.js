@@ -43,18 +43,61 @@ export async function onRequest(context) {
       const finalCategory = items.length ? (body.category || items[0].category) : body.category
       if (!allowedCats.includes(finalCategory)) return corsResponse({ error: '无效的收支大类' }, 400)
 
+      // 支出二选一：关联「已审批通过的报销单」登记付款，或不关联报销的直接付款（须上传支付凭证 + 订单页面截图）
+      const reimbursementId = body.reimbursementId ? String(body.reimbursementId) : null
+      let vouchers = Array.isArray(body.vouchers) ? body.vouchers.filter(v => v && v.url && v.type) : []
+      if (body.type === 'expense') {
+        if (reimbursementId) {
+          let rbRows
+          try { rbRows = await sql`SELECT * FROM reimbursements WHERE id = ${reimbursementId} LIMIT 1` }
+          catch (e) { if (isMissingTableError(e)) { await ensureTables(env); rbRows = await sql`SELECT * FROM reimbursements WHERE id = ${reimbursementId} LIMIT 1` } else throw e }
+          const rb = rbRows[0]
+          if (!rb) return corsResponse({ error: '未找到关联的报销单' }, 400)
+          if (rb.status !== 'approved') return corsResponse({ error: `仅可关联「已审批通过」的报销单（当前状态：${rb.status}）` }, 400)
+          if (rb.audit_by && rb.audit_by === auth.user.name) return corsResponse({ error: '钱账分离：报销审核人不能同时登记付款' }, 403)
+          let existRows
+          try { existRows = await sql`SELECT id FROM finance_tx WHERE reimbursement_id = ${reimbursementId} LIMIT 1` }
+          catch (e) { if (isMissingTableError(e)) { await ensureTables(env); existRows = await sql`SELECT id FROM finance_tx WHERE reimbursement_id = ${reimbursementId} LIMIT 1` } else throw e }
+          if (existRows.length) return corsResponse({ error: '该报销单已登记过流水，请勿重复入账' }, 400)
+          // 从报销单继承预算公示/活动/凭证，保留事前公示链路
+          body.proposalId = body.proposalId || rb.proposal_id
+          body.activityId = body.activityId || rb.activity_id
+          if (!vouchers.length) {
+            try { vouchers = JSON.parse(rb.vouchers || '[]').filter(v => v && v.url) } catch (e) { vouchers = [] }
+          }
+        } else {
+          // 直接付款：必须关联「已通过」的预算公示（先公示后花钱），并上传支付凭证 + 订单页面截图
+          const proposalId = body.proposalId ? String(body.proposalId) : null
+          if (!proposalId) return corsResponse({ error: '直接付款必须关联已通过的预算公示' }, 400)
+          let bpRows
+          try { bpRows = await sql`SELECT status FROM budget_proposals WHERE id = ${proposalId} LIMIT 1` }
+          catch (e) { if (isMissingTableError(e)) { await ensureTables(env); bpRows = await sql`SELECT status FROM budget_proposals WHERE id = ${proposalId} LIMIT 1` } else throw e }
+          if (!bpRows.length) return corsResponse({ error: '未找到关联的预算公示' }, 400)
+          if (bpRows[0].status !== 'passed') return corsResponse({ error: `仅可关联「已通过」的预算公示（当前状态：${bpRows[0].status}）` }, 400)
+          const hasPayment = vouchers.some(v => v.type === 'payment')
+          const hasOrder = vouchers.some(v => v.type === 'order')
+          if (!hasPayment || !hasOrder) return corsResponse({ error: '直接付款必须上传支付凭证与订单页面截图' }, 400)
+          body.proposalId = proposalId
+        }
+      }
+
       const id = newId('ft')
       const voucherNo = await nextVoucherNo(sql)
-      const vouchers = Array.isArray(body.vouchers) ? body.vouchers.filter(v => v && v.url) : []
       const doInsert = () => sql`
           INSERT INTO finance_tx (id, voucher_no, date, type, category, amount, description, items, activity_id, proposal_id, reimbursement_id, vouchers, handler, checker)
-          VALUES (${id}, ${voucherNo}, ${body.date}, ${body.type}, ${finalCategory}, ${finalAmount}, ${String(body.description).trim()}, ${JSON.stringify(items)}, ${body.activityId || null}, ${body.proposalId || null}, ${body.reimbursementId || null}, ${JSON.stringify(vouchers)}, ${String(body.handler || auth.user.name)}, ${auth.user.name})
+          VALUES (${id}, ${voucherNo}, ${body.date}, ${body.type}, ${finalCategory}, ${finalAmount}, ${String(body.description).trim()}, ${JSON.stringify(items)}, ${body.activityId || null}, ${body.proposalId || null}, ${reimbursementId}, ${JSON.stringify(vouchers)}, ${String(body.handler || auth.user.name)}, ${auth.user.name})
         `
       try {
         await doInsert()
       } catch (e) {
         if (isMissingTableError(e)) { await ensureTables(env); await doInsert() }
         else throw e
+      }
+      // 关联报销：与出纳「确认打款」同语义，入账即把报销单标记为已付款（钱账分离已在上面校验）
+      if (reimbursementId) {
+        try {
+          await sql`UPDATE reimbursements SET status = 'paid', paid_by = ${auth.user.name}, paid_at = ${new Date().toISOString()} WHERE id = ${reimbursementId}`
+        } catch (e) { if (!isMissingTableError(e)) throw e }
       }
       await logHistory(sql, { type: 'finance', action: 'create', refId: id,
         description: `登记${body.type === 'income' ? '收入' : '支出'}：${String(body.description).trim()}（¥${finalAmount}，凭证号 ${voucherNo}${items.length ? `，${items.length} 项明细` : ''}）`, operator: auth.user.name })

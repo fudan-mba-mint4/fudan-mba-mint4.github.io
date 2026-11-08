@@ -48,7 +48,7 @@ function emptyReimbForm() {
 const reimbForm = ref(emptyReimbForm())
 
 /* 费用性质只列支出大类（收入类 tuition/sponsor/interest 不属于报销） */
-const EXPENSE_CATEGORY_KEYS = ['dining', 'marketing', 'transport', 'venue', 'speaker', 'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'other']
+const EXPENSE_CATEGORY_KEYS = ['dining', 'marketing', 'transport', 'venue', 'speaker', 'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'care', 'activityprops', 'other']
 const expenseCategories = computed(() =>
   EXPENSE_CATEGORY_KEYS.filter(k => t.value.categories[k]).map(k => ({ key: k, label: t.value.categories[k] }))
 )
@@ -61,29 +61,19 @@ const itemsTotal = computed(() => {
 function addReimbItem() { reimbForm.value.items.push(emptyItemRow()) }
 function removeReimbItem(i) { if (reimbForm.value.items.length > 1) reimbForm.value.items.splice(i, 1) }
 
-const requiredVouchers = computed(() => {
-  const amt = itemsTotal.value
-  return amt >= (config.value.largeAmount || 500) ? (config.value.largeVouchers || ['invoice', 'payment']) : (config.value.smallVouchers || ['payment', 'receipt'])
-})
+const requiredVouchers = computed(() => ['payment', 'order'])
 const needsEndorsement = computed(() => {
   const amt = itemsTotal.value
   const have = new Set(reimbForm.value.vouchers.map(v => v.type))
   return amt >= (config.value.largeAmount || 500) && !have.has('invoice')
 })
-const requiredHintText = computed(() => {
-  const amt = itemsTotal.value
-  const list = requiredVouchers.value.map(v => t.value['v' + v[0].toUpperCase() + v.slice(1)]).join('、')
-  return amt >= (config.value.largeAmount || 500)
-    ? t.value.requiredHint.replace('{n}', config.value.largeAmount).replace('{list}', list)
-    : t.value.requiredHintSmall.replace('{n}', config.value.largeAmount).replace('{list}', list)
-})
+const requiredHintText = computed(() => t.value.requiredHintUnified)
 const reimbCanSubmit = computed(() => {
   const f = reimbForm.value
   if (!f.proposalId || !f.expenseDate || !(itemsTotal.value > 0) || !f.description.trim()) return false
   if (!f.items.length || !f.items.every(it => String(it.item || '').trim() && Number(it.amount) > 0 && it.category)) return false
   const have = new Set(f.vouchers.map(v => v.type))
   if (!requiredVouchers.value.every(v => have.has(v))) return false
-  if (needsEndorsement.value && !String(f.endorserName || '').trim()) return false
   return true
 })
 
@@ -283,7 +273,7 @@ watch(() => router.route.path, () => {
           <label class="f-label">{{ t.reimbVouchers }} *</label>
           <p class="required-hint">{{ requiredHintText }}</p>
           <div class="voucher-grid">
-            <div v-for="type in ['invoice', 'payment', 'receipt', 'other']" :key="type" class="voucher-cell">
+            <div v-for="type in ['payment', 'order', 'invoice', 'receipt', 'other']" :key="type" class="voucher-cell">
               <span class="v-name">{{ voucherTypeLabel(type) }}</span>
               <label class="v-upload btn-oppose" :class="{ primary: reimbForm.vouchers.some(v => v.type === type) }">
                 {{ reimbForm.vouchers.some(v => v.type === type) ? t.uploaded + ' ✓' : t.uploadVoucher }}

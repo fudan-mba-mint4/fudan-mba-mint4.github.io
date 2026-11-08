@@ -256,6 +256,12 @@
 .rc-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 12px; align-items: center; margin-bottom: 12px; }
 .rc-form-grid .f-label { min-width: 0; }
 .rc-form-grid .btn-oppose { align-self: end; }
+.rc-form-grid .wb-proof-span { grid-column: 1 / -1; }
+.wb-proof-slots { display: flex; gap: 8px; flex-wrap: wrap; }
+.wb-proof-slot { flex: 1 1 180px; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px dashed var(--c-border-accent); border-radius: 8px; background: var(--c-bg-tertiary); font-size: 12px; }
+.wb-proof-upload { cursor: pointer; color: var(--c-accent); font-weight: 600; }
+.wb-proof-file { color: var(--c-accent); word-break: break-all; }
+.wb-proof-del { margin-left: auto; border: 0; background: transparent; color: #ff3b30; cursor: pointer; font-size: 12px; padding: 2px 4px; }
 .rc-records { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .rc-record { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 13px; background: var(--c-bg-elevated); border-radius: 10px; padding: 8px 12px; }
 .rc-rec-date { font-weight: 600; color: var(--c-text-primary); }

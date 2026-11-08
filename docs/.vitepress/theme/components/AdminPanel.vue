@@ -564,12 +564,45 @@
               <option v-for="act in activitiesList" :key="act.id" :value="act.id">{{ act.date }} · {{ act.title.zh || act.title }}</option>
             </select>
           </div>
-          <div class="form-group"><label>关联公示 <span v-if="finForm.type === 'expense'" class="required">*</span>（支出必选）</label>
-            <select v-model="finForm.proposalId">
-              <option value="">{{ finForm.type === 'expense' ? '请选择本次支出的预算公示（仅已通过可选）' : '不关联公示（如班费缴纳/期初入账）' }}</option>
-              <option v-for="b in finBudgets.filter(x => x.status === 'passed')" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ b.amount }}{{ b.proposalNo ? '（' + b.proposalNo + '）' : '' }}</option>
-              <option v-for="b in finBudgets.filter(x => x.status !== 'passed')" :key="'x' + b.id" value="" disabled>{{ b.title }} · ¥{{ b.amount }}（{{ b.status }}，未通过不可关联）</option>
+          <div class="form-group" v-if="finForm.type === 'expense'"><label>付款去向 <span class="required">*</span>（二选一：关联已审批报销 / 直接付款）</label>
+            <select v-model="finForm.reimbursementId">
+              <option value="">不关联报销 —— 出纳直接付款给供应商（需在下方上传凭证）</option>
+              <option v-for="r in finReimbursements.filter(x => x.status === 'approved')" :key="r.id" :value="r.id">{{ r.applicant }} · {{ r.description }} · ¥{{ r.amount }}（{{ r.id }}）</option>
             </select>
+            <p v-if="!finReimbursements.some(x => x.status === 'approved')" class="empty-hint" style="margin:6px 0 0">暂无「已审批通过」的报销单；若为直接付款，请在下方上传支付凭证与订单页面截图</p>
+          </div>
+          <div class="form-group" v-if="finForm.type === 'expense' && !finForm.reimbursementId">
+            <label>关联预算公示 <span class="required">*</span>（仅「已通过」）</label>
+            <select v-model="finForm.proposalId">
+              <option value="">请选择本次支出的已通过预算公示</option>
+              <option v-for="b in finBudgets.filter(x => x.status === 'passed')" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ b.amount }}{{ b.proposalNo ? '（' + b.proposalNo + '）' : '' }}</option>
+            </select>
+            <p v-if="!finBudgets.some(x => x.status === 'passed')" class="empty-hint" style="margin:6px 0 0">暂无已通过的预算公示；请先在「预算公示」完成公示并结算通过后再付款</p>
+          </div>
+          <div class="form-group" v-if="finForm.type === 'expense' && !finForm.reimbursementId">
+            <label>直接付款凭证 <span class="required">*</span>（支付凭证 + 订单页面截图，各至少 1 张）</label>
+            <div class="fin-voucher-slots">
+              <div class="fin-voucher-slot">
+                <span class="fin-voucher-slot-title">支付凭证（转账截图 / 回单）</span>
+                <template v-if="finVoucher('payment')">
+                  <a :href="finVoucher('payment').url" target="_blank" rel="noopener" class="fin-voucher-file">📎 {{ finVoucher('payment').name || '已上传' }}</a>
+                  <button type="button" class="fin-item-del" @click="removeFinVoucher('payment')">删除</button>
+                </template>
+                <label v-else class="fin-voucher-upload">{{ finVoucherUploading === 'payment' ? '上传中...' : '＋ 上传支付凭证' }}
+                  <input type="file" accept="image/*,.pdf" :disabled="finVoucherUploading === 'payment'" @change="onFinVoucher('payment', $event)" hidden />
+                </label>
+              </div>
+              <div class="fin-voucher-slot">
+                <span class="fin-voucher-slot-title">订单页面截图</span>
+                <template v-if="finVoucher('order')">
+                  <a :href="finVoucher('order').url" target="_blank" rel="noopener" class="fin-voucher-file">📎 {{ finVoucher('order').name || '已上传' }}</a>
+                  <button type="button" class="fin-item-del" @click="removeFinVoucher('order')">删除</button>
+                </template>
+                <label v-else class="fin-voucher-upload">{{ finVoucherUploading === 'order' ? '上传中...' : '＋ 上传订单截图' }}
+                  <input type="file" accept="image/*" :disabled="finVoucherUploading === 'order'" @change="onFinVoucher('order', $event)" hidden />
+                </label>
+              </div>
+            </div>
           </div>
           <div class="form-actions">
             <button type="submit" class="submit-btn" :disabled="submitting || !finCanSubmit">{{ submitting ? '提交中...' : '提交并发布' }}</button>
@@ -589,7 +622,7 @@
                 <span :class="tx.type==='income' ? 'tx-income' : 'tx-expense'">{{ tx.type==='income' ? '收入' : '支出' }}</span>
                 ¥{{ tx.amount }} · {{ tx.description }}
               </span>
-              <span class="existing-meta">{{ tx.date }} · {{ tx.category }}{{ tx.activityId ? ' · 活动: ' + tx.activityId : '' }}{{ tx.proposalId ? ' · 公示: ' + finBudgetTitle(tx.proposalId) : '' }}</span>
+              <span class="existing-meta">{{ tx.date }} · {{ tx.category }}{{ tx.activityId ? ' · 活动: ' + tx.activityId : '' }}{{ tx.proposalId ? ' · 预算: ' + finBudgetTitle(tx.proposalId) : '' }}{{ tx.reimbursementId ? ' · 报销: ' + finReimbTitle(tx.reimbursementId) : '' }}{{ tx.vouchers && tx.vouchers.length ? ' · 凭证 ' + tx.vouchers.length : '' }}</span>
             </div>
             <button type="button" class="existing-del" @click="deleteFinanceTx(tx)">删除</button>
           </div>
@@ -1595,7 +1628,7 @@ function resetCmForm() {
 const kbForm = ref({ courseId:'general', type:'note', date:today, title:'', author:'', file:null })
 const kbDocuments = ref([])
 const kbCourses = ref([])
-const finForm = ref({ type:'expense', date:today, category:'dining', amount:null, description:'', activityId:'', proposalId:'', handler:'', items:[{ category:'dining', amount:null, description:'' }] })
+const finForm = ref({ type:'expense', date:today, category:'dining', amount:null, description:'', activityId:'', proposalId:'', reimbursementId:'', vouchers:[], handler:'', items:[{ category:'dining', amount:null, description:'' }] })
 const finItemsAdd = () => { finForm.value.items.push({ category: finForm.value.type === 'income' ? 'tuition' : 'dining', amount: null, description: '' }) }
 const finItemsRemove = (i) => { if (finForm.value.items.length > 1) finForm.value.items.splice(i, 1) }
 const finItemsTotal = computed(() => Number(finForm.value.items.reduce((s, it) => s + (Number(it.amount) || 0), 0).toFixed(2)))
@@ -1725,14 +1758,26 @@ const finCanSubmit = computed(() => {
   if (!(f.date && f.description.trim())) return false
   if (!f.items || !f.items.length) return false
   for (const it of f.items) { const a = Number(it.amount); if (!a || a <= 0) return false }
-  // 财务制度：支出必须关联预算公示（事前公示）
-  if (f.type === 'expense' && !f.proposalId) return false
+  // 财务制度：支出二选一——关联已审批通过的报销单，或直接付款（须关联已通过预算 + 支付凭证 + 订单截图）
+  if (f.type === 'expense') {
+    if (!f.reimbursementId) {
+      if (!f.proposalId) return false
+      const hasPayment = (f.vouchers || []).some(v => v.type === 'payment')
+      const hasOrder = (f.vouchers || []).some(v => v.type === 'order')
+      if (!hasPayment || !hasOrder) return false
+    }
+  }
   return true
 })
 const finBudgetTitle = (id) => {
   if (!id) return ''
   const b = finBudgets.value.find(x => x.id === id)
   return b ? `${b.title} · ¥${b.amount}` : String(id)
+}
+const finReimbTitle = (id) => {
+  if (!id) return ''
+  const r = finReimbursements.value.find(x => x.id === id)
+  return r ? `${r.applicant} · ${r.description}` : String(id)
 }
 
 function onSlideFile(e) { cmForm.value.slideFile = e.target.files[0] }
@@ -2491,6 +2536,37 @@ const kbStats = computed(() => [
   { key: 'resource', label: '资源', count: kbTypeCount('resource') },
 ])
 
+// ===== 直接付款凭证（支付凭证 / 订单页面截图，走 /api/upload receipts/ 前缀）=====
+const finVoucherUploading = ref('')
+const finVoucher = (type) => (finForm.value.vouchers || []).find(v => v.type === type)
+function removeFinVoucher(type) { finForm.value.vouchers = (finForm.value.vouchers || []).filter(v => v.type !== type) }
+async function onFinVoucher(type, e) {
+  const input = e.target
+  const file = input.files && input.files[0]
+  input.value = ''
+  if (!file) return
+  const isPdf = /pdf/i.test(file.type) || /\.pdf$/i.test(file.name)
+  if (type === 'order' && isPdf) { showToast('订单页面截图请上传图片', 'error'); return }
+  finVoucherUploading.value = type
+  try {
+    const f = isPdf ? file : await compressImage(file)
+    const dataBase64 = await readFileAsBase64(f)
+    const username = (currentUser.value?.username || 'admin').replace(/[^\w-]/g, '_')
+    const safeName = file.name.replace(/[^\w.\-]/g, '_').slice(-60)
+    const key = `receipts/${username}/${Date.now()}-${safeName}`
+    const res = await fetchWithRetry(`${API_PREFIX}/api/upload`, {
+      method: 'POST', headers: adminHeaders(),
+      body: JSON.stringify({ key, contentType: f.type || 'application/octet-stream', dataBase64 }),
+    })
+    await throwIfNotOk(res, '上传凭证')
+    const data = await res.json()
+    if (!data.url) throw new Error('上传未返回 url')
+    finForm.value.vouchers = (finForm.value.vouchers || []).filter(v => v.type !== type)
+    finForm.value.vouchers.push({ type, url: data.url, name: file.name.slice(-40) })
+  } catch (err) { showToast('凭证上传失败：' + err.message, 'error') }
+  finally { finVoucherUploading.value = '' }
+}
+
 // ===== 提交班费（结构化流水 POST /api/admin/finance/transactions）=====
 async function submitFinance() {
   submitting.value = true
@@ -2505,13 +2581,15 @@ async function submitFinance() {
         items: finForm.value.items.map(it => ({ category: it.category, amount: Number(it.amount), description: it.description || '' })),
         activityId: finForm.value.activityId || null,
         proposalId: finForm.value.proposalId || null,
+        reimbursementId: finForm.value.reimbursementId || null,
+        vouchers: finForm.value.vouchers || [],
         handler: finForm.value.handler || null,
       }),
     })
     await throwIfNotOk(res, '添加班费记录')
     rec.status = 'success'
     invalidateResource('/api/finance-v2')
-    finForm.value = { type:'expense', date:today, category:'dining', amount:null, description:'', activityId:'', proposalId:'', handler:'', items:[{ category:'dining', amount:null, description:'' }] }
+    finForm.value = { type:'expense', date:today, category:'dining', amount:null, description:'', activityId:'', proposalId:'', reimbursementId:'', vouchers:[], handler:'', items:[{ category:'dining', amount:null, description:'' }] }
     await loadFinanceTransactions()
     finFormOpen.value = false
     showToast('收支已入账')
@@ -2761,11 +2839,12 @@ const budgetCanSubmit = computed(() => {
   return !!(f.title.trim() && Number(f.amount) > 0)
 })
 const finCatOptions = computed(() => {
-  const expenseCats = ['dining','marketing','transport','venue','speaker','lodging','ticket','prize','insurance','supplies','other']
+  const expenseCats = ['dining','marketing','transport','venue','speaker','lodging','ticket','prize','insurance','supplies','care','activityprops','other']
   const incomeCats = ['tuition','sponsor','interest','other']
   const labels = {
-    dining:'餐饮费', marketing:'宣传物料', transport:'交通费', venue:'场地设备', speaker:'讲师嘉宾',
-    lodging:'住宿', ticket:'门票', prize:'奖品纪念品', insurance:'保险', supplies:'物资文具', other:'其他',
+    dining:'餐饮费', marketing:'宣传+文化建设物料', transport:'交通费', venue:'场地设备', speaker:'讲师嘉宾',
+    lodging:'住宿', ticket:'门票', prize:'奖品纪念品', insurance:'保险', supplies:'学习与办公物资',
+    care:'班级关怀与慰问', activityprops:'活动道具与物料', other:'其他',
     tuition:'班费缴纳', sponsor:'赞助/奖金收入', interest:'利息收入',
   }
   const src = finForm.value.type === 'income' ? incomeCats : expenseCats
@@ -2773,14 +2852,18 @@ const finCatOptions = computed(() => {
 })
 // 报销明细/凭证的中文标签（后台只看中文，供程枭审核时核对提交内容）
 const REIMB_CAT_LABELS = {
-  dining:'餐饮费', marketing:'宣传物料', transport:'交通费', venue:'场地设备', speaker:'讲师嘉宾',
-  lodging:'住宿', ticket:'门票', prize:'奖品纪念品', insurance:'保险', supplies:'物资文具',
+  dining:'餐饮费', marketing:'宣传+文化建设物料', transport:'交通费', venue:'场地设备', speaker:'讲师嘉宾',
+  lodging:'住宿', ticket:'门票', prize:'奖品纪念品', insurance:'保险', supplies:'学习与办公物资',
+  care:'班级关怀与慰问', activityprops:'活动道具与物料',
   tuition:'班费缴纳', sponsor:'赞助/奖金', interest:'利息收入', other:'其他',
 }
 const reimbCatLabel = (k) => REIMB_CAT_LABELS[k] || k || '—'
-const VOUCHER_LABELS = { invoice: '发票', payment: '付款凭证', receipt: '收据/小票', other: '其他凭证' }
+const VOUCHER_LABELS = { invoice: '发票', payment: '付款凭证', receipt: '收据/小票', order: '订单截图', other: '其他凭证' }
 const voucherLabel = (k) => VOUCHER_LABELS[k] || k
-watch(() => finForm.value.type, (v) => { finForm.value.category = v === 'income' ? 'tuition' : 'dining' })
+watch(() => finForm.value.type, (v) => {
+  finForm.value.category = v === 'income' ? 'tuition' : 'dining'
+  if (v === 'income') { finForm.value.proposalId = ''; finForm.value.reimbursementId = ''; finForm.value.vouchers = [] }
+})
 async function publishBudget() {
   submitting.value = true
   const rec = createRecord('finance', `发布预算公示: ${budgetForm.value.title}`)
@@ -3604,6 +3687,12 @@ watch(currentType, (val) => {
 .fin-item-add:hover { background: var(--c-accent-light); }
 .fin-items-foot { display: flex; align-items: center; gap: 12px; }
 .fin-items-total { font-size: 13px; font-weight: 700; color: var(--c-accent); }
+.fin-voucher-slots { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+.fin-voucher-slot { flex: 1 1 220px; min-width: 200px; display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px dashed var(--c-border-accent); border-radius: 10px; background: var(--c-bg-tertiary); }
+.fin-voucher-slot-title { font-size: 12px; color: var(--c-text-2); }
+.fin-voucher-upload { align-self: flex-start; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--c-accent); background: var(--c-accent-light); border: 1px solid var(--c-border-accent); border-radius: 8px; cursor: pointer; }
+.fin-voucher-upload:hover { filter: brightness(.96); }
+.fin-voucher-file { font-size: 13px; color: var(--c-accent); word-break: break-all; }
 
 /* ===== 公示详情弹窗 ===== */
 .bd-modal { max-width: 760px; }

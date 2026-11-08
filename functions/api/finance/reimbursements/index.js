@@ -12,23 +12,14 @@ function voucherOk(url) {
   return /^https:\/\/files\.mint4\.cn\//.test(url || '') || /^\/files\//.test(url || '')
 }
 
-// 校验凭证与签字背书（按 v2 分级规则）；返回 { ok, missing[], needEndorsement }
+// 校验凭证与签字背书：统一必传「支付凭证 + 订单页面截图」，发票/收据作为可选补充
 function checkVouchers(vouchers, amount, config, endorsement) {
   const have = new Set(vouchers.map(v => v.type))
   const large = amount >= config.largeAmount
-  const required = large ? [...config.largeVouchers] : [...config.smallVouchers]
+  const required = ['payment', 'order']
   const missing = required.filter(t => !have.has(t))
-
-  // 大额无发票：可改用「付款凭证 + 盖章收据/小票 + 经办人+1 班委签字背书」
-  if (large && !have.has('invoice')) {
-    const altMissing = ['payment', 'receipt'].filter(t => !have.has(t))
-    const endorserName = endorsement?.committee?.name
-    const endorserOk = endorserName && String(endorserName).trim()
-    if (altMissing.length > 0) return { ok: false, missing: altMissing, needEndorsement: true }
-    if (!endorserOk) return { ok: false, missing: [], needEndorsement: true, error: '大额支出无法提供发票时，需付款凭证 + 盖章收据/小票，并由经办人与 1 名班委签字背书' }
-    return { ok: true, missing: [], needEndorsement: true }
-  }
   if (missing.length > 0) return { ok: false, missing, needEndorsement: false }
+  // 大额无发票：不再强制，背书改为可选补充（发票可选）
   return { ok: true, missing: [], needEndorsement: false }
 }
 
@@ -120,7 +111,8 @@ export async function onRequest(context) {
       const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
       const chk = checkVouchers(vouchers, amount, config, endorsement)
       if (!chk.ok) {
-        if (chk.missing.length > 0) return corsResponse({ error: '凭证不齐，还缺：' + chk.missing.join('、') }, 400)
+        const CN = { invoice: '发票', payment: '支付凭证', receipt: '收据/小票', order: '订单页面截图', other: '其他凭证' }
+        if (chk.missing.length > 0) return corsResponse({ error: '凭证不齐，还缺：' + chk.missing.map(t => CN[t] || t).join('、') }, 400)
         return corsResponse({ error: chk.error || '签字背书未完成' }, 400)
       }
 
@@ -155,7 +147,8 @@ export async function onRequest(context) {
     const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
     const chk = checkVouchers(vouchers, amount, config, endorsement)
     if (!chk.ok) {
-      if (chk.missing.length > 0) return corsResponse({ error: '凭证不齐，还缺：' + chk.missing.join('、') }, 400)
+      const CN = { invoice: '发票', payment: '支付凭证', receipt: '收据/小票', order: '订单页面截图', other: '其他凭证' }
+      if (chk.missing.length > 0) return corsResponse({ error: '凭证不齐，还缺：' + chk.missing.map(t => CN[t] || t).join('、') }, 400)
       return corsResponse({ error: chk.error || '签字背书未完成' }, 400)
     }
     // 签字背书人须为班委且不同于经办人本人

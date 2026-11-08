@@ -28,14 +28,14 @@ export const DEFAULT_FINANCE_ROLES = [
 // 支出性质大类（key 固定；zh/en/th 文案在前端 i18n）
 export const FINANCE_CATEGORIES = [
   'dining', 'marketing', 'transport', 'venue', 'speaker',
-  'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'other',
+  'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'care', 'activityprops', 'other',
 ]
 
 // 收入来源大类
 export const INCOME_CATEGORIES = ['tuition', 'sponsor', 'interest', 'other']
 
 // 允许的凭证类型
-export const VOUCHER_TYPES = ['invoice', 'payment', 'receipt', 'other']
+export const VOUCHER_TYPES = ['invoice', 'payment', 'receipt', 'order', 'other']
 
 export function newId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
