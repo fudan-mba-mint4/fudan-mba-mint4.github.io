@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
+import { uploadVoucherFiles, MAX_VOUCHER_FILES } from '../utils/voucherUpload.js'
 import '../finance-styles.css'
 import SkeletonBlock from './SkeletonBlock.vue'
 
@@ -60,41 +61,40 @@ const txCatOptions = computed(() => {
     : ['dining', 'marketing', 'transport', 'venue', 'speaker', 'lodging', 'ticket', 'prize', 'insurance', 'supplies', 'care', 'activityprops', 'other']
   return cats.map(c => ({ key: c, label: t.value.categories[c] || c }))
 })
-// 直接付款凭证（支付凭证 / 订单页面截图）
+// 直接付款凭证（支付凭证 / 订单页面截图，支持多文件）
 const wbProofUploading = ref('')
-const wbVoucher = (type) => (txForm.value.vouchers || []).find(v => v.type === type)
-function removeWbVoucher(type) { txForm.value.vouchers = (txForm.value.vouchers || []).filter(v => v.type !== type) }
-function readFileBase64(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader()
-    r.onload = () => resolve(String(r.result || ''))
-    r.onerror = reject
-    r.readAsDataURL(file)
-  })
+const wbVoucherList = (type) => (txForm.value.vouchers || []).filter(v => v.type === type)
+function removeWbVoucherAt(type, i) {
+  const list = wbVoucherList(type)
+  const target = list[i]
+  if (!target) return
+  const globalIdx = (txForm.value.vouchers || []).indexOf(target)
+  if (globalIdx >= 0) txForm.value.vouchers.splice(globalIdx, 1)
 }
 async function onWbVoucher(type, e) {
   const input = e.target
-  const file = input.files && input.files[0]
+  const files = Array.from(input.files || [])
   input.value = ''
-  if (!file) return
-  const isPdf = /pdf/i.test(file.type) || /\.pdf$/i.test(file.name)
-  if (type === 'order' && isPdf) { alert(t.value.directProofTitle); return }
+  if (!files.length) return
+  if (type === 'order' && files.some(f => /pdf/i.test(f.type) || /\.pdf$/i.test(f.name))) {
+    alert(t.value.directProofTitle)
+    return
+  }
+  if ((txForm.value.vouchers || []).length + files.length > MAX_VOUCHER_FILES) {
+    alert(`凭证文件最多 ${MAX_VOUCHER_FILES} 个`)
+    return
+  }
   wbProofUploading.value = type
   try {
-    const username = (currentUser.value?.username || 'workbench').replace(/[^\w-]/g, '_')
-    const safeName = file.name.replace(/[^\w.\-]/g, '_').slice(-60)
-    const key = `receipts/${username}/${Date.now()}-${safeName}`
-    const dataUrl = await readFileBase64(file)
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ key, contentType: file.type || 'application/octet-stream', dataBase64: dataUrl }),
+    const uploaded = await uploadVoucherFiles({
+      files,
+      token: getToken(),
+      username: currentUser.value?.username,
     })
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok || !json.url) { alert(json.error || t.value.loadFailed); return }
-    txForm.value.vouchers = (txForm.value.vouchers || []).filter(v => v.type !== type)
-    txForm.value.vouchers.push({ type, url: json.url, name: file.name.slice(-40) })
-  } catch (err) { alert(t.value.loadFailed) }
+    uploaded.forEach((r, i) => {
+      txForm.value.vouchers.push({ type, url: r.url, name: files[i].name?.slice(-40) || `凭证_${i + 1}` })
+    })
+  } catch (err) { alert(err.message || t.value.loadFailed) }
   finally { wbProofUploading.value = '' }
 }
 async function registerTx() {
@@ -255,24 +255,24 @@ const closeVouchers = () => { voucherView.value = null }
                   <option value="">{{ t.selectPassedBudget }}</option>
                   <option v-for="b in budgets.filter(x => x.status === 'passed')" :key="b.id" :value="b.id">{{ b.title }} · {{ formatAmount(b.amount) }}</option>
                 </select>
-                <label class="f-label wb-proof-span">{{ t.directProofTitle }}</label>
+                <label class="f-label wb-proof-span">{{ t.directProofTitle }}（各至少 1 张，可多文件）</label>
                 <div class="wb-proof-slots wb-proof-span">
                   <div class="wb-proof-slot">
-                    <template v-if="wbVoucher('payment')">
-                      <a :href="wbVoucher('payment').url" target="_blank" rel="noopener" class="wb-proof-file">📎 {{ wbVoucher('payment').name || t.uploadedLabel }}</a>
-                      <button type="button" class="wb-proof-del" @click="removeWbVoucher('payment')">✕</button>
-                    </template>
-                    <label v-else class="wb-proof-upload">{{ wbProofUploading === 'payment' ? t.submitting : t.uploadPaymentProof }}
-                      <input type="file" accept="image/*,.pdf" :disabled="wbProofUploading === 'payment'" @change="onWbVoucher('payment', $event)" hidden />
+                    <div v-for="(v, i) in wbVoucherList('payment')" :key="v.url" class="wb-proof-file-row">
+                      <a :href="v.url" target="_blank" rel="noopener" class="wb-proof-file">📎 {{ v.name || t.uploadedLabel }}</a>
+                      <button type="button" class="wb-proof-del" @click="removeWbVoucherAt('payment', i)">✕</button>
+                    </div>
+                    <label class="wb-proof-upload">{{ wbProofUploading === 'payment' ? t.submitting : t.uploadPaymentProof }}
+                      <input type="file" accept="image/*,.pdf" multiple :disabled="wbProofUploading === 'payment'" @change="onWbVoucher('payment', $event)" hidden />
                     </label>
                   </div>
                   <div class="wb-proof-slot">
-                    <template v-if="wbVoucher('order')">
-                      <a :href="wbVoucher('order').url" target="_blank" rel="noopener" class="wb-proof-file">📎 {{ wbVoucher('order').name || t.uploadedLabel }}</a>
-                      <button type="button" class="wb-proof-del" @click="removeWbVoucher('order')">✕</button>
-                    </template>
-                    <label v-else class="wb-proof-upload">{{ wbProofUploading === 'order' ? t.submitting : t.uploadOrderShot }}
-                      <input type="file" accept="image/*" :disabled="wbProofUploading === 'order'" @change="onWbVoucher('order', $event)" hidden />
+                    <div v-for="(v, i) in wbVoucherList('order')" :key="v.url" class="wb-proof-file-row">
+                      <a :href="v.url" target="_blank" rel="noopener" class="wb-proof-file">📎 {{ v.name || t.uploadedLabel }}</a>
+                      <button type="button" class="wb-proof-del" @click="removeWbVoucherAt('order', i)">✕</button>
+                    </div>
+                    <label class="wb-proof-upload">{{ wbProofUploading === 'order' ? t.submitting : t.uploadOrderShot }}
+                      <input type="file" accept="image/*" multiple :disabled="wbProofUploading === 'order'" @change="onWbVoucher('order', $event)" hidden />
                     </label>
                   </div>
                 </div>

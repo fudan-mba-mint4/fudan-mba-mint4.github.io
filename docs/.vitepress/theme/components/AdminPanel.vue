@@ -580,26 +580,26 @@
             <p v-if="!finBudgets.some(x => x.status === 'passed')" class="empty-hint" style="margin:6px 0 0">暂无已通过的预算公示；请先在「预算公示」完成公示并结算通过后再付款</p>
           </div>
           <div class="form-group" v-if="finForm.type === 'expense' && !finForm.reimbursementId">
-            <label>直接付款凭证 <span class="required">*</span>（支付凭证 + 订单页面截图，各至少 1 张）</label>
+            <label>直接付款凭证 <span class="required">*</span>（支付凭证 + 订单页面截图，各至少 1 张，均可多文件）</label>
             <div class="fin-voucher-slots">
               <div class="fin-voucher-slot">
-                <span class="fin-voucher-slot-title">支付凭证（转账截图 / 回单）</span>
-                <template v-if="finVoucher('payment')">
-                  <a :href="finVoucher('payment').url" target="_blank" rel="noopener" class="fin-voucher-file">📎 {{ finVoucher('payment').name || '已上传' }}</a>
-                  <button type="button" class="fin-item-del" @click="removeFinVoucher('payment')">删除</button>
-                </template>
-                <label v-else class="fin-voucher-upload">{{ finVoucherUploading === 'payment' ? '上传中...' : '＋ 上传支付凭证' }}
-                  <input type="file" accept="image/*,.pdf" :disabled="finVoucherUploading === 'payment'" @change="onFinVoucher('payment', $event)" hidden />
+                <span class="fin-voucher-slot-title">支付凭证（转账截图 / 回单，可多张，图片/PDF）</span>
+                <div v-for="(v, i) in finVoucherList('payment')" :key="v.url" class="fin-voucher-file-row">
+                  <a :href="v.url" target="_blank" rel="noopener" class="fin-voucher-file">📎 {{ v.name || '已上传' }}</a>
+                  <button type="button" class="fin-item-del" @click="removeFinVoucherAt('payment', i)">删除</button>
+                </div>
+                <label class="fin-voucher-upload">{{ finVoucherUploading === 'payment' ? '上传中...' : '＋ 添加支付凭证' }}
+                  <input type="file" accept="image/*,.pdf" multiple :disabled="finVoucherUploading === 'payment'" @change="onFinVoucher('payment', $event)" hidden />
                 </label>
               </div>
               <div class="fin-voucher-slot">
-                <span class="fin-voucher-slot-title">订单页面截图</span>
-                <template v-if="finVoucher('order')">
-                  <a :href="finVoucher('order').url" target="_blank" rel="noopener" class="fin-voucher-file">📎 {{ finVoucher('order').name || '已上传' }}</a>
-                  <button type="button" class="fin-item-del" @click="removeFinVoucher('order')">删除</button>
-                </template>
-                <label v-else class="fin-voucher-upload">{{ finVoucherUploading === 'order' ? '上传中...' : '＋ 上传订单截图' }}
-                  <input type="file" accept="image/*" :disabled="finVoucherUploading === 'order'" @change="onFinVoucher('order', $event)" hidden />
+                <span class="fin-voucher-slot-title">订单页面截图（可多张，仅图片）</span>
+                <div v-for="(v, i) in finVoucherList('order')" :key="v.url" class="fin-voucher-file-row">
+                  <a :href="v.url" target="_blank" rel="noopener" class="fin-voucher-file">📎 {{ v.name || '已上传' }}</a>
+                  <button type="button" class="fin-item-del" @click="removeFinVoucherAt('order', i)">删除</button>
+                </div>
+                <label class="fin-voucher-upload">{{ finVoucherUploading === 'order' ? '上传中...' : '＋ 添加订单截图' }}
+                  <input type="file" accept="image/*" multiple :disabled="finVoucherUploading === 'order'" @change="onFinVoucher('order', $event)" hidden />
                 </label>
               </div>
             </div>
@@ -813,10 +813,10 @@
               <div class="bd-section">
                 <div class="bd-label-row"><span class="bd-label">报销明细（{{ (reimbDetail.items || []).length || 1 }} 行）</span></div>
                 <table class="bd-table">
-                  <thead><tr><th>#</th><th>支出项目</th><th>费用性质</th><th>金额</th><th>备注</th></tr></thead>
+                  <thead><tr><th>#</th><th>支出项目</th><th>费用性质</th><th>金额</th><th>日期</th><th>备注</th></tr></thead>
                   <tbody>
-                    <tr v-for="(it, i) in ((reimbDetail.items || []).length ? reimbDetail.items : [{ item: reimbDetail.description || '—', category: reimbDetail.category, amount: reimbDetail.amount, note: '' }])" :key="i">
-                      <td>{{ i + 1 }}</td><td>{{ it.item }}</td><td>{{ reimbCatLabel(it.category) }}</td><td>¥{{ formatAmount(it.amount) }}</td><td>{{ it.note || '' }}</td>
+                    <tr v-for="(it, i) in ((reimbDetail.items || []).length ? reimbDetail.items : [{ item: reimbDetail.description || '—', category: reimbDetail.category, amount: reimbDetail.amount, note: '', date: reimbDetail.expenseDate || '' }])" :key="i">
+                      <td>{{ i + 1 }}</td><td>{{ it.item }}</td><td>{{ reimbCatLabel(it.category) }}</td><td>¥{{ formatAmount(it.amount) }}</td><td>{{ it.date || '—' }}</td><td>{{ it.note || '' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1483,6 +1483,7 @@ import { todayStr } from '../utils/dateUtils.js'
 import { dataTypes, finTabs, coinsTabs, MODULE_ROLE_MAP, COIN_AUDITORS, ROLE_LABEL_MAP } from '../utils/admin/constants.js'
 import { formatSize, translateBoth, randomHex, extFromFileName, readFileAsBase64, formatTreeholeTime, shortTime, coinShortDate, flattenCourseFiles, sessionUrls, buildCmMgrRows } from '../utils/admin/utils.js'
 import { getAdminToken, adminHeaders, throwIfNotOk, uploadFileToAdmin } from '../utils/admin/api.js'
+import { uploadVoucherFiles, MAX_VOUCHER_FILES } from '../utils/voucherUpload.js'
 import ModuleBar from './admin/ModuleBar.vue'
 import ModuleTabs from './admin/ModuleTabs.vue'
 import SkeletonBlock from './SkeletonBlock.vue'
@@ -2536,33 +2537,39 @@ const kbStats = computed(() => [
   { key: 'resource', label: '资源', count: kbTypeCount('resource') },
 ])
 
-// ===== 直接付款凭证（支付凭证 / 订单页面截图，走 /api/upload receipts/ 前缀）=====
+// ===== 直接付款凭证（支付凭证 / 订单页面截图，走 /api/upload receipts/ 前缀，支持多文件）=====
 const finVoucherUploading = ref('')
-const finVoucher = (type) => (finForm.value.vouchers || []).find(v => v.type === type)
-function removeFinVoucher(type) { finForm.value.vouchers = (finForm.value.vouchers || []).filter(v => v.type !== type) }
+const finVoucherList = (type) => (finForm.value.vouchers || []).filter(v => v.type === type)
+function removeFinVoucherAt(type, i) {
+  const list = finVoucherList(type)
+  const target = list[i]
+  if (!target) return
+  const globalIdx = (finForm.value.vouchers || []).indexOf(target)
+  if (globalIdx >= 0) finForm.value.vouchers.splice(globalIdx, 1)
+}
 async function onFinVoucher(type, e) {
   const input = e.target
-  const file = input.files && input.files[0]
+  const files = Array.from(input.files || [])
   input.value = ''
-  if (!file) return
-  const isPdf = /pdf/i.test(file.type) || /\.pdf$/i.test(file.name)
-  if (type === 'order' && isPdf) { showToast('订单页面截图请上传图片', 'error'); return }
+  if (!files.length) return
+  if (type === 'order' && files.some(f => /pdf/i.test(f.type) || /\.pdf$/i.test(f.name))) {
+    showToast('订单页面截图请上传图片', 'error')
+    return
+  }
+  if ((finForm.value.vouchers || []).length + files.length > MAX_VOUCHER_FILES) {
+    showToast(`凭证文件最多 ${MAX_VOUCHER_FILES} 个`, 'error')
+    return
+  }
   finVoucherUploading.value = type
   try {
-    const f = isPdf ? file : await compressImage(file)
-    const dataBase64 = await readFileAsBase64(f)
-    const username = (currentUser.value?.username || 'admin').replace(/[^\w-]/g, '_')
-    const safeName = file.name.replace(/[^\w.\-]/g, '_').slice(-60)
-    const key = `receipts/${username}/${Date.now()}-${safeName}`
-    const res = await fetchWithRetry(`${API_PREFIX}/api/upload`, {
-      method: 'POST', headers: adminHeaders(),
-      body: JSON.stringify({ key, contentType: f.type || 'application/octet-stream', dataBase64 }),
+    const uploaded = await uploadVoucherFiles({
+      files,
+      token: getAdminToken(),
+      username: currentUser.value?.username,
     })
-    await throwIfNotOk(res, '上传凭证')
-    const data = await res.json()
-    if (!data.url) throw new Error('上传未返回 url')
-    finForm.value.vouchers = (finForm.value.vouchers || []).filter(v => v.type !== type)
-    finForm.value.vouchers.push({ type, url: data.url, name: file.name.slice(-40) })
+    uploaded.forEach((r, i) => {
+      finForm.value.vouchers.push({ type, url: r.url, name: files[i].name?.slice(-40) || `凭证_${i + 1}` })
+    })
   } catch (err) { showToast('凭证上传失败：' + err.message, 'error') }
   finally { finVoucherUploading.value = '' }
 }
@@ -2858,7 +2865,7 @@ const REIMB_CAT_LABELS = {
   tuition:'班费缴纳', sponsor:'赞助/奖金', interest:'利息收入', other:'其他',
 }
 const reimbCatLabel = (k) => REIMB_CAT_LABELS[k] || k || '—'
-const VOUCHER_LABELS = { invoice: '发票', payment: '付款凭证', receipt: '收据/小票', order: '订单截图', other: '其他凭证' }
+const VOUCHER_LABELS = { invoice: '发票', payment: '付款凭证', receipt: '收据/小票', order: '订单截图', proof: '发票/收据/小票', other: '其他凭证' }
 const voucherLabel = (k) => VOUCHER_LABELS[k] || k
 watch(() => finForm.value.type, (v) => {
   finForm.value.category = v === 'income' ? 'tuition' : 'dining'
@@ -3693,6 +3700,7 @@ watch(currentType, (val) => {
 .fin-voucher-upload { align-self: flex-start; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--c-accent); background: var(--c-accent-light); border: 1px solid var(--c-border-accent); border-radius: 8px; cursor: pointer; }
 .fin-voucher-upload:hover { filter: brightness(.96); }
 .fin-voucher-file { font-size: 13px; color: var(--c-accent); word-break: break-all; }
+.fin-voucher-file-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* ===== 公示详情弹窗 ===== */
 .bd-modal { max-width: 760px; }

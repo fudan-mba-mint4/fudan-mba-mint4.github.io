@@ -1,30 +1,52 @@
 // 报销提交 v2 - /api/finance/reimbursements
-// POST：全体登录成员提交报销单；凭证按金额分级必传（未传齐不可提交）
-//   body: { proposalId?, activityId?, expenseDate, amount, category, description, vouchers:[{type,url,name}], endorsement? }
-//   endorsement（≥500 无发票场景必填）：{ committee: { name } } 经办人本人 + 1 名班委签字背书
+// POST：全体登录成员提交报销单；付款凭证必传（至少 1 张，可多张），发票/收据/小票/订单截图合并区选传
+//   body: { id?(客户端预生成 rb 单号), proposalId?, activityId?, amount, category, description,
+//           items:[{item,category,amount,note,date?}], vouchers:[{type,url,name}], endorsement? }
+//   明细行日期选填；顶部 expense_date 由服务端取行内最早日期派生（无则空）
 // PUT /:id：待补正（need_revision）状态下由本人修改凭证/信息后重新提交
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, isViewerOnly, VIEWER_ONLY_MSG } from '../../../_utils.js'
-import { COMMITTEE_ROLES } from '../../../_utils.js'
-import { getFinanceConfig, VOUCHER_TYPES, FINANCE_CATEGORIES, newId } from '../../../_finance.js'
+import { VOUCHER_TYPES, FINANCE_CATEGORIES, MAX_VOUCHERS_PER_REIMB, newId } from '../../../_finance.js'
 import { purgePublicCache } from '../../../_cache.js'
 
 function voucherOk(url) {
   return /^https:\/\/files\.mint4\.cn\//.test(url || '') || /^\/files\//.test(url || '')
 }
 
-// 校验凭证与签字背书：统一必传「支付凭证 + 订单页面截图」，发票/收据作为可选补充
-function checkVouchers(vouchers, amount, config, endorsement) {
+// 校验凭证：仅要求至少 1 张付款凭证（payment）；proof 合并区及其他类型均为选传
+function checkVouchers(vouchers) {
   const have = new Set(vouchers.map(v => v.type))
-  const large = amount >= config.largeAmount
-  const required = ['payment', 'order']
-  const missing = required.filter(t => !have.has(t))
-  if (missing.length > 0) return { ok: false, missing, needEndorsement: false }
-  // 大额无发票：不再强制，背书改为可选补充（发票可选）
-  return { ok: true, missing: [], needEndorsement: false }
+  if (!have.has('payment')) return { ok: false, missing: ['payment'] }
+  return { ok: true, missing: [] }
+}
+
+// 统一校验凭证列表：类型白名单、文件空间归属、数量上限、付款凭证必传
+function validateVoucherList(raw) {
+  const vouchers = Array.isArray(raw) ? raw : []
+  if (vouchers.length === 0) return { ok: false, error: '请上传报销凭证' }
+  if (vouchers.length > MAX_VOUCHERS_PER_REIMB)
+    return { ok: false, error: `凭证文件过多（每张报销单最多 ${MAX_VOUCHERS_PER_REIMB} 个）` }
+  for (const v of vouchers) {
+    if (!v.type || !VOUCHER_TYPES.includes(v.type)) return { ok: false, error: '存在无效的凭证类型' }
+    if (!voucherOk(v.url)) return { ok: false, error: '凭证必须上传到班级文件空间' }
+  }
+  const chk = checkVouchers(vouchers)
+  if (!chk.ok) return { ok: false, error: '凭证不齐，还缺：付款凭证（至少 1 张）' }
+  return { ok: true, vouchers }
+}
+
+// 日期格式 YYYY-MM-DD（选填；空值放行）
+function validDate(d) {
+  return !d || /^\d{4}-\d{2}-\d{2}$/.test(d)
+}
+
+// 从明细行日期派生顶部消费日期：取最早的一个；全部为空则返回空串
+function deriveExpenseDate(items) {
+  const dates = items.map(it => it.date).filter(Boolean).sort()
+  return dates[0] || ''
 }
 
 
-// 校验并规范化报销明细行：每行须有支出项目 + 费用性质 + 金额>0（备注选填）；金额由服务端汇总，不信任客户端 amount
+// 校验并规范化报销明细行：每行须有支出项目 + 费用性质 + 金额>0（备注、日期选填）；金额由服务端汇总，不信任客户端 amount
 function normalizeItems(raw) {
   const list = Array.isArray(raw) ? raw : []
   if (list.length === 0) return { ok: false, error: '请至少填写一行报销明细', items: [], total: 0 }
@@ -38,7 +60,9 @@ function normalizeItems(raw) {
     if (!(amount > 0)) return { ok: false, error: `第 ${i + 1} 行明细金额需大于 0`, items: [], total: 0 }
     const category = String(it.category || '').trim()
     if (!FINANCE_CATEGORIES.includes(category)) return { ok: false, error: `第 ${i + 1} 行明细的费用性质无效`, items: [], total: 0 }
-    items.push({ item: name.slice(0, 60), category, amount, note: String(it.note || '').trim().slice(0, 120) })
+    const date = String(it.date || '').trim()
+    if (!validDate(date)) return { ok: false, error: `第 ${i + 1} 行明细日期格式无效`, items: [], total: 0 }
+    items.push({ item: name.slice(0, 60), category, amount, note: String(it.note || '').trim().slice(0, 120), date })
   }
   const total = Math.round(items.reduce((s, it) => s + it.amount, 0) * 100) / 100
   if (!(total > 0)) return { ok: false, error: '报销合计需大于 0', items: [], total: 0 }
@@ -78,7 +102,6 @@ export async function onRequest(context) {
 
   try {
     const sql = getSql(env)
-    const config = await getFinanceConfig(env)
     const body = await parseBody(request)
 
     if (request.method === 'PUT') {
@@ -99,27 +122,18 @@ export async function onRequest(context) {
       if (!ni.ok) return corsResponse({ error: ni.error }, 400)
       const amount = ni.total
       if (!body.description || !String(body.description).trim()) return corsResponse({ error: '请填写报销事项' }, 400)
-      if (!body.expenseDate) return corsResponse({ error: '请选择消费日期' }, 400)
       const vp = await verifyProposal(sql, body.proposalId, amount, env)
       if (!vp.ok) return corsResponse({ error: vp.error }, 400)
-      const vouchers = Array.isArray(body.vouchers) ? body.vouchers : []
-      if (vouchers.length === 0) return corsResponse({ error: '请上传报销凭证' }, 400)
-      for (const v of vouchers) {
-        if (!v.type || !VOUCHER_TYPES.includes(v.type)) return corsResponse({ error: '存在无效的凭证类型' }, 400)
-        if (!voucherOk(v.url)) return corsResponse({ error: '凭证必须上传到班级文件空间' }, 400)
-      }
+      const vcheck = validateVoucherList(body.vouchers)
+      if (!vcheck.ok) return corsResponse({ error: vcheck.error }, 400)
+      const vouchers = vcheck.vouchers
       const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
-      const chk = checkVouchers(vouchers, amount, config, endorsement)
-      if (!chk.ok) {
-        const CN = { invoice: '发票', payment: '支付凭证', receipt: '收据/小票', order: '订单页面截图', other: '其他凭证' }
-        if (chk.missing.length > 0) return corsResponse({ error: '凭证不齐，还缺：' + chk.missing.map(t => CN[t] || t).join('、') }, 400)
-        return corsResponse({ error: chk.error || '签字背书未完成' }, 400)
-      }
+      const expenseDate = deriveExpenseDate(ni.items)
 
       await sql`
         UPDATE reimbursements
         SET proposal_id = ${body.proposalId || null}, activity_id = ${body.activityId || null},
-            expense_date = ${body.expenseDate}, amount = ${amount}, category = ${ni.category},
+            expense_date = ${expenseDate}, amount = ${amount}, category = ${ni.category},
             description = ${String(body.description).trim()}, items = ${JSON.stringify(ni.items)}, vouchers = ${JSON.stringify(vouchers)},
             endorsement = ${endorsement ? JSON.stringify(endorsement) : ''},
             status = 'submitted', audit_note = ''
@@ -134,42 +148,32 @@ export async function onRequest(context) {
     if (!ni.ok) return corsResponse({ error: ni.error }, 400)
     const amount = ni.total
     if (!body.description || !String(body.description).trim()) return corsResponse({ error: '请填写报销事项' }, 400)
-    if (!body.expenseDate) return corsResponse({ error: '请选择消费日期' }, 400)
     const vp = await verifyProposal(sql, body.proposalId, amount, env)
     if (!vp.ok) return corsResponse({ error: vp.error }, 400)
 
-    const vouchers = Array.isArray(body.vouchers) ? body.vouchers : []
-    if (vouchers.length === 0) return corsResponse({ error: '请上传报销凭证' }, 400)
-    for (const v of vouchers) {
-      if (!v.type || !VOUCHER_TYPES.includes(v.type)) return corsResponse({ error: '存在无效的凭证类型' }, 400)
-      if (!voucherOk(v.url)) return corsResponse({ error: '凭证必须上传到班级文件空间' }, 400)
-    }
+    const vcheck = validateVoucherList(body.vouchers)
+    if (!vcheck.ok) return corsResponse({ error: vcheck.error }, 400)
+    const vouchers = vcheck.vouchers
     const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
-    const chk = checkVouchers(vouchers, amount, config, endorsement)
-    if (!chk.ok) {
-      const CN = { invoice: '发票', payment: '支付凭证', receipt: '收据/小票', order: '订单页面截图', other: '其他凭证' }
-      if (chk.missing.length > 0) return corsResponse({ error: '凭证不齐，还缺：' + chk.missing.map(t => CN[t] || t).join('、') }, 400)
-      return corsResponse({ error: chk.error || '签字背书未完成' }, 400)
-    }
-    // 签字背书人须为班委且不同于经办人本人
-    if (chk.needEndorsement) {
-      const endorserName = String(endorsement?.committee?.name || '').trim()
-      if (!endorserName) return corsResponse({ error: '请填写签字背书的班委姓名' }, 400)
-      if (endorserName === auth.user.name) return corsResponse({ error: '背书班委不能与经办人本人相同（至少 2 人）' }, 400)
-      if (!COMMITTEE_ROLES[endorserName]) return corsResponse({ error: '背书人须为班委成员' }, 400)
-    }
+    const expenseDate = deriveExpenseDate(ni.items)
 
-    const id = newId('rb')
-    try {
-      await sql`
+    // 单号优先使用客户端预生成 id（用于凭证文件命名）；格式非法或已存在则服务端重生成
+    let id = ''
+    const clientId = String(body.id || '').trim()
+    if (/^rb-[a-z0-9]+(-[a-z0-9]+)?$/.test(clientId)) {
+      const dup = await sql`SELECT id FROM reimbursements WHERE id = ${clientId} LIMIT 1`
+      if (dup.length === 0) id = clientId
+    }
+    if (!id) id = newId('rb')
+
+    const insertSql = () => sql`
         INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, items, vouchers, endorsement, status)
-        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${body.expenseDate}, ${amount}, ${ni.category}, ${String(body.description).trim()}, ${JSON.stringify(ni.items)}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'submitted')
+        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${expenseDate}, ${amount}, ${ni.category}, ${String(body.description).trim()}, ${JSON.stringify(ni.items)}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'submitted')
       `
+    try {
+      await insertSql()
     } catch (e) {
-      if (isMissingTableError(e)) { await ensureTables(env); await sql`
-        INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, items, vouchers, endorsement, status)
-        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${body.expenseDate}, ${amount}, ${ni.category}, ${String(body.description).trim()}, ${JSON.stringify(ni.items)}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'submitted')
-      ` }
+      if (isMissingTableError(e)) { await ensureTables(env); await insertSql() }
       else throw e
     }
 

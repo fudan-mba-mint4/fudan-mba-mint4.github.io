@@ -33,13 +33,16 @@ export const financeI18n = {
     exposeDeadline: '截止 {d}',
     budgetPassed: '已通过', budgetRejected: '已否决', budgetCancelled: '已取消', budgetSpent: '已执行',
     reimbTitle: '报销', reimbDesc: '线上提交凭证 → 财务审批 → 线下打款 → 入账公示',
-    newReimb: '新建报销', submit: '提交', submitting: '提交中…',
+    newReimb: '新建报销', submit: '提交', submitting: '提交中…', uploading: '上传中…',
     reimbFormTitle: '新建报销单', reimbActivity: '关联活动', reimbBudget: '关联预算公示',
     reimbDate: '消费日期', reimbAmount: '报销金额（元）', reimbCategory: '支出大类', reimbDesc: '事项描述',
     reimbItemsTitle: '报销明细清单', reimbItemAmount: '金额(元)', reimbTotal: '总报销金额', itemCountUnit: ' 项',
+    itemDate: '日期（选填）',
     reimbVouchers: '报销凭证', requiredHint: '金额 ≥ {n} 元必传：{list}', requiredHintSmall: '金额 < {n} 元必传：{list}', requiredHintUnified: '必传：支付凭证 + 订单页面截图（发票/收据可选补充）',
-    uploadVoucher: '上传', uploaded: '已上传', remove: '移除',
+    requiredHintV2: '必传：付款凭证（至少 1 张，可多张，图片/PDF 均可）；发票/收据/小票/订单截图可合并到下方合并区，选传，数量不限',
+    uploadVoucher: '上传', uploaded: '已上传', remove: '移除', addMultiFiles: '＋ 选择文件（可多选）',
     vInvoice: '发票', vPayment: '付款凭证', vReceipt: '收据/小票', vOrder: '订单截图', vOther: '其他凭证',
+    vProof: '发票/收据/小票合并区',
     statusSubmitted: '待审批', statusApproved: '已通过', statusPaid: '已打款', statusRejected: '已驳回',
     myReimb: '我的报销单', allReimb: '全部报销单（财务）', emptyReimb: '暂无报销记录',
     applyDate: '提交时间', auditNote: '审批意见', noLoginReimb: '请先登录后提交报销',
@@ -394,7 +397,7 @@ export function useFinanceV2() {
   const formatDate = (d) => formatShortDate(d, currentLang.value)
   const formatFullDate = (d) => formatLongDate(d, currentLang.value)
   const catLabel = (c) => t.value.categories[c] || c || '—'
-  const isImage = (u) => /\.(jpe?g|png|webp|gif)(\?|$)/i.test(u || '')
+  const isImage = (u) => /\.(jpe?g|png|webp|gif|heic|heif|bmp|tiff?|avif)(\?|$)/i.test(u || '')
   const voucherTypeLabel = (type) => t.value['v' + type[0].toUpperCase() + type.slice(1)] || type
   const reimbStatusLabel = (s) => t.value['status' + s[0].toUpperCase() + s.slice(1)] || s
 

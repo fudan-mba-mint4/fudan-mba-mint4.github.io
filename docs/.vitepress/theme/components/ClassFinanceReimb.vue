@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useFinanceV2 } from '../composables/useFinanceV2.js'
 import { getQueryParam } from '../utils/urlUtils.js'
+import { uploadVoucherFiles, newReimbId, MAX_VOUCHER_FILES } from '../utils/voucherUpload.js'
 import '../finance-styles.css'
 import SkeletonBlock from './SkeletonBlock.vue'
 
@@ -36,12 +37,12 @@ function checkReimbStatusChange() {
 watch(reimbursements, () => checkReimbStatusChange(), { immediate: true })
 
 const showReimbForm = ref(false)
-function emptyItemRow() { return { item: '', category: 'dining', amount: null, note: '' } }
+function emptyItemRow() { return { item: '', category: 'dining', amount: null, note: '', date: '' } }
 function emptyReimbForm() {
   return {
-    activityId: '', proposalId: '', expenseDate: '',
+    id: '', activityId: '', proposalId: '',
     description: '', items: [emptyItemRow()], vouchers: [],
-    endorserName: '', uploading: false, submitting: false, msg: '',
+    uploading: false, submitting: false, msg: '',
     editingId: null,
   }
 }
@@ -61,97 +62,71 @@ const itemsTotal = computed(() => {
 function addReimbItem() { reimbForm.value.items.push(emptyItemRow()) }
 function removeReimbItem(i) { if (reimbForm.value.items.length > 1) reimbForm.value.items.splice(i, 1) }
 
-const requiredVouchers = computed(() => ['payment', 'order'])
-const needsEndorsement = computed(() => {
-  const amt = itemsTotal.value
-  const have = new Set(reimbForm.value.vouchers.map(v => v.type))
-  return amt >= (config.value.largeAmount || 500) && !have.has('invoice')
-})
-const requiredHintText = computed(() => t.value.requiredHintUnified)
+const paymentVouchers = computed(() => reimbForm.value.vouchers.filter(v => v.type === 'payment'))
+const proofVouchers = computed(() => reimbForm.value.vouchers.filter(v => v.type === 'proof'))
 const reimbCanSubmit = computed(() => {
   const f = reimbForm.value
-  if (!f.proposalId || !f.expenseDate || !(itemsTotal.value > 0) || !f.description.trim()) return false
+  if (!f.proposalId || !(itemsTotal.value > 0) || !f.description.trim()) return false
   if (!f.items.length || !f.items.every(it => String(it.item || '').trim() && Number(it.amount) > 0 && it.category)) return false
-  const have = new Set(f.vouchers.map(v => v.type))
-  if (!requiredVouchers.value.every(v => have.has(v))) return false
+  if (paymentVouchers.value.length < 1) return false
   return true
 })
 
 function editReimb(r) {
   const items = (r.items && r.items.length)
-    ? r.items.map(it => ({ item: it.item || '', category: it.category || 'other', amount: it.amount ?? null, note: it.note || '' }))
-    // 旧单行数据（无 items）：把原金额/类别/事项回填成一行，便于补正
-    : [{ item: r.description || '报销事项', category: r.category || 'other', amount: r.amount, note: '' }]
+    ? r.items.map(it => ({ item: it.item || '', category: it.category || 'other', amount: it.amount ?? null, note: it.note || '', date: it.date || '' }))
+    // 旧单行数据（无 items）：把原金额/类别/事项回填成一行，日期取顶部消费日期，便于补正
+    : [{ item: r.description || '报销事项', category: r.category || 'other', amount: r.amount, note: '', date: r.expenseDate || '' }]
   reimbForm.value = {
-    activityId: r.activityId || '', proposalId: r.proposalId || '',
-    expenseDate: r.expenseDate || '',
+    id: r.id, activityId: r.activityId || '', proposalId: r.proposalId || '',
     description: r.description || '', items, vouchers: [...(r.vouchers || [])],
-    endorserName: r.endorsement?.committee?.name || '', uploading: false, submitting: false, msg: '',
+    uploading: false, submitting: false, msg: '',
     editingId: r.id,
   }
   showReimbForm.value = true
 }
-function newReimbForm() { reimbForm.value = emptyReimbForm(); showReimbForm.value = true }
+function newReimbForm() {
+  const f = emptyReimbForm()
+  f.id = newReimbId()
+  reimbForm.value = f
+  showReimbForm.value = true
+}
 
-function bytesToBase64(bytes) {
-  let bin = ''
-  const chunk = 0x8000
-  for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk))
-  return btoa(bin)
-}
-async function compressImage(file, maxEdge, quality) {
-  const img = await new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const im = new Image()
-    im.onload = () => resolve(im)
-    im.onerror = reject
-    im.src = url
-  })
-  let { width, height } = img
-  const scale = Math.min(1, maxEdge / Math.max(width, height))
-  width = Math.round(width * scale); height = Math.round(height * scale)
-  const canvas = document.createElement('canvas')
-  canvas.width = width; canvas.height = height
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(img, 0, 0, width, height)
-  URL.revokeObjectURL(img.src)
-  return await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality))
-}
-async function addVoucherFile(type, event) {
-  const file = event.target.files?.[0]
+/* 凭证多文件上传：图片（任意格式，自动压缩）/PDF；单文件 5MB、总数 30 的上限在工具与后端双侧校验 */
+async function addVoucherFiles(type, event) {
+  const files = Array.from(event.target.files || [])
   event.target.value = ''
-  if (!file) return
+  if (!files.length) return
   const f = reimbForm.value
+  if (f.vouchers.length + files.length > MAX_VOUCHER_FILES) {
+    f.msg = `凭证文件最多 ${MAX_VOUCHER_FILES} 个（当前已有 ${f.vouchers.length} 个）`
+    return
+  }
   f.uploading = true
   f.msg = ''
   try {
-    const isPdf = file.type === 'application/pdf'
-    let dataBase64, contentType
-    if (isPdf) {
-      const buf = await file.arrayBuffer()
-      dataBase64 = bytesToBase64(new Uint8Array(buf))
-      contentType = 'application/pdf'
-    } else {
-      const blob = await compressImage(file, 2000, 0.85)
-      dataBase64 = bytesToBase64(new Uint8Array(await blob.arrayBuffer()))
-      contentType = blob.type
-    }
-    if (dataBase64.length > 14 * 1024 * 1024) { f.msg = t.value.loadFailed; return }
-    const username = (currentUser?.value?.username || 'guest').replace(/[^\w-]/g, '_')
-    const safeName = file.name.replace(/[^\w.\-]/g, '_').slice(-60)
-    const key = `receipts/${username}/${Date.now()}-${safeName}`
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken.value}` },
-      body: JSON.stringify({ key, contentType, dataBase64 }),
+    const uploaded = await uploadVoucherFiles({
+      files,
+      token: authToken.value,
+      username: currentUser.value?.username,
     })
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok) { f.msg = json.error || t.value.loadFailed; return }
-    const idx = f.vouchers.findIndex(v => v.type === type)
-    if (idx >= 0) f.vouchers.splice(idx, 1)
-    f.vouchers.push({ type, url: json.url, name: file.name.slice(-40) })
-  } catch (e) { f.msg = t.value.loadFailed }
-  finally { f.uploading = false }
+    uploaded.forEach((r, i) => {
+      let name
+      if (type === 'proof') {
+        // 合并区命名：发票_报销单号_序号.扩展名
+        const seq = proofVouchers.value.length + i + 1
+        const ext = (/\.(pdf|jpg|jpeg|png|gif|webp|heic|bmp|tiff?|avif)(\?|$)/i.exec(r.url) || [])[1] || 'jpg'
+        name = `发票_${f.id}_${seq}.${ext}`
+      } else {
+        name = files[i].name?.slice(-40) || `付款凭证_${paymentVouchers.value.length + i + 1}`
+      }
+      f.vouchers.push({ type, url: r.url, name })
+    })
+  } catch (e) {
+    f.msg = e.message || t.value.loadFailed
+  } finally {
+    f.uploading = false
+  }
 }
 function removeVoucher(i) { reimbForm.value.vouchers.splice(i, 1) }
 
@@ -161,14 +136,17 @@ async function submitReimb() {
   f.submitting = true
   f.msg = ''
   try {
-    const endorsement = needsEndorsement.value ? { committee: { name: String(f.endorserName || '').trim() } } : null
     const payload = {
-      id: f.editingId || undefined,
+      id: f.id || undefined,
       activityId: f.activityId || null, proposalId: f.proposalId || null,
-      expenseDate: f.expenseDate, amount: itemsTotal.value,
+      amount: itemsTotal.value,
       category: f.items[0]?.category || 'other',
-      items: f.items.map(it => ({ item: String(it.item).trim(), category: it.category, amount: Number(it.amount), note: String(it.note || '').trim() })),
-      description: f.description.trim(), vouchers: f.vouchers, endorsement,
+      items: f.items.map(it => ({
+        item: String(it.item).trim(), category: it.category,
+        amount: Number(it.amount), note: String(it.note || '').trim(),
+        date: String(it.date || '').trim(),
+      })),
+      description: f.description.trim(), vouchers: f.vouchers,
     }
     const res = await fetch('/api/finance/reimbursements', {
       method: f.editingId ? 'PUT' : 'POST',
@@ -235,11 +213,7 @@ watch(() => router.route.path, () => {
             <option v-for="b in passedBudgets" :key="b.id" :value="b.id">{{ b.title }} · ¥{{ formatAmount(b.amount) }}{{ b.proposalNo ? '（' + b.proposalNo + '）' : '' }}</option>
           </select>
         </div>
-        <div class="form-row">
-          <label class="f-label">{{ t.reimbDate }} *</label>
-          <input v-model="reimbForm.expenseDate" type="date" class="fp-input" />
-        </div>
-        <!-- 报销明细清单：与预算公示同一套网格（项目 / 费用性质 / 金额 / 备注 / 删除），总报销金额由逐行金额合计 -->
+        <!-- 报销明细清单：每行 项目/费用性质/金额/日期(选填)/备注，总报销金额由逐行金额合计 -->
         <div class="form-row col">
           <label class="f-label">{{ t.reimbItemsTitle }} *</label>
           <div class="detail-scroll reimb-items">
@@ -247,6 +221,7 @@ watch(() => router.route.path, () => {
               <span class="dt-item">{{ t.itemName }} <i class="req">*</i></span>
               <span class="dt-cat">{{ t.itemCategory }} <i class="req">*</i></span>
               <span class="dt-amt">{{ t.reimbItemAmount }} <i class="req">*</i></span>
+              <span class="dt-date">{{ t.itemDate }}</span>
               <span class="dt-note">{{ t.itemNote }}</span>
               <span class="dt-del"></span>
             </div>
@@ -256,6 +231,7 @@ watch(() => router.route.path, () => {
                 <option v-for="c in expenseCategories" :key="c.key" :value="c.key">{{ c.label }}</option>
               </select>
               <input v-model.number="it.amount" type="number" step="0.01" min="0" class="fp-input dt-amt" placeholder="0.00" />
+              <input v-model="it.date" type="date" class="fp-input dt-date" />
               <input v-model="it.note" class="fp-input dt-note" placeholder="备注（选填）" />
               <button type="button" class="mini-del" @click="removeReimbItem(i)" :disabled="reimbForm.items.length <= 1">×</button>
             </div>
@@ -269,32 +245,39 @@ watch(() => router.route.path, () => {
           <label class="f-label">{{ t.reimbDesc }} *</label>
           <input v-model="reimbForm.description" class="fp-input" :placeholder="t.reimbDesc" />
         </div>
+        <!-- 凭证两个区：付款凭证（必传，多文件）+ 发票合并区（选传，多文件），图片/PDF 均可 -->
         <div class="form-row col">
           <label class="f-label">{{ t.reimbVouchers }} *</label>
-          <p class="required-hint">{{ requiredHintText }}</p>
-          <div class="voucher-grid">
-            <div v-for="type in ['payment', 'order', 'invoice', 'receipt', 'other']" :key="type" class="voucher-cell">
-              <span class="v-name">{{ voucherTypeLabel(type) }}</span>
-              <label class="v-upload btn-oppose" :class="{ primary: reimbForm.vouchers.some(v => v.type === type) }">
-                {{ reimbForm.vouchers.some(v => v.type === type) ? t.uploaded + ' ✓' : t.uploadVoucher }}
-                <input type="file" accept="image/*,.pdf" style="display:none" @change="addVoucherFile(type, $event)" />
+          <p class="required-hint">{{ t.requiredHintV2 }}</p>
+          <div class="voucher-zones">
+            <div class="voucher-zone">
+              <span class="v-name">{{ t.vPayment }}（{{ paymentVouchers.length }}）</span>
+              <label class="v-upload btn-oppose primary">
+                {{ t.addMultiFiles }}
+                <input type="file" accept="image/*,.pdf" multiple style="display:none" :disabled="reimbForm.uploading" @change="addVoucherFiles('payment', $event)" />
               </label>
-              <div v-for="(v, i) in reimbForm.vouchers.filter(x => x.type === type)" :key="i" class="v-file">
+              <div v-for="(v, i) in paymentVouchers" :key="v.url" class="v-file">
+                <a :href="v.url" target="_blank" rel="noopener">{{ v.name }}</a>
+                <button class="v-rm" @click="removeVoucher(reimbForm.vouchers.indexOf(v))">×</button>
+              </div>
+            </div>
+            <div class="voucher-zone">
+              <span class="v-name">{{ t.vProof }}（{{ proofVouchers.length }}）</span>
+              <label class="v-upload btn-oppose">
+                {{ t.addMultiFiles }}
+                <input type="file" accept="image/*,.pdf" multiple style="display:none" :disabled="reimbForm.uploading" @change="addVoucherFiles('proof', $event)" />
+              </label>
+              <div v-for="(v, i) in proofVouchers" :key="v.url" class="v-file">
                 <a :href="v.url" target="_blank" rel="noopener">{{ v.name }}</a>
                 <button class="v-rm" @click="removeVoucher(reimbForm.vouchers.indexOf(v))">×</button>
               </div>
             </div>
           </div>
         </div>
-        <div class="form-row col" v-if="needsEndorsement">
-          <label class="f-label">{{ t.endorsementTitle }}</label>
-          <input v-model="reimbForm.endorserName" class="fp-input" :placeholder="t.endorserName" />
-          <p class="required-hint">{{ t.endorserHint.replace('{n}', config.largeAmount || 500) }}</p>
-        </div>
         <div class="form-actions">
           <span v-if="reimbForm.msg" class="oppose-msg">{{ reimbForm.msg }}</span>
           <button class="btn-oppose primary" :disabled="!reimbCanSubmit || reimbForm.submitting || reimbForm.uploading" @click="submitReimb">
-            {{ reimbForm.submitting ? t.submitting : (reimbForm.editingId ? t.needRevise : t.submit) }}
+            {{ reimbForm.uploading ? t.uploading : reimbForm.submitting ? t.submitting : (reimbForm.editingId ? t.needRevise : t.submit) }}
           </button>
           <button v-if="reimbForm.editingId" class="btn-ghost" @click="reimbForm = emptyReimbForm(); showReimbForm = false">{{ t.close }}</button>
         </div>
@@ -338,21 +321,22 @@ watch(() => router.route.path, () => {
               <span class="ci-idx">#</span>
               <span class="ci-name">{{ t.itemName }}</span>
               <span class="ci-cat">{{ t.itemCategory }}</span>
-              <span class="ci-note">{{ t.itemNote }}</span>
               <span class="ci-amt">{{ t.reimbItemAmount }}</span>
+              <span class="ci-date">{{ t.itemDate }}</span>
+              <span class="ci-note">{{ t.itemNote }}</span>
             </div>
-            <div v-for="(it, i) in (r.items && r.items.length ? r.items : [{ item: r.description || '—', category: r.category, amount: r.amount, note: '' }])" :key="i" class="rc-item-row">
+            <div v-for="(it, i) in (r.items && r.items.length ? r.items : [{ item: r.description || '—', category: r.category, amount: r.amount, note: '', date: r.expenseDate || '' }])" :key="i" class="rc-item-row">
               <span class="ci-idx">{{ i + 1 }}</span>
               <span class="ci-name">{{ it.item || '—' }}</span>
               <span class="ci-cat">{{ t.categories[it.category] || it.category || '—' }}</span>
-              <span class="ci-note">{{ it.note || '' }}</span>
               <span class="ci-amt">¥{{ formatAmount(it.amount) }}</span>
+              <span class="ci-date">{{ it.date || '—' }}</span>
+              <span class="ci-note">{{ it.note || '' }}</span>
             </div>
             <div class="rc-items-total">{{ t.reimbTotal }}：<b>¥{{ formatAmount(r.amount) }}</b><span v-if="(r.items || []).length > 1" class="ci-count">（{{ r.items.length }}{{ t.itemCountUnit }}）</span></div>
           </div>
           <div class="rc-foot">
             <button v-if="r.vouchers && r.vouchers.length" class="link-btn" @click="openVouchers(r)">📎 {{ t.voucher }} ({{ r.vouchers.length }})</button>
-            <span v-if="r.endorsement?.committee?.name" class="rc-note">{{ t.endorsementTitle }}: {{ r.endorsement.committee.name }}</span>
             <span v-if="r.auditNote" class="rc-note">{{ t.auditNote }}: {{ r.auditNote }}</span>
             <button v-if="r.status === 'need_revision'" class="link-btn" @click="editReimb(r)">{{ t.needRevise }}</button>
           </div>

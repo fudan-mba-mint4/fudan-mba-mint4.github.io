@@ -26,12 +26,12 @@ const ACTIVITY_TYPE_OPTIONS = [
   '日常运营类-常规宣传物料', '日常运营类-班级公共用品', '日常运营类-教师慰问',
 ]
 const PAY_TARGET_OPTIONS = ['淘宝商家', '场地租赁方', '个人垫付报销', '其他']
-const FEE_CATEGORY_OPTIONS = [
-  '宣传与文化建设', '场地与设备租赁', '交通与差旅', '餐饮与茶歇（⚠️聚餐正餐严禁填入）',
-  '住宿费（⚠️聚餐旅行严禁填入）', '门票与报名费', '纪念品与奖品', '班级关怀与慰问',
-  '嘉宾接待与讲师费', '学习资料与打印', '活动道具与物料', '公共设备与图书',
-  '软件与工具订阅', '保险与医疗物资', '其他额外支出',
+// 费用性质与记账/报销统一为 13 个支出分类 key（i18n 文案走 t.categories）；历史数据中的中文长标签原样兜底显示
+const EXPENSE_CATEGORY_KEYS = [
+  'dining', 'marketing', 'transport', 'venue', 'speaker', 'lodging',
+  'ticket', 'prize', 'insurance', 'supplies', 'care', 'activityprops', 'other',
 ]
+const budgetCategoryLabel = (v) => (v && t.value.categories && t.value.categories[v]) || v || '—'
 
 /* ===== 发起/重交表单 ===== */
 function emptyForm() {
@@ -495,7 +495,7 @@ const deadlineText = (b) => {
               <span class="dt-sub">{{ formatAmount(rowTotal(it)) }}</span>
               <select v-model="it.category" class="fp-select dt-cat">
                 <option value="">请选择</option>
-                <option v-for="c in FEE_CATEGORY_OPTIONS" :key="c" :value="c">{{ c }}</option>
+                <option v-for="c in EXPENSE_CATEGORY_KEYS" :key="c" :value="c">{{ t.categories[c] || c }}</option>
               </select>
               <input v-model="it.note" class="fp-input dt-note" placeholder="备注" />
               <button type="button" class="mini-del" @click="removeItemRow(i)" :disabled="form.detailItems.length <= 1">×</button>
@@ -709,7 +709,7 @@ const deadlineText = (b) => {
           <thead><tr><th>#</th><th>{{ t.itemName }}</th><th>{{ t.qty }}</th><th>{{ t.unitPrice }}</th><th>{{ t.itemAmount }}</th><th>{{ t.itemCategory }}</th><th>{{ t.itemNote }}</th></tr></thead>
           <tbody>
             <tr v-for="(it, i) in fcDetail.detailItems" :key="i">
-              <td>{{ i + 1 }}</td><td>{{ it.item }}</td><td>{{ it.qty }}</td><td>¥{{ formatAmount(it.unitPrice) }}</td><td>¥{{ formatAmount(it.amount) }}</td><td>{{ it.category || '—' }}</td><td>{{ it.note || '' }}</td>
+              <td>{{ i + 1 }}</td><td>{{ it.item }}</td><td>{{ it.qty }}</td><td>¥{{ formatAmount(it.unitPrice) }}</td><td>¥{{ formatAmount(it.amount) }}</td><td>{{ budgetCategoryLabel(it.category) }}</td><td>{{ it.note || '' }}</td>
             </tr>
           </tbody>
         </table>

@@ -35,7 +35,11 @@ export const FINANCE_CATEGORIES = [
 export const INCOME_CATEGORIES = ['tuition', 'sponsor', 'interest', 'other']
 
 // 允许的凭证类型
-export const VOUCHER_TYPES = ['invoice', 'payment', 'receipt', 'order', 'other']
+// proof = 发票/收据/小票/订单截图合并区（2026-11-16 起，选传、不限张数）；invoice/receipt/order 保留兼容历史数据
+export const VOUCHER_TYPES = ['invoice', 'payment', 'receipt', 'order', 'proof', 'other']
+
+// 单张报销单凭证文件数上限
+export const MAX_VOUCHERS_PER_REIMB = 30
 
 export function newId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`

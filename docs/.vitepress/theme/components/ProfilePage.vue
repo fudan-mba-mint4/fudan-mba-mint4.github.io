@@ -387,7 +387,8 @@ async function compressUpload(file) {
     canvas.width = width; canvas.height = height
     canvas.getContext('2d').drawImage(img, 0, 0, width, height)
     const dataBase64 = canvas.toDataURL('image/jpeg', 0.82).split(',')[1]
-    const key = `proofs/${currentUser.value.username}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+    const safeUser = String(currentUser.value.username || 'user').replace(/[^\w-]/g, '_')
+    const key = `proofs/${safeUser}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
     const res = await fetchWithRetry(`${API_PREFIX}/api/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken.value}` },

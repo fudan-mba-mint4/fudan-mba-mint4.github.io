@@ -120,10 +120,13 @@
 .required-hint { font-size: 12px; color: var(--c-text-tertiary); margin: 0 0 10px; }
 .voucher-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; width: 100%; }
 .voucher-cell { border: 1px dashed var(--c-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+/* 报销凭证两区：付款凭证 / 发票合并区，各自独立卡片，窄屏自动堆叠 */
+.voucher-zones { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; width: 100%; }
+.voucher-zone { border: 1px solid var(--c-border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--c-bg-secondary); }
 .v-name { font-size: 13px; font-weight: 600; color: var(--c-text-primary); }
-.v-upload { display: inline-block; text-align: center; }
+.v-upload { display: inline-block; text-align: center; align-self: flex-start; }
 .v-file { display: flex; align-items: center; gap: 6px; font-size: 12px; }
-.v-file a { color: var(--c-accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.v-file a { color: var(--c-accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
 .v-rm { background: none; border: none; color: var(--c-text-tertiary); cursor: pointer; font-size: 15px; }
 .form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 6px; }
 .reimb-list { display: flex; flex-direction: column; gap: 10px; }
@@ -140,16 +143,17 @@
 .rc-amount { font-weight: 600; color: var(--c-text-primary); margin-left: auto; }
 .rc-foot { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-/* ===== 报销明细清单：表单 5 列网格（项目 / 费用性质 / 金额 / 备注 / 删除），与预算公示共用行样式 ===== */
+/* ===== 报销明细清单：表单 6 列网格（项目 / 费用性质 / 金额 / 日期选填 / 备注 / 删除），与预算公示共用行样式 ===== */
 .reimb-items .detail-table-head,
-.reimb-items .detail-row { grid-template-columns: 2fr 1.5fr 104px 1.5fr 30px; }
+.reimb-items .detail-row { grid-template-columns: 2fr 1.5fr 104px 132px 1.5fr 30px; }
 .reimb-items .detail-table-head .dt-amt,
 .reimb-items .detail-row .dt-amt { text-align: right; }
 .reimb-items .detail-row .dt-amt { font-variant-numeric: tabular-nums; }
+.reimb-items .dt-date { color: var(--c-text-tertiary); }
 
 /* ===== 报销卡片内的明细清单（只读展示，同样一行一条，网格与表单同列比） ===== */
 .rc-items { margin: 10px 0 8px; border-top: 1px dashed var(--c-border); padding-top: 8px; }
-.rc-items-head, .rc-item-row { display: grid; grid-template-columns: 22px 2fr 1.2fr 1.6fr 92px; gap: 10px; align-items: center; }
+.rc-items-head, .rc-item-row { display: grid; grid-template-columns: 22px 2fr 1.2fr 92px 104px 1.6fr; gap: 10px; align-items: center; }
 .rc-items-head { font-size: 11px; color: var(--c-text-tertiary); font-weight: 600; padding: 0 2px 4px; }
 .rc-item-row { font-size: 13px; color: var(--c-text-secondary); padding: 3px 2px; border-radius: 6px; }
 .rc-item-row:hover { background: var(--c-bg-tertiary, rgba(0,0,0,0.03)); }
@@ -158,6 +162,7 @@
 .ci-cat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-note { color: var(--c-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-amt { text-align: right; font-variant-numeric: tabular-nums; color: var(--c-text-primary); }
+.ci-date { color: var(--c-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rc-items-total { display: flex; justify-content: flex-end; align-items: baseline; gap: 4px; font-size: 13px; color: var(--c-text-secondary); padding: 6px 2px 0; }
 .rc-items-total b { font-size: 15px; color: var(--c-accent); font-variant-numeric: tabular-nums; }
 .ci-count { color: var(--c-text-tertiary); font-size: 12px; }
@@ -170,8 +175,9 @@
 .wb-item-amt { text-align: right; font-variant-numeric: tabular-nums; color: var(--c-text-primary); }
 
 @media (max-width: 720px) {
-  .rc-items-head, .rc-item-row { grid-template-columns: 18px 1.6fr 1fr 92px; }
+  .rc-items-head, .rc-item-row { grid-template-columns: 18px 1.5fr 1fr 84px 96px; }
   .ci-note, .rc-items-head .ci-note { display: none; }
+  .rc-items-head, .rc-item-row { gap: 6px; }
 }
 .rc-note { font-size: 12px; color: var(--c-text-tertiary); }
 
@@ -258,7 +264,8 @@
 .rc-form-grid .btn-oppose { align-self: end; }
 .rc-form-grid .wb-proof-span { grid-column: 1 / -1; }
 .wb-proof-slots { display: flex; gap: 8px; flex-wrap: wrap; }
-.wb-proof-slot { flex: 1 1 180px; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px dashed var(--c-border-accent); border-radius: 8px; background: var(--c-bg-tertiary); font-size: 12px; }
+.wb-proof-slot { flex: 1 1 220px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 10px; border: 1px dashed var(--c-border-accent); border-radius: 8px; background: var(--c-bg-tertiary); font-size: 12px; }
+.wb-proof-file-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 100%; }
 .wb-proof-upload { cursor: pointer; color: var(--c-accent); font-weight: 600; }
 .wb-proof-file { color: var(--c-accent); word-break: break-all; }
 .wb-proof-del { margin-left: auto; border: 0; background: transparent; color: #ff3b30; cursor: pointer; font-size: 12px; padding: 2px 4px; }

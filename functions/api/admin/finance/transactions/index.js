@@ -3,7 +3,7 @@
 // DELETE /api/admin/finance/transactions：删除一笔（body { id }）
 // 鉴权：仅会计（管账）或出纳（管钱）可登记/删除
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../_utils.js'
-import { getFinanceRoles, isAccountant, isCashier, FINANCE_CATEGORIES, INCOME_CATEGORIES, newId, nextVoucherNo } from '../../../../_finance.js'
+import { getFinanceRoles, isAccountant, isCashier, FINANCE_CATEGORIES, INCOME_CATEGORIES, VOUCHER_TYPES, MAX_VOUCHERS_PER_REIMB, newId, nextVoucherNo } from '../../../../_finance.js'
 import { purgePublicCache } from '../../../../_cache.js'
 
 export async function onRequest(context) {
@@ -45,7 +45,13 @@ export async function onRequest(context) {
 
       // 支出二选一：关联「已审批通过的报销单」登记付款，或不关联报销的直接付款（须上传支付凭证 + 订单页面截图）
       const reimbursementId = body.reimbursementId ? String(body.reimbursementId) : null
-      let vouchers = Array.isArray(body.vouchers) ? body.vouchers.filter(v => v && v.url && v.type) : []
+      let vouchers = Array.isArray(body.vouchers)
+        ? body.vouchers.filter(v => v && v.url && v.type
+          && (/^https:\/\/files\.mint4\.cn\//.test(v.url) || /^\/files\//.test(v.url))
+          && VOUCHER_TYPES.includes(v.type))
+        : []
+      if (vouchers.length > MAX_VOUCHERS_PER_REIMB)
+        return corsResponse({ error: `凭证文件过多（最多 ${MAX_VOUCHERS_PER_REIMB} 个）` }, 400)
       if (body.type === 'expense') {
         if (reimbursementId) {
           let rbRows
