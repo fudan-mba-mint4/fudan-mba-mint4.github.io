@@ -518,11 +518,16 @@
       <!-- ===== 班费（子 Tab 管理） ===== -->
       <div v-if="currentType === 'finance'" class="form-section">
         <div class="fin-subtabs">
-          <button v-for="ft in visibleFinTabs" :key="ft.key" type="button" class="type-tab"
+          <!-- 服务端身份/权限未确认前不渲染子页，保证每次按服务端识别的身份加载权限 -->
+          <span v-if="!finPermReady && finPermError" class="fin-perm-state fin-perm-error">
+            {{ finPermError }}<button type="button" class="link-btn" @click="loadFinanceTransactions">重试</button>
+          </span>
+          <span v-else-if="!finPermReady" class="fin-perm-state">正在识别身份与权限…</span>
+          <button v-for="ft in visibleFinTabs" v-else :key="ft.key" type="button" class="type-tab"
             :class="{ active: finTab === ft.key }" @click="finTab = ft.key">{{ ft.icon }} {{ ft.name }}</button>
         </div>
 
-        <div v-show="finTab === 'ledger'">
+        <div v-show="finPermReady && finTab === 'ledger'">
         <!-- 动作栏：流水统计（可筛选）+ 记一笔 -->
         <ModuleBar :stats="finTxStats" :active="finTxFilter" :add-label="canRegisterTx ? '＋ 记一笔' : ''" @toggle="toggleFinTxFilter" @add="openFinForm" />
         <p v-if="!canRegisterTx" class="empty-hint" style="margin:0 0 10px">只读：收支登记由出纳李浩鹏负责</p>
@@ -630,7 +635,7 @@
 
         </div>
 
-        <div v-show="finTab === 'budgets'">
+        <div v-show="finPermReady && finTab === 'budgets'">
         <!-- 动作栏：公示统计（可筛选）+ 发公示（仅会计可见） -->
         <ModuleBar :stats="budgetStats" :active="budgetFilter" :add-label="canManageBudget ? '＋ 发公示' : ''" @toggle="toggleBudgetFilter" @add="openBudgetForm" />
         <!-- 公示到期提醒（到期前 24h） -->
@@ -901,7 +906,7 @@
           </div>
         </div>
 
-        <div v-show="finTab === 'reimb'">
+        <div v-show="finPermReady && finTab === 'reimb'">
         <!-- 报销审批（支出后） -->
         <h3 style="margin-top:30px">🧾 报销审批（提交 → 审批 → 线下打款 → 入账公示）</h3>
         <div class="existing-list">
@@ -951,7 +956,7 @@
 
         </div>
 
-        <div v-show="finTab === 'config'">
+        <div v-show="finPermReady && finTab === 'config'">
         <!-- 财务参数配置（班委可见；主理人/副主理人/监督人可修改） -->
         <div class="form-section" style="margin-top:26px">
           <h3>⚙️ 财务参数配置</h3>
@@ -994,7 +999,7 @@
 
         </div>
 
-        <div v-show="finTab === 'supervision'">
+        <div v-show="finPermReady && finTab === 'supervision'">
         <!-- 监督视图（仅雷振宇可见；票向实名明细） -->
         <div v-if="isSupervisorLzy" class="form-section" style="margin-top:26px">
           <h3>🔍 监督视图（仅本人可见）</h3>
@@ -2585,7 +2590,9 @@ async function submitFinance() {
       method: 'POST',
       headers: adminHeaders(),
       body: JSON.stringify({
-        date: finForm.value.date, type: finForm.value.type, category: finForm.value.category,
+        date: finForm.value.date, type: finForm.value.type,
+        // 顶层分类随明细首行派生（后端同样强制取 items[0]，避免两者不一致）
+        category: finForm.value.items[0]?.category || finForm.value.category,
         amount: finItemsTotal.value, description: finForm.value.description,
         items: finForm.value.items.map(it => ({ category: it.category, amount: Number(it.amount), description: it.description || '' })),
         activityId: finForm.value.activityId || null,
@@ -2810,20 +2817,29 @@ async function deleteSession(course, sx) {
 async function loadFinanceTransactions() {
   try {
     const [pubRes, adminRes] = await Promise.all([
-      fetchWithRetry(`${API_PREFIX}/api/finance-v2`, { headers: adminHeaders() }),
-      fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets`, { headers: adminHeaders() }),
+      // no-store：身份/权限标志每次都向服务端重新识别，不读浏览器/CDN 缓存
+      fetchWithRetry(`${API_PREFIX}/api/finance-v2`, { headers: adminHeaders(), cache: 'no-store' }),
+      fetchWithRetry(`${API_PREFIX}/api/admin/finance/budgets`, { headers: adminHeaders(), cache: 'no-store' }),
     ])
     if (pubRes.ok) {
       const j = await pubRes.json()
       finTransactions.value = j.transactions || []
       finReimbursements.value = j.reimbursements || []
       finWorkbench.value = j.workbench || {}
+      // 服务端身份/权限已确认，子页才允许渲染
+      finPermReady.value = true
+      finPermError.value = ''
+    } else if (!finPermReady.value) {
+      finPermError.value = '身份或权限加载失败'
     }
     if (adminRes.ok) {
       const j = await adminRes.json()
       finBudgets.value = j.budgets || []
     }
-  } catch (e) { console.warn('加载班费数据失败:', e.message) }
+  } catch (e) {
+    if (!finPermReady.value) finPermError.value = '网络异常，身份或权限加载失败'
+    console.warn('加载班费数据失败:', e.message)
+  }
 }
 async function deleteFinanceTx(tx) {
   if (!confirm(`确定删除这条${tx.type==='income'?'收入':'支出'}流水吗？\n将记录操作人。`)) return
@@ -2842,6 +2858,9 @@ const finBudgets = ref([])
 const finReimbursements = ref([])
 // 服务端下发的当前登录人财务角色标志（isAccountant/isCashier/isSupervisor/isFinanceStaff）
 const finWorkbench = ref({})
+// 权限门控：首次服务端身份/权限确认前不渲染任何财务子页，避免不同标签页因加载时序出现权限不一致
+const finPermReady = ref(false)
+const finPermError = ref('')
 const budgetForm = ref({ activityId:'', title:'', description:'', detailItems:[{item:'',amount:null}], amount:null, proposer:'', exposeType:'normal', approvalNote:'' })
 function addBudgetItem() { budgetForm.value.detailItems.push({ item:'', amount:null }) }
 function removeBudgetItem(i) { if (budgetForm.value.detailItems.length > 1) budgetForm.value.detailItems.splice(i, 1) }
@@ -3373,7 +3392,11 @@ onMounted(() => {
 })
 // 登录成功后：提交记录 + 待办红点 + 重新加载当前模块（修复登录态就绪后不重拉的健壮性缺口）
 watch(isAuthenticated, (v) => {
-  if (!v) return
+  if (!v) {
+    // 登出立即清掉权限门控与角色标志，避免换账号登录时短暂复用上一人的权限
+    finPermReady.value = false; finPermError.value = ''; finWorkbench.value = {}
+    return
+  }
   loadHistory(); loadTodoBadges(); loadActiveModule()
 })
 watch(currentType, () => loadActiveModule())
@@ -3412,6 +3435,8 @@ watch(currentType, () => loadActiveModule())
 .type-tab.active { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
 .fin-subtabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px dashed var(--c-border); }
 .fin-subtabs .type-tab { padding: 7px 14px; border-radius: 10px; font-size: 13px; }
+.fin-perm-state { align-self: center; font-size: 13px; color: var(--c-text-secondary); display: inline-flex; align-items: center; gap: 8px; }
+.fin-perm-error { color: #b45309; }
 /* ===== 模块统一布局（动作栏/tab 条见 components/admin/ModuleBar.vue、ModuleTabs.vue）===== */
 .module-section { background: var(--c-bg-card); border: 1px solid var(--c-border); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
 .budget-expiring { margin: 0 0 14px; padding: 8px 12px; border-radius: 8px; background: rgba(255, 149, 0, .12); border: 1px solid rgba(255, 149, 0, .4); color: #e8890c; font-size: 13px; }

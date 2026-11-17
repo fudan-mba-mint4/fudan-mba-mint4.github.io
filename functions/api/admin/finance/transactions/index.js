@@ -40,7 +40,8 @@ export async function onRequest(context) {
       }
       const finalAmount = items.length ? Number(items.reduce((s, i) => s + i.amount, 0).toFixed(2)) : Number(body.amount)
       if (!finalAmount || finalAmount <= 0) return corsResponse({ error: '金额需大于 0' }, 400)
-      const finalCategory = items.length ? (body.category || items[0].category) : body.category
+      // 多行明细时主分类强制取明细首行分类（口径：主分类=items[0]），不被客户端顶层 category 覆盖
+      const finalCategory = items.length ? items[0].category : body.category
       if (!allowedCats.includes(finalCategory)) return corsResponse({ error: '无效的收支大类' }, 400)
 
       // 支出二选一：关联「已审批通过的报销单」登记付款，或不关联报销的直接付款（须上传支付凭证 + 订单页面截图）
