@@ -19,6 +19,7 @@ layout: page
     { id: 'vote', text: '3-day voting period', level: 2 },
     { id: 'result', text: 'Auto result when the period ends', level: 2 },
     { id: 'reimb', text: 'Reimbursement (after approval)', level: 2 },
+    { id: 'admin', text: 'Class funds in the admin panel (by role)', level: 2 },
     { id: 'faq', text: 'Frequently asked questions', level: 2 }
   ]"
 >
@@ -99,7 +100,7 @@ layout: page
       { field: 'Payment recipient', rule: 'Taobao merchant; venue lessor; personal advance reimbursement; other.' },
       { field: 'Activity type', rule: 'Choose from the 10-item list (see the table below).' },
       { field: 'Total budget cap', rule: 'The maximum amount this budget may spend; the running subtotal is compared with the cap in real time, and any excess is marked in red.' },
-      { field: 'Budget line items', rule: 'At least 1 row; each row contains an expense item, quantity (greater than 0), unit price (greater than 0), and expense category; notes are optional; rows can be added or removed, and the system always keeps at least 1 row.' },
+      { field: 'Budget line items', rule: 'At least 1 row; each row contains an expense item, quantity (greater than 0), unit price (greater than 0), and an expense nature (one of the unified 13 categories); notes are optional; rows can be added or removed, and the system always keeps at least 1 row.' },
       { field: '3 finance red lines', rule: { text: 'All three must be checked before submission (see the table below).', strong: true } }
     ]"
   />
@@ -121,8 +122,8 @@ layout: page
     ]"
   />
 
-  <GuideCallout variant="warning" title="Please note">
-    Although the dropdown contains “dinner party / trip”, the line-item categories “Meals and tea breaks” and “Accommodation” cannot be selected: dinner, travel, accommodation and tea-break costs are split AA among participants and are not covered by class funds; if entered, the system will prompt that class funds cannot be used.
+  <GuideCallout variant="info" title="Expense nature: 13 unified categories across the whole finance module">
+    Budget disclosures, reimbursements and bookkeeping use the same set of 13 categories. After you choose from the dropdown, the system stores the category code and the page shows its name: Dining, Marketing & Culture Materials, Transport, Venue & Gear, Speakers, Lodging, Tickets, Prizes & Souvenirs, Insurance, Study & Office Supplies, Class Care & Support, Activity Props & Materials, and Other. Old long Chinese labels in historical disclosures still display normally and do not affect viewing.
   </GuideCallout>
 
   <GuideInfoTable
@@ -230,18 +231,22 @@ layout: page
   </GuideCallout>
 
   <GuideInfoTable
-    caption="Tiered voucher requirements (if vouchers are incomplete, the system states which one is missing; you must complete the set before submitting)"
-    :columns="[{ key: 'amount', title: 'Amount' }, { key: 'receipt', title: 'Required vouchers' }]"
+    caption="Voucher requirements (from 2026-11-16 there is no longer tiering by amount; if vouchers are incomplete the system states which item is missing, and you must complete it before submitting)"
+    :columns="[{ key: 'zone', title: 'Voucher zone' }, { key: 'rule', title: 'Requirement' }]"
     :rows="[
-      { amount: 'Single transaction ≥500 CNY (large)', receipt: 'Invoice + payment proof' },
-      { amount: 'Single transaction <500 CNY (small)', receipt: 'Payment proof + receipt / sales slip' },
-      { amount: '≥500 CNY without an invoice', receipt: 'Payment proof + stamped receipt + the handler in person + 1 committee member’s signed endorsement' }
+      { zone: 'Payment proof (required)', rule: 'At least 1 file, multiple allowed; supports all image formats and PDF, such as transfer screenshots and payment receipts.' },
+      { zone: 'Invoice / receipt / sales slip merged section (optional)', rule: 'Not mandatory and unlimited; invoices, receipts, sales slips and order screenshots are all uploaded here together, images and PDF both accepted; files are named automatically as “Invoice_reimbursement number_sequence”.' },
+      { zone: 'Quantity and size limits', rule: 'Each reimbursement may have at most 30 voucher files, and each file must not exceed 5MB (images are compressed automatically on upload).' }
     ]"
   />
 
+  <GuideCallout variant="tip" title="Line-item dates filled in per entry">
+    Reimbursement no longer uses a single expense date at the top: every row in the reimbursement items has its own date column, which may be left blank; multiple expenses for the same activity on different dates can be filled in row by row. The system records the earliest in-row date as the expense date for this reimbursement, and if all are left blank no date is recorded.
+  </GuideCallout>
+
   <GuideStepFlow
     :steps="[
-      { icon: '🧾', title: 'Classmate submits reimbursement', desc: 'Link approved disclosure + tiered vouchers', state: 'done' },
+      { icon: '🧾', title: 'Classmate submits reimbursement', desc: 'Link approved disclosure + payment proof required', state: 'done' },
       { icon: '🧑‍💼', title: 'Accountant Cheng Xiao reviews', desc: 'Approve / return for revision / reject', state: 'todo' },
       { icon: '💵', title: 'Cashier Li Haopeng confirms payment', desc: 'Confirm after offline payment', state: 'todo' },
       { icon: '🗂️', title: 'System posts the entry', desc: 'Expense entry generated, ledger linked', state: 'todo' }
@@ -260,17 +265,43 @@ layout: page
     Submission, review and payment each have a default time limit; if a deadline is missed, an in-site notification reminds the relevant committee member. Every payment leaves a record in the ledger that you can check at any time. Default limits: 7 working days for reimbursement submission, 3 working days for accountant review, 3 working days for cashier payment.
   </GuideCallout>
 
+  <GuideSectionHead
+    id="admin"
+    title="Class funds in the admin panel (by role)"
+    lead="The former standalone “Finance Workbench” has been merged into the admin panel; the “Finance Workbench” item in the navigation now deep-links straight to the class-funds section, and old links automatically 302 redirect."
+  />
+
+  <GuideCallout variant="info" title="One entry point, shown by role">
+    <ul>
+      <li>Class funds in the admin panel no longer has a standalone page; everything is handled under “Admin panel → Class funds”. Once opened, only the sub-pages and buttons relevant to your role are shown, and unrelated content is hidden automatically.</li>
+      <li>You can open it directly with the deep link /admin?module=finance; once the sign-in state is ready the system automatically re-fetches data, so you will not get empty data before sign-in and then fail to refresh after sign-in.</li>
+      <li>Sub-page and button permissions are reloaded each time according to the identity recognized by the server, without relying on local cache; before identity is confirmed a loading state is shown first, avoiding inconsistent permissions across multiple tabs.</li>
+      <li>When a bookkeeping entry contains multiple line items, the overall category automatically takes the expense nature of the first line item, ensuring summary grouping matches the details.</li>
+    </ul>
+  </GuideCallout>
+
+  <GuideInfoTable
+    caption="Sub-pages visible to each role and actions they can perform"
+    :columns="[{ key: 'role', title: 'Role' }, { key: 'tabs', title: 'Visible sub-pages' }, { key: 'actions', title: 'Actions available' }]"
+    :rows="[
+      { role: { text: 'Leader / Deputy leader / Independent board', strong: true }, tabs: 'Ledger, Budgets, Reimbursement, Config (supervision view: Lei Zhenyu only)', actions: 'All actions: record entry, publish disclosure, approve, pay, edit config' },
+      { role: { text: 'Accountant (Cheng Xiao)', strong: true }, tabs: 'Budget disclosure, Reimbursement review', actions: 'Publish disclosure, approve budgets, approve/return/reject reimbursements' },
+      { role: { text: 'Cashier (Li Haopeng)', strong: true }, tabs: 'Ledger management, Reimbursement review', actions: 'Record entry, confirm payment, register reconciliation' },
+      { role: { text: 'Finance backup (Gao Xiaomei, Ye Hongying)', strong: true }, tabs: 'Ledger, Budgets, Reimbursement', actions: 'Read-only, no write actions' }
+    ]"
+  />
+
   <GuideFaq
     id="faq"
     :items="[
       { q: 'Where did my draft go?', aHtml: 'Drafts are saved only under “My submissions”, <strong>visible to you alone</strong>; you can keep editing or submit it; other classmates and the public lists cannot see it.' },
       { q: 'What does the disclosure number mean?', a: 'Class budget disclosures are numbered automatically in the format MF4-BM-year-month-day-two-digit daily sequence; the number is generated and effective once the accountant publishes the disclosure.' },
-      { q: 'Why can’t I submit a reimbursement?', aHtml: 'It can link only to an <strong>approved</strong> disclosure, and the amount must not exceed that disclosure’s budget cap; check these two first, and verify the tiered vouchers are complete.' },
+      { q: 'Why can’t I submit a reimbursement?', aHtml: 'It can link only to an <strong>approved</strong> disclosure, and the amount must not exceed that disclosure’s budget cap; in addition, at least 1 payment proof must be uploaded. Check these items first.' },
       { q: 'Why was my disclosure returned?', a: 'Read the return reason, complete the materials, then click “Edit and resubmit” under “My submissions”; this does not affect re-review.' },
       { q: 'How long until payment?', a: 'After the reimbursement is approved, cashier Li Haopeng pays offline; in-site time-limit reminders nudge the committee when deadlines are missed.' },
       { q: 'The cap is not enough / I want to add money?', a: 'The amount locks once the disclosure passes; the excess is not paid. To add money you must publish a new budget disclosure; splitting or routing around the cap is not allowed.' },
       { q: 'I spent money first in an emergency?', a: 'A post-hoc disclosure after an emergency expense can only be initiated by the accountant Cheng Xiao; individuals cannot file one themselves.' },
-      { q: 'Can dinners, trips or accommodation be paid from class funds?', a: 'No; these are split AA among participants. Line items containing “Meals and tea breaks” or “Accommodation” are blocked directly by the system.' },
+      { q: 'Can dinners, trips or accommodation be paid from class funds?', a: 'Meal and accommodation costs for dinner parties and trips remain split AA among participants, and when submitting a budget you must check the R1 red line to confirm such costs are excluded; other compliant meal and accommodation expenses can choose the corresponding category among the unified 13 categories.' },
       { q: 'Where do I see the disclosures I filed?', a: 'On the budget disclosure page, open the “My submissions” tab to check each status (draft / pending review / returned / open for disclosure / approved / vetoed).' }
     ]"
   />
@@ -286,6 +317,6 @@ layout: page
   </template>
 
   <template #footer>
-    <GuideMaintenanceBar date="2026-10-30" />
+    <GuideMaintenanceBar date="2026-11-17" />
   </template>
 </GuideDocShell>
