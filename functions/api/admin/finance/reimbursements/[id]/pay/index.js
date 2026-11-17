@@ -27,9 +27,12 @@ export async function onRequest(context) {
     }
     const rb = rows[0]
     if (!rb) return corsResponse({ error: '未找到该报销单' }, 404)
+    if (rb.status === 'paid') return corsResponse({ error: '该报销单已打款，请勿重复付款' }, 400)
     if (rb.status !== 'approved') return corsResponse({ error: '请先由会计审核通过，再确认打款' }, 400)
     if (rb.audit_by === auth.user.name) return corsResponse({ error: '钱账分离：审核人不能同时执行付款' }, 403)
 
+    const { note = '' } = await parseBody(request)
+    const payNote = String(note).slice(0, 300)
     const nowIso = new Date().toISOString()
     let vouchers = []
     try { vouchers = JSON.parse(rb.vouchers || '[]') } catch (e) {}
@@ -47,12 +50,12 @@ export async function onRequest(context) {
     const voucherNo = await nextVoucherNo(sql)
     const txDate = rb.expense_date || nowIso.slice(0, 10)
     await sql`
-      INSERT INTO finance_tx (id, voucher_no, date, type, category, amount, description, activity_id, proposal_id, reimbursement_id, vouchers, handler, checker)
-      VALUES (${txId}, ${voucherNo}, ${txDate}, 'expense', ${rb.category || 'other'}, ${rb.amount}, ${String(rb.description || '报销支出')}, ${rb.activity_id || null}, ${rb.proposal_id || null}, ${rb.id}, ${JSON.stringify(vouchers)}, ${rb.applicant}, ${rb.audit_by || '财务'})
+      INSERT INTO finance_tx (id, voucher_no, date, type, category, amount, description, activity_id, proposal_id, reimbursement_id, vouchers, handler, checker, paid_by)
+      VALUES (${txId}, ${voucherNo}, ${txDate}, 'expense', ${rb.category || 'other'}, ${rb.amount}, ${String(rb.description || '报销支出')}, ${rb.activity_id || null}, ${rb.proposal_id || null}, ${rb.id}, ${JSON.stringify(vouchers)}, ${rb.applicant}, ${rb.audit_by || '财务'}, ${auth.user.name})
     `
-    await sql`UPDATE reimbursements SET status = 'paid', paid_by = ${auth.user.name}, paid_at = ${nowIso} WHERE id = ${id}`
+    await sql`UPDATE reimbursements SET status = 'paid', paid_by = ${auth.user.name}, paid_at = ${nowIso}, pay_note = ${payNote} WHERE id = ${id}`
     await logHistory(sql, { type: 'finance', action: 'pay', refId: id,
-      description: `确认支付报销：${rb.description || rb.id}（¥${rb.amount}，凭证号 ${voucherNo}）`, operator: auth.user.name })
+      description: `确认支付报销：${rb.description || rb.id}（¥${rb.amount}，凭证号 ${voucherNo}，付给 ${rb.applicant}${payNote ? '；' + payNote.slice(0, 100) : ''}）`, operator: auth.user.name })
     await notify(sql, { type: 'finance', title: '报销已支付',
       body: `${rb.description || rb.id}（¥${rb.amount}）已由出纳确认打款，流水凭证号 ${voucherNo}`, modulePath: '/finance/', operator: auth.user.name })
     await purgePublicCache('finance-v2-public')

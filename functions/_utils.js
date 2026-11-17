@@ -245,8 +245,9 @@ CREATE TABLE IF NOT EXISTS finance_tx (
   proposal_id TEXT,
   reimbursement_id TEXT,
   vouchers TEXT DEFAULT '[]',  -- JSON 数组 [{type,url,name}]
-  handler TEXT,                -- 经手人
+  handler TEXT,                -- 经手人（报销场景=收款人/申请人）
   checker TEXT,                -- 复核人（财务）
+  paid_by TEXT,                -- 付款出纳（确认打款的操作人，公开账页可见）
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_finance_tx_date ON finance_tx (date DESC);
@@ -325,6 +326,7 @@ CREATE TABLE IF NOT EXISTS reimbursements (
   audit_note TEXT,
   paid_by TEXT,
   paid_at TEXT,
+  pay_note TEXT,                  -- 出纳打款留言（确认打款时填写）
   created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   is_demo INTEGER DEFAULT 0      -- 临时示例数据标记（1=演示，正式启用清理时按此删除）
 );

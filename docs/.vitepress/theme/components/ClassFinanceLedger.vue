@@ -122,6 +122,7 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
               <span v-if="tx.activityId" class="tx-activity"><a class="link-activity" href="#" @click.prevent.stop="gotoActivity(tx.activityId)">{{ t.activity }}: {{ activityTitle(tx.activityId) }}</a></span>
               <span v-if="tx.handler" class="tx-handler">{{ t.payer }}: {{ tx.handler }}</span>
               <span v-if="tx.checker" class="tx-handler">{{ t.checker }}: {{ tx.checker }}</span>
+              <span v-if="tx.paidBy" class="tx-handler">{{ t.cashier }}: {{ tx.paidBy }}</span>
               <button v-if="tx.vouchers && tx.vouchers.length" class="tx-voucher" @click.stop="openVouchers(tx)">📎 {{ t.voucher }} ({{ tx.vouchers.length }})</button>
             </div>
           </div>
@@ -234,6 +235,7 @@ const gotoReimbFlash = (id) => { gotoReimb(id); flash.value = id; setTimeout(() 
             <div class="td-cell td-cell-empty"></div>
             <div class="td-cell"><span class="td-k">{{ t.payer }}</span><span class="td-v">{{ txDetail.handler || '—' }}</span></div>
             <div class="td-cell"><span class="td-k">{{ t.checker }}</span><span class="td-v">{{ txDetail.checker || '—' }}</span></div>
+            <div class="td-cell"><span class="td-k">{{ t.cashier }}</span><span class="td-v">{{ txDetail.paidBy || '—' }}</span></div>
             <div class="td-cell td-cell-empty"></div>
           </div>
           <div v-if="txDetail.items && txDetail.items.length" class="td-items-box">

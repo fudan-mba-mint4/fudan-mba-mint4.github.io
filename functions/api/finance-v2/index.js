@@ -74,7 +74,7 @@ export async function onRequest(context) {
       proposalId: r.proposal_id, reimbursementId: r.reimbursement_id,
       items: (() => { try { return JSON.parse(r.items || '[]') } catch (e) { return [] } })(),
       vouchers: (() => { try { return JSON.parse(r.vouchers || '[]') } catch (e) { return [] } })(),
-      handler: r.handler || '', checker: r.checker || '', createdAt: r.created_at, isDemo: r.is_demo || 0,
+      handler: r.handler || '', checker: r.checker || '', paidBy: r.paid_by || '', createdAt: r.created_at, isDemo: r.is_demo || 0,
     }))
 
     // 预算聚合：赞成/反对/未表态 + 匿名反对留言（公开不含投票人）
@@ -123,7 +123,7 @@ export async function onRequest(context) {
       endorsement: (() => { try { return JSON.parse(r.endorsement || 'null') } catch (e) { return null } })(),
       status: r.status,
       auditBy: r.audit_by || '', auditAt: r.audit_at || '', auditNote: r.audit_note || '',
-      paidBy: r.paid_by || '', paidAt: r.paid_at || '', createdAt: r.created_at, isDemo: r.is_demo || 0,
+      paidBy: r.paid_by || '', paidAt: r.paid_at || '', payNote: r.pay_note || '', createdAt: r.created_at, isDemo: r.is_demo || 0,
     }))
 
     const reconcilationsOut = reconciles.map(r => ({

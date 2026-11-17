@@ -91,8 +91,8 @@ export async function onRequest(context) {
       const id = newId('ft')
       const voucherNo = await nextVoucherNo(sql)
       const doInsert = () => sql`
-          INSERT INTO finance_tx (id, voucher_no, date, type, category, amount, description, items, activity_id, proposal_id, reimbursement_id, vouchers, handler, checker)
-          VALUES (${id}, ${voucherNo}, ${body.date}, ${body.type}, ${finalCategory}, ${finalAmount}, ${String(body.description).trim()}, ${JSON.stringify(items)}, ${body.activityId || null}, ${body.proposalId || null}, ${reimbursementId}, ${JSON.stringify(vouchers)}, ${String(body.handler || auth.user.name)}, ${auth.user.name})
+          INSERT INTO finance_tx (id, voucher_no, date, type, category, amount, description, items, activity_id, proposal_id, reimbursement_id, vouchers, handler, checker, paid_by)
+          VALUES (${id}, ${voucherNo}, ${body.date}, ${body.type}, ${finalCategory}, ${finalAmount}, ${String(body.description).trim()}, ${JSON.stringify(items)}, ${body.activityId || null}, ${body.proposalId || null}, ${reimbursementId}, ${JSON.stringify(vouchers)}, ${String(body.handler || auth.user.name)}, ${auth.user.name}, ${body.type === 'expense' ? auth.user.name : null})
         `
       try {
         await doInsert()

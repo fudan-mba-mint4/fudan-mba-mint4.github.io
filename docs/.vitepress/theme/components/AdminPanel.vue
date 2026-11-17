@@ -850,12 +850,40 @@
                 <p class="bd-text">{{ reimbDetail.auditNote }}</p>
               </div>
 
+              <div v-if="reimbDetail.payNote" class="bd-section">
+                <div class="bd-label-row"><span class="bd-label">打款留言</span></div>
+                <p class="bd-text">{{ reimbDetail.payNote }}</p>
+              </div>
+
               <div class="form-actions bd-actions">
                 <button v-if="reimbDetail.status === 'submitted'" type="button" class="submit-btn" :disabled="submitting" @click="openReimbAudit(reimbDetail, 'approve')">通过</button>
                 <button v-if="reimbDetail.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(reimbDetail, 'revision')">退回补正</button>
                 <button v-if="reimbDetail.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(reimbDetail, 'reject')">驳回</button>
                 <button v-if="reimbDetail.status === 'approved'" type="button" class="submit-btn" :disabled="submitting" @click="openReimbAudit(reimbDetail, 'pay')">确认打款</button>
                 <button type="button" class="existing-del detail" @click="closeReimbDetail">关闭</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 报销审批/打款确认弹层（页面内，非系统弹窗） -->
+        <div v-if="reimbAudit" class="modal-mask" @click.self="closeReimbAudit">
+          <div class="modal">
+            <div class="modal-head">
+              <span class="modal-title">{{ reimbAuditTitle }}</span>
+              <button class="modal-close" @click="closeReimbAudit">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="reimb-audit-info">
+                <p class="modal-tip">报销金额：<b>¥{{ formatAmount(reimbAuditRow.amount) }}</b></p>
+                <p class="modal-tip">收款人：<b>{{ reimbAuditRow.applicant }}</b></p>
+                <p v-if="reimbAuditRow.expenseDate" class="modal-tip">消费日期：{{ (reimbAuditRow.expenseDate || '').slice(0, 10) }}</p>
+              </div>
+              <p v-if="reimbAudit.action === 'pay'" class="modal-tip">请先在支付宝小荷包完成实际打款，再填写留言并确认；确认后生成支出流水并在班费账页公开。</p>
+              <textarea v-model="reimbAuditNote" rows="3" class="input-textarea" :placeholder="reimbAuditNotePh"></textarea>
+              <div class="form-actions">
+                <button class="submit-btn" :disabled="submitting || (reimbNoteRequired && !reimbAuditNote.trim())" @click="doReimbAudit">{{ reimbAuditLabel }}</button>
+                <button class="existing-del" @click="closeReimbAudit">取消</button>
               </div>
             </div>
           </div>
@@ -944,12 +972,6 @@
                 <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'reject')">驳回</button>
               </template>
               <button v-if="canPayReimb && r.status === 'approved'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'pay')">确认打款</button>
-            </div>
-            <!-- 审批意见输入（二次确认） -->
-            <div v-if="reimbAudit && reimbAudit.id === r.id" class="reject-box reimb-audit-box">
-              <input v-model="reimbAuditNote" :placeholder="reimbAuditNotePh" />
-              <button type="button" class="audit-no" @click="doReimbAudit(r)" :disabled="submitting || !reimbAuditNote.trim()">确认{{ reimbAuditLabel }}</button>
-              <button type="button" class="audit-cancel" @click="closeReimbAudit">取消</button>
             </div>
           </div>
         </div>
@@ -2948,35 +2970,48 @@ async function cancelBudget(b) {
   } catch (e) { alert('取消失败: ' + e.message) }
 }
 // ===== 报销审批：二次确认 + 审批人意见（通过/退回/驳回/打款均留痕）=====
-const reimbAudit = ref(null) // { id, action }
+const reimbAudit = ref(null) // { id, action, row }
 const reimbAuditNote = ref('')
+const REIMB_ACTION_LABEL = { approve: '通过', reject: '驳回', revision: '退回补正', pay: '确认打款' }
 const reimbAuditLabel = computed(() => reimbAudit.value
-  ? ({ approve: '通过', reject: '驳回', revision: '退回补正', pay: '确认打款' }[reimbAudit.value.action] || '')
+  ? (REIMB_ACTION_LABEL[reimbAudit.value.action] || '')
   : '')
+const reimbAuditRow = computed(() => reimbAudit.value?.row || null)
+const reimbAuditTitle = computed(() => {
+  if (!reimbAudit.value) return ''
+  const r = reimbAudit.value.row
+  return `${reimbAuditLabel.value}：${r.description || r.id}`
+})
 const reimbAuditNotePh = computed(() => {
   if (!reimbAudit.value) return ''
   const a = reimbAudit.value.action
-  if (a === 'pay') return '打款留言（已按规范预填，可修改）'
+  if (a === 'pay') return '打款留言（已预填，可修改）'
   if (a === 'approve') return '通过意见（必填，如：同意报销，凭证齐全）'
   if (a === 'revision') return '退回补正意见（必填，请说明需要修改的内容）'
   return '驳回原因（必填）'
 })
+const reimbNoteRequired = computed(() => reimbAudit.value && reimbAudit.value.action !== 'pay')
 function openReimbAudit(r, action) {
-  reimbAudit.value = { id: r.id, action }
-  reimbAuditNote.value = action === 'pay' ? `李浩鹏写小荷包付给${r.applicant}` : ''
+  reimbAudit.value = { id: r.id, action, row: r }
+  reimbAuditNote.value = action === 'pay'
+    ? `${currentUser.value?.name || ''}通过小荷包付给${r.applicant}`
+    : ''
 }
 function closeReimbAudit() { reimbAudit.value = null; reimbAuditNote.value = '' }
-async function doReimbAudit(r) {
+async function doReimbAudit() {
   const a = reimbAudit.value
-  if (!a || a.id !== r.id) return
+  if (!a) return
   const action = a.action
   const note = reimbAuditNote.value.trim()
-  if (!note) { showToast('请填写审批意见', 'error'); return }
-  if (!confirm(`确认${reimbAuditLabel.value}报销「${r.description}」（¥${r.amount}）？\n\n审批意见：${note}`)) return
+  if (reimbNoteRequired.value && !note) { showToast('请填写审批意见', 'error'); return }
   submitting.value = true
   try {
-    const res = await fetchWithRetry(`${API_PREFIX}/api/admin/finance/reimbursements/${r.id}/audit`, {
-      method: 'POST', headers: adminHeaders(), body: JSON.stringify({ action, note }),
+    const url = action === 'pay'
+      ? `${API_PREFIX}/api/admin/finance/reimbursements/${a.id}/pay`
+      : `${API_PREFIX}/api/admin/finance/reimbursements/${a.id}/audit`
+    const body = action === 'pay' ? { note } : { action, note }
+    const res = await fetchWithRetry(url, {
+      method: 'POST', headers: adminHeaders(), body: JSON.stringify(body),
     })
     await throwIfNotOk(res, '报销处理')
     invalidateResource('/api/finance-v2')
@@ -3684,6 +3719,8 @@ watch(currentType, () => loadActiveModule())
 .proofs-mini a { font-size: 12px; color: #2d7a6c; text-decoration: underline; }
 .proofs-mini a:hover { opacity: 0.8; }
 /* 班费线上化（预算公示 / 报销审批） */
+.reimb-audit-info { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--c-bg-tertiary); margin-bottom: 10px; }
+.reimb-audit-info .modal-tip { margin: 0; }
 .input-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-tertiary); color: var(--c-text); font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; }
 .input-inline { flex: 1; min-width: 120px; padding: 7px 12px; border: 1px solid var(--c-border); border-radius: 10px; background: var(--c-bg-tertiary); color: var(--c-text); font-size: 13px; font-family: inherit; box-sizing: border-box; }
 .budget-item-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
