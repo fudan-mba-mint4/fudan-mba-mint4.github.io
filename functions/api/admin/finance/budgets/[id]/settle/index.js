@@ -2,7 +2,7 @@
 // 仅会计（程枭）：公示期满后结算；反对 ≥ 23 票 → rejected（不得动用），< 23 → passed
 // body: { action: 'settle' | 'cancel' }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../../../_utils.js'
-import { getFinanceRoles, isAccountant, getFinanceConfig, voteStats } from '../../../../../../_finance.js'
+import { getFinanceRoles, isAccountant, isFullFinanceAccess, getFinanceConfig, voteStats } from '../../../../../../_finance.js'
 import { purgePublicCache } from '../../../../../../_cache.js'
 
 export async function onRequest(context) {
@@ -15,7 +15,7 @@ export async function onRequest(context) {
   try {
     const sql = getSql(env)
     const roles = await getFinanceRoles(env)
-    if (!isAccountant(auth.user, roles)) return corsResponse({ error: '仅会计可结算预算公示' }, 403)
+    if (!isAccountant(auth.user, roles) && !isFullFinanceAccess(auth.user)) return corsResponse({ error: '仅会计可结算预算公示' }, 403)
     const config = await getFinanceConfig(env)
 
     const id = params.id

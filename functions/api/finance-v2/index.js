@@ -12,7 +12,7 @@
 // }
 import { getSql, corsResponse, optionsResponse, getAuthUser, ensureTables, isMissingTableError } from '../../_utils.js'
 import { getPublicCache, setPublicCache } from '../../_cache.js'
-import { getFinanceConfig, getFinanceRoles, isAccountant, isCashier, isFinanceSupervisor, isFinanceStaff, voteStats, anonymousReasons } from '../../_finance.js'
+import { getFinanceConfig, getFinanceRoles, isAccountant, isCashier, isFinanceSupervisor, isFinanceStaff, isFullFinanceAccess, voteStats, anonymousReasons } from '../../_finance.js'
 import { autoSettleExpired } from '../finance/budgets/index.js'
 
 // 未登录响应为纯公开数据：CDN 边缘缓存 30 秒（登录响应含私有数据不缓存）
@@ -105,7 +105,7 @@ export async function onRequest(context) {
       const mv = await sql`SELECT proposal_id, choice FROM budget_votes WHERE user_id = ${auth.id}`
       myVotes = {}
       mv.forEach(r => { myVotes[r.proposal_id] = r.choice })
-      if (isFinanceStaff(auth, roles)) {
+      if (isFullFinanceAccess(auth) || isFinanceStaff(auth, roles)) {
         reimbursements = reimb
       } else {
         reimbursements = reimb.filter(r => r.applicant_id === auth.id)
@@ -141,10 +141,11 @@ export async function onRequest(context) {
       budgets: budgetsOut,
       reimbursements: reimbursementsOut,
       reconcilations: reconcilationsOut,
-      canViewAllReimb: !!(auth && isFinanceStaff(auth, roles)),
+      canViewAllReimb: !!(auth && (isFullFinanceAccess(auth) || isFinanceStaff(auth, roles))),
       myVotes,
       workbench: {
         pendingAudit, pendingPay,
+        isFullAccess: !!(auth && isFullFinanceAccess(auth)),
         isAccountant: !!(auth && isAccountant(auth, roles)),
         isCashier: !!(auth && isCashier(auth, roles)),
         isSupervisor: !!(auth && isFinanceSupervisor(auth, roles)),

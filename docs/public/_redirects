@@ -1,0 +1,7 @@
+# 旧「财务工作台」独立页已并入管理后台，旧链接 302 到后台班费深链
+/finance/workbench        /admin/?module=finance        302
+/finance/workbench/       /admin/?module=finance        302
+/en/finance/workbench     /admin/?module=finance        302
+/en/finance/workbench/    /admin/?module=finance        302
+/th/finance/workbench     /admin/?module=finance        302
+/th/finance/workbench/    /admin/?module=finance        302

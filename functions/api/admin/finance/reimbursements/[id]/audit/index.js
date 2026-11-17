@@ -5,7 +5,7 @@
 //         | reject 驳回 → rejected（终止）
 // body: { action, note? }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, isMissingTableError, ensureTables } from '../../../../../../_utils.js'
-import { getFinanceRoles, isAccountant } from '../../../../../../_finance.js'
+import { getFinanceRoles, isAccountant, isFullFinanceAccess } from '../../../../../../_finance.js'
 import { purgePublicCache } from '../../../../../../_cache.js'
 
 export async function onRequest(context) {
@@ -18,7 +18,7 @@ export async function onRequest(context) {
   try {
     const sql = getSql(env)
     const roles = await getFinanceRoles(env)
-    if (!isAccountant(auth.user, roles)) return corsResponse({ error: '仅会计可审核报销' }, 403)
+    if (!isAccountant(auth.user, roles) && !isFullFinanceAccess(auth.user)) return corsResponse({ error: '仅会计可审核报销' }, 403)
 
     const id = params.id
     let rows

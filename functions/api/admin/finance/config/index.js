@@ -3,7 +3,7 @@
 // POST：仅主理人/副主理人/监督人可改（参数表 + 角色人员按真名配置）
 // body: { config?: { key: value, ... }, roles?: [{name, f_role}] }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, isMissingTableError, ensureTables } from '../../../../_utils.js'
-import { DEFAULT_FINANCE_CONFIG, getFinanceConfig, getFinanceRoles, isFinanceSupervisor, isFinanceStaff } from '../../../../_finance.js'
+import { DEFAULT_FINANCE_CONFIG, getFinanceConfig, getFinanceRoles, isFinanceSupervisor, isFinanceStaff, isFullFinanceAccess } from '../../../../_finance.js'
 import { purgePublicCache } from '../../../../_cache.js'
 
 const ALLOWED_KEYS = Object.keys(DEFAULT_FINANCE_CONFIG)
@@ -21,7 +21,7 @@ export async function onRequest(context) {
     const sql = getSql(env)
     if (request.method === 'GET') {
       const roles = await getFinanceRoles(env)
-      const isCommittee = ['leader', 'deputy'].includes(auth.user.role) || isFinanceStaff(auth.user, roles)
+      const isCommittee = isFullFinanceAccess(auth.user) || isFinanceStaff(auth.user, roles)
       if (!isCommittee) return corsResponse({ error: '仅班委可查看财务配置' }, 403)
       const config = await getFinanceConfig(env)
       return corsResponse({ config, roles, defaults: DEFAULT_FINANCE_CONFIG })
@@ -29,7 +29,7 @@ export async function onRequest(context) {
 
     if (request.method === 'POST') {
       const roles = await getFinanceRoles(env)
-      const canWrite = ['leader', 'deputy'].includes(auth.user.role) || isFinanceSupervisor(auth.user, roles)
+      const canWrite = isFullFinanceAccess(auth.user) || isFinanceSupervisor(auth.user, roles)
       if (!canWrite) return corsResponse({ error: '仅主理人/副主理人/监督人可修改财务配置' }, 403)
 
       const body = await parseBody(request)

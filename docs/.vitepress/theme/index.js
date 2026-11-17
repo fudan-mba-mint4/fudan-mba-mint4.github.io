@@ -15,7 +15,6 @@ import Announcements from './components/Announcements.vue'
 import ClassFinanceLedger from './components/ClassFinanceLedger.vue'
 import ClassFinanceBudgets from './components/ClassFinanceBudgets.vue'
 import ClassFinanceReimb from './components/ClassFinanceReimb.vue'
-import ClassFinanceWorkbench from './components/ClassFinanceWorkbench.vue'
 import KnowledgeBase from './components/KnowledgeBase.vue'
 import Activities from './components/Activities.vue'
 import ClassCulture from './components/ClassCulture.vue'
@@ -76,7 +75,6 @@ export default {
     app.component('ClassFinanceLedger', ClassFinanceLedger)
     app.component('ClassFinanceBudgets', ClassFinanceBudgets)
     app.component('ClassFinanceReimb', ClassFinanceReimb)
-    app.component('ClassFinanceWorkbench', ClassFinanceWorkbench)
     app.component('KnowledgeBase', KnowledgeBase)
     app.component('Activities', Activities)
     app.component('ClassCulture', ClassCulture)

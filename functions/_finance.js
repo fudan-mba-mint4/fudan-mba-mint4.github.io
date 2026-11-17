@@ -101,6 +101,10 @@ export function isFinanceStaff(user, roles) {
   if (!user) return false
   return roles.some(r => r.user_id === user.id || r.name === user.name)
 }
+// RBAC 特权角色：主理人 / 副主理 / 独立董事会，对财务模块拥有完整访问权（含全部报销单）
+export function isFullFinanceAccess(user) {
+  return !!user && ['leader', 'deputy', 'supervisor'].includes(user.role)
+}
 
 // 判断某公示此刻是否仍处于公示期
 export function exposeOpen(p, now = Date.now()) {

@@ -4,7 +4,7 @@
 //                                       自动生成公示编号 MF4-BM-YYYYMMDD-XX、公示期 3 天、微信群同步时间=当天；通知全员投票
 //   { action: 'return', reason }      → 资料不全退回：submitted → returned，填退回原因；通知发起人
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../../_utils.js'
-import { getFinanceRoles, isAccountant, getFinanceConfig, nextProposalNo, BUDGET_STATUS } from '../../../../../_finance.js'
+import { getFinanceRoles, isAccountant, isFullFinanceAccess, getFinanceConfig, nextProposalNo, BUDGET_STATUS } from '../../../../../_finance.js'
 import { purgePublicCache } from '../../../../../_cache.js'
 
 export async function onRequest(context) {
@@ -17,7 +17,7 @@ export async function onRequest(context) {
   try {
     const sql = getSql(env)
     const roles = await getFinanceRoles(env)
-    if (!isAccountant(auth.user, roles)) return corsResponse({ error: '仅会计（程枭）可审批预算公示' }, 403)
+    if (!isAccountant(auth.user, roles) && !isFullFinanceAccess(auth.user)) return corsResponse({ error: '仅会计（程枭）可审批预算公示' }, 403)
     const config = await getFinanceConfig(env)
 
     const id = params.id

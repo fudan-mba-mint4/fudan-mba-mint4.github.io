@@ -2,7 +2,7 @@
 // 仅出纳（李浩鹏）可操作：小荷包实际打款后确认，生成支出流水入账公示
 // 硬约束：审核人与付款人不得为同一人（钱账分离）
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../../../_utils.js'
-import { getFinanceRoles, isCashier, newId, nextVoucherNo } from '../../../../../../_finance.js'
+import { getFinanceRoles, isCashier, isFullFinanceAccess, newId, nextVoucherNo } from '../../../../../../_finance.js'
 import { purgePublicCache } from '../../../../../../_cache.js'
 
 export async function onRequest(context) {
@@ -15,7 +15,7 @@ export async function onRequest(context) {
   try {
     const sql = getSql(env)
     const roles = await getFinanceRoles(env)
-    if (!isCashier(auth.user, roles)) return corsResponse({ error: '仅出纳可确认付款' }, 403)
+    if (!isCashier(auth.user, roles) && !isFullFinanceAccess(auth.user)) return corsResponse({ error: '仅出纳可确认付款' }, 403)
 
     const id = params.id
     let rows

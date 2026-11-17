@@ -518,14 +518,14 @@
       <!-- ===== 班费（子 Tab 管理） ===== -->
       <div v-if="currentType === 'finance'" class="form-section">
         <div class="fin-subtabs">
-          <button v-for="ft in finTabs" :key="ft.key" type="button" class="type-tab"
-            :class="{ active: finTab === ft.key }" @click="finTab = ft.key"
-            v-show="ft.key !== 'supervision' || isSupervisorLzy">{{ ft.icon }} {{ ft.name }}</button>
+          <button v-for="ft in visibleFinTabs" :key="ft.key" type="button" class="type-tab"
+            :class="{ active: finTab === ft.key }" @click="finTab = ft.key">{{ ft.icon }} {{ ft.name }}</button>
         </div>
 
         <div v-show="finTab === 'ledger'">
         <!-- 动作栏：流水统计（可筛选）+ 记一笔 -->
-        <ModuleBar :stats="finTxStats" :active="finTxFilter" add-label="＋ 记一笔" @toggle="toggleFinTxFilter" @add="openFinForm" />
+        <ModuleBar :stats="finTxStats" :active="finTxFilter" :add-label="canRegisterTx ? '＋ 记一笔' : ''" @toggle="toggleFinTxFilter" @add="openFinForm" />
+        <p v-if="!canRegisterTx" class="empty-hint" style="margin:0 0 10px">只读：收支登记由出纳李浩鹏负责</p>
         <!-- 记一笔表单（展开式） -->
         <div v-if="finFormOpen" class="module-form">
         <h3>💰 添加班费收支</h3>
@@ -632,7 +632,7 @@
 
         <div v-show="finTab === 'budgets'">
         <!-- 动作栏：公示统计（可筛选）+ 发公示（仅会计可见） -->
-        <ModuleBar :stats="budgetStats" :active="budgetFilter" :add-label="isAccountantView ? '＋ 发公示' : ''" @toggle="toggleBudgetFilter" @add="openBudgetForm" />
+        <ModuleBar :stats="budgetStats" :active="budgetFilter" :add-label="canManageBudget ? '＋ 发公示' : ''" @toggle="toggleBudgetFilter" @add="openBudgetForm" />
         <!-- 公示到期提醒（到期前 24h） -->
         <p v-if="budgetExpiringCount" class="budget-expiring">⏰ 有 {{ budgetExpiringCount }} 条公示将在 24 小时内到期，请注意跟进</p>
         <!-- 发布预算表单（展开式） -->
@@ -711,7 +711,7 @@
             </div>
             <div class="reimb-actions">
               <button type="button" class="existing-del detail" @click="openBudgetDetail(b)">详情</button>
-              <template v-if="isAccountantView">
+              <template v-if="canManageBudget">
                 <button v-if="['submitted','returned'].includes(b.status)" type="button" class="existing-del ok" @click="openBudgetApprove(b)">公开</button>
                 <button v-if="b.status === 'submitted'" type="button" class="existing-del" @click="openBudgetReturn(b)">退回</button>
                 <button v-if="b.status === 'open'" type="button" class="existing-del ok" @click="settleBudget(b)">结算</button>
@@ -779,7 +779,7 @@
                 <p class="bd-text">赞成 {{ budgetDetail.forCount ?? 0 }} · 反对 {{ budgetDetail.againstCount ?? 0 }} · 未表态 {{ budgetDetail.uncommitted ?? 0 }} · 否决线 {{ budgetDetail.vetoCount ?? '—' }}<template v-if="budgetDetail.exposeEnd"> · 公示至 {{ (budgetDetail.exposeEnd || '').slice(0, 10) }}</template></p>
               </div>
               <div class="form-actions bd-actions">
-                <template v-if="isAccountantView">
+                <template v-if="canManageBudget">
                   <button v-if="['submitted','returned'].includes(budgetDetail.status)" type="button" class="submit-btn" :disabled="submitting" @click="openBudgetApprove(budgetDetail)">公开</button>
                   <button v-if="budgetDetail.status === 'submitted'" type="button" class="existing-del" @click="openBudgetReturn(budgetDetail)">退回</button>
                 </template>
@@ -933,10 +933,12 @@
             </div>
             <div class="reimb-actions">
               <button type="button" class="existing-del detail" @click="openReimbDetail(r)">详情</button>
-              <button v-if="r.status === 'submitted'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'approve')">通过</button>
-              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'revision')">退回补正</button>
-              <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'reject')">驳回</button>
-              <button v-if="r.status === 'approved'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'pay')">确认打款</button>
+              <template v-if="canAuditReimb">
+                <button v-if="r.status === 'submitted'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'approve')">通过</button>
+                <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'revision')">退回补正</button>
+                <button v-if="r.status === 'submitted'" type="button" class="existing-del" @click="openReimbAudit(r, 'reject')">驳回</button>
+              </template>
+              <button v-if="canPayReimb && r.status === 'approved'" type="button" class="existing-del ok" @click="openReimbAudit(r, 'pay')">确认打款</button>
             </div>
             <!-- 审批意见输入（二次确认） -->
             <div v-if="reimbAudit && reimbAudit.id === r.id" class="reject-box reimb-audit-box">
@@ -2649,8 +2651,7 @@ const budgetStats = computed(() => [
   { key: 'ended', label: '已结束', count: budgetEndedCount },
 ])
 
-// ===== 预算公示 v2 审批：公开 / 退回（仅会计程枭，其他主理人只读）=====
-const isAccountantView = computed(() => (currentUser.value?.name || '') === '程枭')
+// ===== 预算公示 v2 审批：公开 / 退回（权限见 canManageBudget）=====
 const budgetReturn = ref(null) // { id, title, reason }
 const budgetApproved = ref(null) // { title, proposalNo, url }
 const budgetApproveConfirm = ref(null) // { id, title }
@@ -2816,6 +2817,7 @@ async function loadFinanceTransactions() {
       const j = await pubRes.json()
       finTransactions.value = j.transactions || []
       finReimbursements.value = j.reimbursements || []
+      finWorkbench.value = j.workbench || {}
     }
     if (adminRes.ok) {
       const j = await adminRes.json()
@@ -2838,6 +2840,8 @@ async function deleteFinanceTx(tx) {
 // ===== 预算公示 / 报销审批（班费线上化）=====
 const finBudgets = ref([])
 const finReimbursements = ref([])
+// 服务端下发的当前登录人财务角色标志（isAccountant/isCashier/isSupervisor/isFinanceStaff）
+const finWorkbench = ref({})
 const budgetForm = ref({ activityId:'', title:'', description:'', detailItems:[{item:'',amount:null}], amount:null, proposer:'', exposeType:'normal', approvalNote:'' })
 function addBudgetItem() { budgetForm.value.detailItems.push({ item:'', amount:null }) }
 function removeBudgetItem(i) { if (budgetForm.value.detailItems.length > 1) budgetForm.value.detailItems.splice(i, 1) }
@@ -3127,6 +3131,42 @@ function coinRuleName(id) {
 
 // ===== 监督视图（仅雷振宇可见；票向实名明细 + 对账 + 全局流水）=====
 const isSupervisorLzy = computed(() => (currentUser.value?.name || '') === '雷振宇')
+
+// ===== 班费访问级别（角色化）=====
+// full=主理人/副主理/独立董事会（RBAC 全模块）；accountant=会计（程枭）；cashier=出纳（李浩鹏）；
+// staff=财务组备岗（高晓梅/叶宏颖，只读）；none=无财务权限
+const finAccess = computed(() => {
+  const r = currentUser.value
+  const wb = finWorkbench.value || {}
+  if (r && ['leader', 'deputy', 'supervisor'].includes(r.role)) return { level: 'full', default: 'ledger' }
+  if (wb.isAccountant) return { level: 'accountant', default: 'reimb' }
+  if (wb.isCashier) return { level: 'cashier', default: 'reimb' }
+  if (wb.isFinanceStaff) return { level: 'staff', default: 'ledger' }
+  return { level: 'none', default: 'ledger' }
+})
+// 各访问级别可见的子页 key
+const FIN_TAB_KEYS = {
+  full: ['ledger', 'budgets', 'reimb', 'config', 'supervision'],
+  accountant: ['budgets', 'reimb'],
+  cashier: ['ledger', 'reimb'],
+  staff: ['ledger', 'budgets', 'reimb'],
+  none: [],
+}
+const visibleFinTabs = computed(() => {
+  const keys = FIN_TAB_KEYS[finAccess.value.level] || []
+  return finTabs.filter(ft => keys.includes(ft.key) && (ft.key !== 'supervision' || isSupervisorLzy.value))
+})
+// 写操作权限
+const canRegisterTx = computed(() => ['full', 'cashier'].includes(finAccess.value.level))
+const canManageBudget = computed(() => ['full', 'accountant'].includes(finAccess.value.level))
+const canAuditReimb = computed(() => ['full', 'accountant'].includes(finAccess.value.level))
+const canPayReimb = computed(() => ['full', 'cashier'].includes(finAccess.value.level))
+// 角色标志异步到位后，若当前子页不在可见范围则回到该角色默认子页
+watch(visibleFinTabs, (tabs) => {
+  if (currentType.value !== 'finance') return
+  if (!tabs.some(t => t.key === finTab.value)) finTab.value = finAccess.value.default
+})
+
 const finSupervision = ref(null)
 const supervisionMsg = ref('')
 async function loadFinanceSupervision() {
@@ -3308,19 +3348,35 @@ async function deleteKnowledgeDoc(doc) {
     kbDocuments.value = kbDocuments.value.filter(d => String(d.id) !== String(doc.id))
   } catch (e) { alert('删除失败: ' + e.message) }
 }
-onMounted(() => {
-  if (isAuthenticated.value) { loadHistory(); loadTodoBadges() }
-})
-// 登录成功后加载提交记录与待办红点
-watch(isAuthenticated, (v) => { if (v) { loadHistory(); loadTodoBadges() } })
-watch(currentType, (val) => {
+// 按当前模块加载数据（模块切换与登录态恢复时复用，避免未登录时拉到空数据后不恢复）
+function loadActiveModule() {
+  const val = currentType.value
   if (val === 'courseMaterials') loadCourseFiles()
-  if (val === 'finance') { loadFinanceTransactions(); loadFinanceConfig(); if (isSupervisorLzy.value) loadFinanceSupervision(); if (activitiesList.value.length === 0) loadActivityList() }
+  if (val === 'finance') {
+    loadFinanceTransactions(); loadFinanceConfig()
+    if (isSupervisorLzy.value) loadFinanceSupervision()
+    if (activitiesList.value.length === 0) loadActivityList()
+  }
   if (val === 'coins') { loadCoinClaims(); loadCoinRules() }
   if (val === 'activities' && actList.value.length === 0) loadActivityList()
   if (val === 'treehole' && treeholeMessages.value.length === 0) loadTreeholeMessages()
   if (val === 'knowledge' && kbCourses.value.length === 0) loadKbCourses()
+}
+onMounted(() => {
+  // 深链：/admin?module=finance 直接打开指定模块
+  try {
+    const q = new URLSearchParams(window.location.search)
+    const mod = q.get('module') || q.get('tab')
+    if (mod && dataTypes.some(d => d.id === mod)) currentType.value = mod
+  } catch (e) { /* 无 query 忽略 */ }
+  if (isAuthenticated.value) { loadHistory(); loadTodoBadges() }
 })
+// 登录成功后：提交记录 + 待办红点 + 重新加载当前模块（修复登录态就绪后不重拉的健壮性缺口）
+watch(isAuthenticated, (v) => {
+  if (!v) return
+  loadHistory(); loadTodoBadges(); loadActiveModule()
+})
+watch(currentType, () => loadActiveModule())
 </script>
 
 <style scoped>

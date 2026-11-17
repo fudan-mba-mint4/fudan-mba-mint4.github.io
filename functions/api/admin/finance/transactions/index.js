@@ -3,7 +3,7 @@
 // DELETE /api/admin/finance/transactions：删除一笔（body { id }）
 // 鉴权：仅会计（管账）或出纳（管钱）可登记/删除
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../_utils.js'
-import { getFinanceRoles, isAccountant, isCashier, FINANCE_CATEGORIES, INCOME_CATEGORIES, VOUCHER_TYPES, MAX_VOUCHERS_PER_REIMB, newId, nextVoucherNo } from '../../../../_finance.js'
+import { getFinanceRoles, isAccountant, isCashier, isFullFinanceAccess, FINANCE_CATEGORIES, INCOME_CATEGORIES, VOUCHER_TYPES, MAX_VOUCHERS_PER_REIMB, newId, nextVoucherNo } from '../../../../_finance.js'
 import { purgePublicCache } from '../../../../_cache.js'
 
 export async function onRequest(context) {
@@ -15,7 +15,7 @@ export async function onRequest(context) {
   try {
     const sql = getSql(env)
     const roles = await getFinanceRoles(env)
-    if (!isAccountant(auth.user, roles) && !isCashier(auth.user, roles)) {
+    if (!isAccountant(auth.user, roles) && !isCashier(auth.user, roles) && !isFullFinanceAccess(auth.user)) {
       return corsResponse({ error: '仅会计或出纳可登记流水' }, 403)
     }
 

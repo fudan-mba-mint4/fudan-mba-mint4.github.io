@@ -19,6 +19,7 @@ layout: page
     { id: 'vote', text: '3 天投票期', level: 2 },
     { id: 'result', text: '到期自动出结果', level: 2 },
     { id: 'reimb', text: '报销（公示通过之后）', level: 2 },
+    { id: 'admin', text: '管理后台班费（按角色区分）', level: 2 },
     { id: 'faq', text: '常见问题', level: 2 }
   ]"
 >
@@ -264,6 +265,30 @@ layout: page
     提交、审批、打款各环节都有默认时限，超时会通过站内通知提醒对应班委；每笔打款都在账页留下记录，随时可查。默认时限：报销提交 7 个工作日、会计审核 3 个工作日、出纳打款 3 个工作日。
   </GuideCallout>
 
+  <GuideSectionHead
+    id="admin"
+    title="管理后台班费（按角色区分）"
+    lead="原独立的「财务工作台」已并入管理后台，导航里的「财务工作台」直接深链到后台班费，旧链接自动 302 跳转。"
+  />
+
+  <GuideCallout variant="info" title="一处入口、按角色显示">
+    <ul>
+      <li>管理后台班费不再有独立页面，统一在「管理后台 → 班费」里操作；打开后只显示与本人角色相关的子页和按钮，无关内容自动隐藏。</li>
+      <li>可直接用深链 /admin?module=finance 打开；登录态就绪后系统会自动重新拉取数据，不会出现登录前拉到空数据、登录后仍不刷新的情况。</li>
+    </ul>
+  </GuideCallout>
+
+  <GuideInfoTable
+    caption="各角色可见子页与可执行操作"
+    :columns="[{ key: 'role', title: '角色' }, { key: 'tabs', title: '可见子页' }, { key: 'actions', title: '可执行操作' }]"
+    :rows="[
+      { role: { text: '主理人 / 副主理 / 独立董事会', strong: true }, tabs: '流水、预算、报销、参数（监督视图仅雷振宇）', actions: '全部操作：记一笔、发公示、审批、打款、改参数' },
+      { role: { text: '会计（程枭）', strong: true }, tabs: '预算公示、报销审批', actions: '发布公示、审批预算、报销通过/退回/驳回' },
+      { role: { text: '出纳（李浩鹏）', strong: true }, tabs: '流水管理、报销审批', actions: '记一笔、确认打款、登记对账' },
+      { role: { text: '财务备岗（高晓梅、叶宏颖）', strong: true }, tabs: '流水、预算、报销', actions: '只读，无写操作' }
+    ]"
+  />
+
   <GuideFaq
     id="faq"
     :items="[
@@ -290,6 +315,6 @@ layout: page
   </template>
 
   <template #footer>
-    <GuideMaintenanceBar date="2026-11-16" />
+    <GuideMaintenanceBar date="2026-11-17" />
   </template>
 </GuideDocShell>

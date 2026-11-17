@@ -3,7 +3,7 @@
 // POST：仅出纳（李浩鹏）登记对账/收款，可关联预算公示与报销单
 // body: { date, actualBalance, note?, proposalId?, reimbursementId? }
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, isMissingTableError, ensureTables, logHistory } from '../../../_utils.js'
-import { getFinanceRoles, isCashier, newId } from '../../../_finance.js'
+import { getFinanceRoles, isCashier, isFullFinanceAccess, newId } from '../../../_finance.js'
 import { purgePublicCache } from '../../../_cache.js'
 
 export async function onRequest(context) {
@@ -33,7 +33,7 @@ export async function onRequest(context) {
 
     if (request.method === 'POST') {
       const roles = await getFinanceRoles(env)
-      if (!isCashier(auth.user, roles)) return corsResponse({ error: '仅出纳可登记对账' }, 403)
+      if (!isCashier(auth.user, roles) && !isFullFinanceAccess(auth.user)) return corsResponse({ error: '仅出纳可登记对账' }, 403)
       const body = await parseBody(request)
       if (!body.date) return corsResponse({ error: '请选择对账日期' }, 400)
       const bal = Number(body.actualBalance)

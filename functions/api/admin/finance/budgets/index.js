@@ -3,7 +3,7 @@
 //   body: { title, description?, amount, detailItems?, activityId?, category?, exposeDays?, exposeType?('normal'|'emergency'), approvalNote? }
 // GET：全部公示 + v2 投票聚合（赞成/反对/未表态/红线 + 匿名反对留言；票向明细仅监督视图提供）
 import { getSql, corsResponse, optionsResponse, parseBody, requireLogin, logHistory, notify, isMissingTableError, ensureTables } from '../../../../_utils.js'
-import { getFinanceRoles, isAccountant, getFinanceConfig, FINANCE_CATEGORIES, newId, voteStats, anonymousReasons } from '../../../../_finance.js'
+import { getFinanceRoles, isAccountant, isFullFinanceAccess, getFinanceConfig, FINANCE_CATEGORIES, newId, voteStats, anonymousReasons } from '../../../../_finance.js'
 import { purgePublicCache } from '../../../../_cache.js'
 
 export async function onRequest(context) {
@@ -60,7 +60,7 @@ export async function onRequest(context) {
     }
 
     if (request.method === 'POST') {
-      if (!isAccountant(auth.user, roles)) return corsResponse({ error: '仅会计可发布紧急补公示' }, 403)
+      if (!isAccountant(auth.user, roles) && !isFullFinanceAccess(auth.user)) return corsResponse({ error: '仅会计可发布紧急补公示' }, 403)
       const body = await parseBody(request)
       // v2 流程：常规公示由前台任何注册同学发起 → 会计审核后公开；此处仅保留「紧急·事后补公示」能力
       if (body.exposeType !== 'emergency') {
