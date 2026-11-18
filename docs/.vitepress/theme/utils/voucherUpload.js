@@ -1,13 +1,13 @@
 /**
  * 报销/记账凭证上传公共工具
  * - 图片统一压缩为 JPEG（GIF 保留原文件，动图不压）；PDF 原样直传
- * - 单文件 5MB 上限；R2 key 规范化（不使用原始文件名，兼容多点/特殊字符文件名）
+ * - 单文件 20MB 上限；R2 key 规范化（不使用原始文件名，兼容多点/特殊字符文件名）
  * - 调用方负责总文件数上限（30）与凭证类型口径
  */
 import { fetchWithRetry } from './fetchWithRetry.js'
 
 export const MAX_VOUCHER_FILES = 30
-export const MAX_VOUCHER_BYTES = 5 * 1024 * 1024
+export const MAX_VOUCHER_BYTES = 20 * 1024 * 1024
 
 // 客户端预生成报销单号（与后端 newId('rb') 同形态）
 export function newReimbId() {
@@ -76,7 +76,7 @@ export async function prepareVoucherFile(file) {
 export async function uploadVoucherFile({ file, token, username, prefix = 'receipts' }) {
   const prepared = await prepareVoucherFile(file)
   if (prepared.bytes.length > MAX_VOUCHER_BYTES)
-    throw new Error('单文件不能超过 5MB（图片已自动压缩，仍超限请拆分或降低清晰度）')
+    throw new Error('单文件不能超过 20MB（图片已自动压缩，仍超限请拆分或降低清晰度）')
   const safeUser = String(username || 'guest').replace(/[^\w-]/g, '_')
   const key = `${prefix}/${safeUser}/${Date.now()}-${randomTag()}.${prepared.ext}`
   const dataBase64 = bytesToBase64(prepared.bytes)

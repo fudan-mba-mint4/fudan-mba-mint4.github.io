@@ -70,6 +70,33 @@ function normalizeItems(raw) {
   return { ok: true, items, total, category: cats.size === 1 ? items[0].category : 'other' }
 }
 
+// 草稿用宽松规范化：不强制项目/金额/分类，保留已填内容（金额可为 0、分类缺省回退 dining）；
+// 过滤整行空白，但若全部为空则保留一个空行，避免草稿无明细
+function normalizeDraftItems(raw) {
+  const list = Array.isArray(raw) ? raw : []
+  let items = []
+  for (const it of list) {
+    const name = String(it.item || it.name || '').trim().slice(0, 60)
+    const amount = Math.round((Number(it.amount) || 0) * 100) / 100
+    const category = FINANCE_CATEGORIES.includes(it.category) ? it.category : 'dining'
+    const note = String(it.note || '').trim().slice(0, 120)
+    const date = validDate(it.date) ? String(it.date).trim() : ''
+    if (name || amount > 0 || note || date) items.push({ item: name, category, amount, note, date })
+  }
+  if (items.length === 0) items = [{ item: '', category: 'dining', amount: 0, note: '', date: '' }]
+  const total = Math.round(items.reduce((s, it) => s + it.amount, 0) * 100) / 100
+  const cats = new Set(items.map(it => it.category))
+  return { items, total, category: cats.size === 1 ? items[0].category : 'other' }
+}
+
+// 草稿凭证：仅做类型/归属/数量上限的安全清洗，不要求付款凭证、允许为空
+function sanitizeDraftVouchers(raw) {
+  const list = Array.isArray(raw) ? raw : []
+  return list
+    .filter(v => v && v.type && VOUCHER_TYPES.includes(v.type) && voucherOk(v.url))
+    .slice(0, MAX_VOUCHERS_PER_REIMB)
+}
+
 // 校验报销关联的预算公示：必须已通过（passed），且金额不超过公示预算上限（超预算部分不予支付，制度第五章）
 async function verifyProposal(sql, proposalId, amount, env) {
   if (!proposalId || !String(proposalId).trim()) {
@@ -115,8 +142,27 @@ export async function onRequest(context) {
       }
       const rb = rows[0]
       if (!rb) return corsResponse({ error: '未找到该报销单' }, 404)
-      if (rb.applicant_id !== auth.user.id) return corsResponse({ error: '只能补正自己提交的报销单' }, 403)
-      if (rb.status !== 'need_revision') return corsResponse({ error: '仅待补正的报销单可修改重新提交' }, 400)
+      if (rb.applicant_id !== auth.user.id) return corsResponse({ error: '只能修改自己提交的报销单' }, 403)
+      if (!['need_revision', 'draft'].includes(rb.status)) return corsResponse({ error: '仅草稿或待补正的报销单可修改' }, 400)
+
+      const saveDraft = body.saveDraft === true
+      const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
+
+      if (saveDraft) {
+        const nd = normalizeDraftItems(body.items)
+        const vouchers = sanitizeDraftVouchers(body.vouchers)
+        await sql`
+          UPDATE reimbursements
+          SET proposal_id = ${body.proposalId || null}, activity_id = ${body.activityId || null},
+              expense_date = ${deriveExpenseDate(nd.items)}, amount = ${nd.total}, category = ${nd.category},
+              description = ${String(body.description || '').trim()}, items = ${JSON.stringify(nd.items)},
+              vouchers = ${JSON.stringify(vouchers)}, endorsement = ${endorsement ? JSON.stringify(endorsement) : ''},
+              status = 'draft'
+          WHERE id = ${id}
+        `
+        await purgePublicCache('finance-v2-public')
+        return corsResponse({ message: '草稿已更新，可随时继续填写', status: 'draft' })
+      }
 
       const ni = normalizeItems(body.items)
       if (!ni.ok) return corsResponse({ error: ni.error }, 400)
@@ -127,7 +173,6 @@ export async function onRequest(context) {
       const vcheck = validateVoucherList(body.vouchers)
       if (!vcheck.ok) return corsResponse({ error: vcheck.error }, 400)
       const vouchers = vcheck.vouchers
-      const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
       const expenseDate = deriveExpenseDate(ni.items)
 
       await sql`
@@ -140,10 +185,39 @@ export async function onRequest(context) {
         WHERE id = ${id}
       `
     await purgePublicCache('finance-v2-public')
-      return corsResponse({ message: '已补正并重新提交，等待会计审核', status: 'submitted' })
+      return corsResponse({ message: rb.status === 'draft' ? '已提交，等待会计审核' : '已补正并重新提交，等待会计审核', status: 'submitted' })
     }
 
-    // POST 新提交
+    // POST 新单（草稿或正式提交）
+    const saveDraft = body.saveDraft === true
+    const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
+
+    // 单号优先使用客户端预生成 id（用于凭证文件命名）；格式非法或已存在则服务端重生成
+    let id = ''
+    const clientId = String(body.id || '').trim()
+    if (/^rb-[a-z0-9]+(-[a-z0-9]+)?$/.test(clientId)) {
+      const dup = await sql`SELECT id FROM reimbursements WHERE id = ${clientId} LIMIT 1`
+      if (dup.length === 0) id = clientId
+    }
+    if (!id) id = newId('rb')
+
+    if (saveDraft) {
+      const nd = normalizeDraftItems(body.items)
+      const vouchers = sanitizeDraftVouchers(body.vouchers)
+      const draftInsert = () => sql`
+        INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, items, vouchers, endorsement, status)
+        VALUES (${id}, ${body.proposalId || null}, ${body.activityId || null}, ${auth.user.name}, ${auth.user.id}, ${deriveExpenseDate(nd.items)}, ${nd.total}, ${nd.category}, ${String(body.description || '').trim()}, ${JSON.stringify(nd.items)}, ${JSON.stringify(vouchers)}, ${endorsement ? JSON.stringify(endorsement) : ''}, 'draft')
+      `
+      try { await draftInsert() }
+      catch (e) {
+        if (isMissingTableError(e)) { await ensureTables(env); await draftInsert() }
+        else throw e
+      }
+      await purgePublicCache('finance-v2-public')
+      return corsResponse({ message: '草稿已保存，可随时继续填写', id, status: 'draft' })
+    }
+
+    // 正式提交
     const ni = normalizeItems(body.items)
     if (!ni.ok) return corsResponse({ error: ni.error }, 400)
     const amount = ni.total
@@ -154,17 +228,7 @@ export async function onRequest(context) {
     const vcheck = validateVoucherList(body.vouchers)
     if (!vcheck.ok) return corsResponse({ error: vcheck.error }, 400)
     const vouchers = vcheck.vouchers
-    const endorsement = body.endorsement && typeof body.endorsement === 'object' ? body.endorsement : null
     const expenseDate = deriveExpenseDate(ni.items)
-
-    // 单号优先使用客户端预生成 id（用于凭证文件命名）；格式非法或已存在则服务端重生成
-    let id = ''
-    const clientId = String(body.id || '').trim()
-    if (/^rb-[a-z0-9]+(-[a-z0-9]+)?$/.test(clientId)) {
-      const dup = await sql`SELECT id FROM reimbursements WHERE id = ${clientId} LIMIT 1`
-      if (dup.length === 0) id = clientId
-    }
-    if (!id) id = newId('rb')
 
     const insertSql = () => sql`
         INSERT INTO reimbursements (id, proposal_id, activity_id, applicant, applicant_id, expense_date, amount, category, description, items, vouchers, endorsement, status)

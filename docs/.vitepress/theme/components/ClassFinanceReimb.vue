@@ -43,7 +43,7 @@ function emptyReimbForm() {
     id: '', activityId: '', proposalId: '',
     description: '', items: [emptyItemRow()], vouchers: [],
     uploading: false, submitting: false, msg: '',
-    editingId: null,
+    editingId: null, editingStatus: '',
   }
 }
 const reimbForm = ref(emptyReimbForm())
@@ -81,7 +81,7 @@ function editReimb(r) {
     id: r.id, activityId: r.activityId || '', proposalId: r.proposalId || '',
     description: r.description || '', items, vouchers: [...(r.vouchers || [])],
     uploading: false, submitting: false, msg: '',
-    editingId: r.id,
+    editingId: r.id, editingStatus: r.status || '',
   }
   showReimbForm.value = true
 }
@@ -92,7 +92,7 @@ function newReimbForm() {
   showReimbForm.value = true
 }
 
-/* 凭证多文件上传：图片（任意格式，自动压缩）/PDF；单文件 5MB、总数 30 的上限在工具与后端双侧校验 */
+/* 凭证多文件上传：图片（任意格式，自动压缩）/PDF；单文件 20MB、总数 30 的上限在工具与后端双侧校验 */
 async function addVoucherFiles(type, event) {
   const files = Array.from(event.target.files || [])
   event.target.value = ''
@@ -155,9 +155,45 @@ async function submitReimb() {
     })
     const json = await res.json().catch(() => ({}))
     if (res.ok) {
-      f.msg = f.editingId ? t.value.needRevise + ' ✓' : t.value.successSubmitted
+      f.msg = (f.editingId && f.editingStatus === 'need_revision') ? t.value.needRevise + ' ✓' : t.value.successSubmitted
       showReimbForm.value = false
       reimbForm.value = emptyReimbForm()
+      await loadFinance()
+    } else f.msg = json.error || t.value.loadFailed
+  } catch (e) { f.msg = t.value.loadFailed }
+  finally { f.submitting = false }
+}
+
+/* 保存草稿：不做强制校验，已填内容原样提交；新草稿 POST、已有草稿 PUT（绑定 id 后走 PUT） */
+async function saveDraftReimb() {
+  const f = reimbForm.value
+  if (f.submitting || f.uploading) return
+  f.submitting = true
+  f.msg = ''
+  try {
+    const payload = {
+      id: f.id || undefined,
+      activityId: f.activityId || null, proposalId: f.proposalId || null,
+      amount: itemsTotal.value,
+      category: f.items[0]?.category || 'dining',
+      items: f.items.map(it => ({
+        item: String(it.item || '').trim(), category: it.category,
+        amount: Number(it.amount) || 0, note: String(it.note || '').trim(),
+        date: String(it.date || '').trim(),
+      })),
+      description: f.description.trim(), vouchers: f.vouchers,
+      saveDraft: true,
+    }
+    const res = await fetch('/api/finance/reimbursements', {
+      method: f.editingId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken.value}` },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (res.ok) {
+      f.msg = json.message || t.value.draftSaved
+      f.editingId = json.id || f.id
+      f.editingStatus = 'draft'
       await loadFinance()
     } else f.msg = json.error || t.value.loadFailed
   } catch (e) { f.msg = t.value.loadFailed }
@@ -277,8 +313,10 @@ watch(() => router.route.path, () => {
         <div class="form-actions">
           <span v-if="reimbForm.msg" class="oppose-msg">{{ reimbForm.msg }}</span>
           <button class="btn-oppose primary" :disabled="!reimbCanSubmit || reimbForm.submitting || reimbForm.uploading" @click="submitReimb">
-            {{ reimbForm.uploading ? t.uploading : reimbForm.submitting ? t.submitting : (reimbForm.editingId ? t.needRevise : t.submit) }}
+            {{ reimbForm.uploading ? t.uploading : reimbForm.submitting ? t.submitting
+              : (reimbForm.editingStatus === 'need_revision' ? t.needRevise : t.submit) }}
           </button>
+          <button class="btn-ghost" :disabled="reimbForm.submitting || reimbForm.uploading" @click="saveDraftReimb">{{ t.saveDraft }}</button>
           <button v-if="reimbForm.editingId" class="btn-ghost" @click="reimbForm = emptyReimbForm(); showReimbForm = false">{{ t.close }}</button>
         </div>
       </div>
@@ -338,6 +376,7 @@ watch(() => router.route.path, () => {
           <div class="rc-foot">
             <button v-if="r.vouchers && r.vouchers.length" class="link-btn" @click="openVouchers(r)">📎 {{ t.voucher }} ({{ r.vouchers.length }})</button>
             <span v-if="r.auditNote" class="rc-note">{{ t.auditNote }}: {{ r.auditNote }}</span>
+            <button v-if="r.status === 'draft'" class="link-btn" @click="editReimb(r)">{{ t.continueEdit }}</button>
             <button v-if="r.status === 'need_revision'" class="link-btn" @click="editReimb(r)">{{ t.needRevise }}</button>
           </div>
         </div>

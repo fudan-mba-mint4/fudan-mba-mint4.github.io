@@ -50,13 +50,10 @@ export async function onRequest(context) {
     }
 
     if (typeof dataBase64 !== 'string') return corsResponse({ error: '文件内容无效' }, 400)
-    // 大小上限：凭证/证明单文件 5MB（base64 约 7M 字符）；许愿池图片与预算附件放宽到 20MB（约 28M 字符）
-    const maxChars = (rule.kind === 'receipt' || rule.kind === 'proof')
-      ? 7 * 1024 * 1024
-      : 28 * 1024 * 1024
+    // 大小上限：全体单文件 20MB（base64 约 28M 字符），含报销凭证/证明/许愿池图片/预算附件
+    const maxChars = 28 * 1024 * 1024
     if (dataBase64.length > maxChars) {
-      const limit = (rule.kind === 'receipt' || rule.kind === 'proof') ? 5 : 20
-      return corsResponse({ error: `文件过大（单文件不超过 ${limit}MB）` }, 400)
+      return corsResponse({ error: '文件过大（单文件不超过 20MB）' }, 400)
     }
     if (!env.R2) return corsResponse({ error: 'R2 binding 未配置' }, 500)
 

@@ -106,7 +106,8 @@ export async function onRequest(context) {
       myVotes = {}
       mv.forEach(r => { myVotes[r.proposal_id] = r.choice })
       if (isFullFinanceAccess(auth) || isFinanceStaff(auth, roles)) {
-        reimbursements = reimb
+        // 草稿仅本人可见：财务角色能看到全部非草稿单，外加自己的草稿
+        reimbursements = reimb.filter(r => r.status !== 'draft' || r.applicant_id === auth.id)
       } else {
         reimbursements = reimb.filter(r => r.applicant_id === auth.id)
       }
