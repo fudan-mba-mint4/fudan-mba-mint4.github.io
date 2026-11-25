@@ -333,13 +333,15 @@
         <div v-if="cmFormOpen" class="module-form">
         <h3>📚 添加课程资料</h3>
         <form @submit.prevent="submitCourseMaterial" class="data-form">
-          <!-- 1. 选课程 -->
+          <!-- 1. 选课程（按学期分组，已结课课程可继续补传课件） -->
           <div class="form-group">
             <label>课程 <span class="required">*</span></label>
             <select v-model="cmForm.courseId" @change="onCmCourseChange">
-              <option value="dmd">数据、模型与决策（DMD）</option>
-              <option value="managerial-economics">管理经济学</option>
-              <option value="accounting">会计学</option>
+              <optgroup v-for="g in cmCourseGroups" :key="g.term" :label="g.label">
+                <option v-for="c in g.courses" :key="c.id" :value="c.id">
+                  {{ c.name }}{{ c.stage === 'archive' ? ' · 已结课' : '' }}
+                </option>
+              </optgroup>
             </select>
           </div>
 
@@ -353,7 +355,7 @@
             <select v-if="cmForm.target === 'existing'" v-model="cmForm.sessionKey">
               <option value="" disabled>选择讲次…</option>
               <option v-for="s in cmExistingSessions" :key="s.key" :value="s.key">
-                第{{ s.session }}讲 · {{ s.title }} · {{ s.date }}
+                第{{ s.session }}讲{{ s.title ? ' · ' + s.title : ' · 待上传' }} · {{ s.date }}
               </option>
             </select>
             <template v-else>
@@ -420,37 +422,159 @@
         </form>
         </div><!-- /module-form -->
 
-        <!-- 当前课件与资料列表 -->
+        <!-- 当前课件与资料列表（按 课程 → 讲次 分组） -->
         <div class="module-list">
           <div class="module-list-head">
             <h4>当前课件与资料{{ cmFilter ? ' · ' + cmFilter : '' }}（{{ filteredCmFiles.length }}）</h4>
+            <select v-model="cmCourseFilter" class="cm-course-filter">
+              <option value="">全部课程</option>
+              <option v-for="c in (cmPack && cmPack.courses) || []" :key="c.id" :value="c.id">
+                {{ c.name }}{{ c.stage === 'archive' ? '（已结课）' : '' }}
+              </option>
+            </select>
           </div>
-          <p v-if="!filteredCmFiles.length" class="empty-hint">{{ cmFilter ? '该类型暂无资料，点击统计可切换筛选' : '暂无资料，点上方「上传资料」添加第一个' }}</p>
-          <div v-for="item in filteredCmFiles" :key="item.fileUrl" class="existing-item">
-            <div class="existing-info">
-              <span class="existing-title">{{ item.name }}</span>
-              <span class="existing-meta">{{ item.courseName }} · {{ item.kind }} · {{ item.size }}</span>
+          <p v-if="!cmFileGroups.length" class="empty-hint">{{ cmFilter || cmCourseFilter ? '该筛选下暂无资料，切换筛选查看其他' : '暂无资料，点上方「上传资料」添加第一个' }}</p>
+          <div v-for="g in cmFileGroups" :key="g.id" class="cm-group">
+            <div class="cm-group-head">
+              <span class="cm-group-name">{{ g.name }}</span>
+              <span class="cm-group-tag" v-if="g.stage === 'archive'">已结课</span>
+              <span class="cm-group-term">{{ g.term }}</span>
             </div>
-            <button type="button" class="existing-del" @click="deleteCourseFile(item)">删除</button>
+            <div v-for="sx in g.sessions" :key="g.id + '@' + sx.session" class="cm-group-session">
+              <div class="cm-session-head">
+                <span class="cm-session-no">第{{ sx.session }}讲</span>
+                <span v-if="sx.title" class="cm-session-title">{{ sx.title }}</span>
+                <span class="cm-session-date">{{ sx.date }}</span>
+              </div>
+              <div v-for="f in sx.files" :key="f.fileUrl" class="existing-item">
+                <div class="existing-info">
+                  <span class="existing-title">{{ f.name }}</span>
+                  <span class="existing-meta">{{ f.kind }} · {{ f.size }}</span>
+                </div>
+                <button type="button" class="existing-del" @click="deleteCourseFile(f)">删除</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- 讲次管理：编辑标题/日期、删除讲次（空讲次也可删） -->
         </template>
-        <div v-else class="session-mgr">
+        <div v-else-if="cmTab === 'sessions'" class="session-mgr">
           <h4>讲次管理</h4>
-          <p class="mgr-hint">可直接修改讲次标题或日期后点「保存」；标题填错、空讲次都可在此处理。删除含文件的讲次会一并删除其文件。</p>
-          <div v-for="course in cmMgr" :key="course.id" class="mgr-course">
-            <div class="mgr-course-name">{{ course.name }}</div>
-            <div v-for="sx in course.sessions" :key="course.id + '@' + sx.session + '@' + sx.date" class="mgr-row">
-              <span class="mgr-no">第{{ sx.session }}讲</span>
-              <input class="mgr-title" v-model="sx.draftTitle" placeholder="讲次标题" />
-              <input class="mgr-date" type="date" v-model="sx.draftDate" />
-              <span class="mgr-count">{{ sx.fileCount }} 个文件</span>
-              <button type="button" class="mgr-save" :disabled="submitting || (sx.draftTitle.trim() === sx.title && sx.draftDate === sx.date)" @click="saveSession(course, sx)">保存</button>
-              <button type="button" class="mgr-del" :disabled="submitting" @click="deleteSession(course, sx)">删除讲次</button>
+          <p class="mgr-hint">按学期与课程折叠查看；可直接改讲次标题或日期后点「保存」，标题填错、空讲次都可在此处理。删除含文件的讲次会一并删除其文件。</p>
+          <div v-for="g in cmMgrGroups" :key="g.term" class="mgr-term">
+            <div class="mgr-term-head">{{ g.label }}</div>
+            <div v-for="course in g.courses" :key="course.id" class="mgr-course">
+              <button type="button" class="mgr-course-head" @click="toggleMgrCourse(course.id)">
+                <span class="mgr-caret">{{ isMgrOpen(course.id) ? '▾' : '▸' }}</span>
+                <span class="mgr-course-name">{{ course.name }}</span>
+                <span v-if="course.stage === 'archive'" class="mgr-course-tag">已结课</span>
+                <span class="mgr-course-count">{{ course.sessions.length }} 讲</span>
+              </button>
+              <template v-if="isMgrOpen(course.id)">
+                <div v-for="sx in course.sessions" :key="course.id + '@' + sx.session + '@' + sx.date" class="mgr-row">
+                  <span class="mgr-no">第{{ sx.session }}讲</span>
+                  <input class="mgr-title" v-model="sx.draftTitle" placeholder="讲次标题（可留空）" />
+                  <input class="mgr-date" type="date" v-model="sx.draftDate" />
+                  <span class="mgr-count">{{ sx.pending ? '待上传' : sx.fileCount + ' 个文件' }}</span>
+                  <button type="button" class="mgr-save" :disabled="submitting || (sx.draftTitle.trim() === sx.title && sx.draftDate === sx.date)" @click="saveSession(course, sx)">保存</button>
+                  <button type="button" class="mgr-del" :disabled="submitting" @click="deleteSession(course, sx)">删除讲次</button>
+                </div>
+                <p v-if="!course.sessions.length" class="empty-hint">暂无讲次，可点下方「按课表补建讲次」</p>
+                <button type="button" class="mgr-seed" :disabled="submitting" @click="seedSessionsFromSchedule(course)">按课表补建讲次</button>
+              </template>
             </div>
-            <p v-if="!course.sessions.length" class="empty-hint">暂无讲次</p>
+          </div>
+        </div>
+
+        <!-- 课程管理：新建课程、维护课程信息、归档/恢复（归档只改展示分组，文件与链接不变） -->
+        <div v-else class="course-mgr">
+          <h4>课程管理</h4>
+          <p class="mgr-hint">按课表建课与维护信息；已结课课程点「归档」后进入前台「已结课」分组，课件与链接保持不变。</p>
+          <button type="button" class="module-add-btn course-add-btn" @click="cmCourseFormOpen = !cmCourseFormOpen">＋ 新建课程</button>
+
+          <div v-if="cmCourseFormOpen" class="module-form">
+            <form @submit.prevent="submitNewCourse" class="data-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>课程 id <span class="required">*</span></label>
+                  <input v-model="cmCourseForm.id" placeholder="英文短名，如 macro-economics" />
+                </div>
+                <div class="form-group">
+                  <label>课程名称 <span class="required">*</span></label>
+                  <input v-model="cmCourseForm.name" placeholder="如：宏观经济学" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>英文名称</label><input v-model="cmCourseForm.name_en" placeholder="Macroeconomics" /></div>
+                <div class="form-group"><label>主讲教师</label><input v-model="cmCourseForm.teacher" /></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>星期</label><input v-model="cmCourseForm.weekday" placeholder="周四" /></div>
+                <div class="form-group"><label>上课时间</label><input v-model="cmCourseForm.time" placeholder="18:00-21:30" /></div>
+                <div class="form-group"><label>教室</label><input v-model="cmCourseForm.location" placeholder="政立院区B403教室" /></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>学期</label>
+                  <select v-model="cmCourseForm.term">
+                    <option v-for="tm in cmTermOptions" :key="tm.key" :value="tm.key">{{ tm.label }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>状态</label>
+                  <select v-model="cmCourseForm.stage">
+                    <option value="current">在读</option>
+                    <option value="archive">已结课归档</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="submit-btn" :disabled="submitting">保存课程</button>
+                <button type="button" class="existing-del" @click="cmCourseFormOpen = false">取消</button>
+              </div>
+            </form>
+          </div>
+
+          <div v-for="g in cmCourseGroups" :key="g.term" class="mgr-term">
+            <div class="mgr-term-head">{{ g.label }}</div>
+            <div v-for="c in g.courses" :key="c.id" class="course-mgr-card">
+              <div class="course-mgr-top">
+                <span class="course-mgr-name">{{ c.name }}</span>
+                <span class="course-mgr-id">{{ c.id }}</span>
+                <span v-if="c.stage === 'archive'" class="mgr-course-tag">已结课</span>
+                <span class="course-mgr-count">{{ (c.sessions || []).length }} 讲 · {{ cmCourseFileCount(c.id) }} 份资料</span>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>课程名称</label><input v-model="c.name" /></div>
+                <div class="form-group"><label>英文名称</label><input v-model="c.name_en" /></div>
+                <div class="form-group"><label>主讲教师</label><input v-model="c.teacher" /></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>星期</label><input v-model="c.weekday" /></div>
+                <div class="form-group"><label>上课时间</label><input v-model="c.time" /></div>
+                <div class="form-group"><label>教室</label><input v-model="c.location" /></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>学期</label>
+                  <select v-model="c.term">
+                    <option v-for="tm in cmTermOptions" :key="tm.key" :value="tm.key">{{ tm.label }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>状态</label>
+                  <select v-model="c.stage">
+                    <option value="current">在读</option>
+                    <option value="archive">已结课归档</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions course-mgr-actions">
+                <button type="button" class="submit-btn" :disabled="submitting" @click="saveCourseMeta(c)">保存课程信息</button>
+                <button type="button" class="mgr-seed" :disabled="submitting" @click="seedSessionsFromSchedule(c)">按课表补建讲次</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2456,6 +2580,8 @@ async function submitCourseMaterial() {
         session.references.push({ name: f.refName.trim(), filename: '', url: '', desc: f.refDesc.trim() })
       }
     }
+    // 该讲次已有内容，去掉「待上传」标记
+    if ((session.files || []).length || session.homework || (session.references || []).some(r => r.url)) delete session.pending
     course.sessions.sort((a, b) => Number(a.session) - Number(b.session))
 
     // 4. 整包写回
@@ -2478,21 +2604,152 @@ async function submitCourseMaterial() {
 const cmFormOpen = ref(false)
 function openCmForm() { cmFormOpen.value = true }
 function closeCmForm() { cmFormOpen.value = false }
-const cmTab = ref('files') // 'files' = 当前课件与资料 | 'sessions' = 讲次管理
+const cmTab = ref('files') // 'files' = 当前课件与资料 | 'sessions' = 讲次管理 | 'courses' = 课程管理
 const cmTabs = [
   { key: 'files', label: '当前课件与资料' },
   { key: 'sessions', label: '讲次管理' },
+  { key: 'courses', label: '课程管理' },
 ]
 const cmFilter = ref('')
-const cmKindCount = (k) => cmFiles.value.filter(f => f.kind === k).length
-const filteredCmFiles = computed(() => cmFilter.value ? cmFiles.value.filter(f => f.kind === cmFilter.value) : cmFiles.value)
+const cmCourseFilter = ref('')
+const cmScopedFiles = computed(() => cmFiles.value.filter(f => !cmCourseFilter.value || f.courseId === cmCourseFilter.value))
+const filteredCmFiles = computed(() => cmScopedFiles.value.filter(f => !cmFilter.value || f.kind === cmFilter.value))
 function toggleCmFilter(s) { cmFilter.value = cmFilter.value === s ? '' : s }
 const cmStats = computed(() => [
-  { key: '', label: '全部', count: cmFiles.value.length },
-  { key: '课件', label: '课件', count: cmKindCount('课件') },
-  { key: '作业', label: '作业', count: cmKindCount('作业') },
-  { key: '参考', label: '参考', count: cmKindCount('参考') },
+  { key: '', label: '全部', count: cmScopedFiles.value.length },
+  { key: '课件', label: '课件', count: cmScopedFiles.value.filter(f => f.kind === '课件').length },
+  { key: '作业', label: '作业', count: cmScopedFiles.value.filter(f => f.kind === '作业').length },
+  { key: '参考', label: '参考', count: cmScopedFiles.value.filter(f => f.kind === '参考').length },
 ])
+
+// ===== 课程资料：学期分组（term）=====
+const CM_TERM_LABELS = {
+  '2026-F1A': '第一学期 · 前段',
+  '2026-F1B': '第一学期 · 后段',
+}
+const cmTermLabel = (term) => CM_TERM_LABELS[term] || term || '未分学期'
+const cmTermOptions = computed(() => {
+  const keys = [...new Set((cmPack.value?.courses || []).map(c => c.term).filter(Boolean))]
+  const known = Object.keys(CM_TERM_LABELS).filter(k => keys.includes(k) || keys.length === 0)
+  const extra = keys.filter(k => !CM_TERM_LABELS[k]).map(k => ({ key: k, label: k }))
+  return [...known.map(k => ({ key: k, label: CM_TERM_LABELS[k] })), ...extra,
+    { key: '2026-F2A', label: '第二学期 · 前段' }, { key: '2026-F2B', label: '第二学期 · 后段' }]
+    .filter((v, i, arr) => arr.findIndex(x => x.key === v.key) === i)
+})
+function groupCoursesByTerm(list) {
+  const groups = []
+  for (const c of list) {
+    const term = c.term || ''
+    let g = groups.find(x => x.term === term)
+    if (!g) { g = { term, label: cmTermLabel(term), courses: [] }; groups.push(g) }
+    g.courses.push(c)
+  }
+  return groups
+}
+const cmCourseGroups = computed(() => groupCoursesByTerm(cmPack.value?.courses || []))
+const cmCourseFileCount = (courseId) => cmFiles.value.filter(f => f.courseId === courseId).length
+
+// 文件列表：课程 → 讲次两级分组（讲次倒序，仅列有文件的讲次）
+const cmFileGroups = computed(() => {
+  const out = []
+  for (const c of cmPack.value?.courses || []) {
+    if (cmCourseFilter.value && c.id !== cmCourseFilter.value) continue
+    const sessions = []
+    for (const sx of [...(c.sessions || [])].sort((a, b) => Number(b.session) - Number(a.session))) {
+      const files = []
+      for (const f of sx.files || []) if (f.url && (!cmFilter.value || cmFilter.value === '课件')) files.push({ courseId: c.id, kind: '课件', name: f.name, size: f.size, fileUrl: f.url })
+      if (sx.homework?.url && (!cmFilter.value || cmFilter.value === '作业')) files.push({ courseId: c.id, kind: '作业', name: sx.homework.name, size: sx.homework.size, fileUrl: sx.homework.url })
+      for (const r of sx.references || []) if (r.url && (!cmFilter.value || cmFilter.value === '参考')) files.push({ courseId: c.id, kind: '参考', name: r.name, size: r.size, fileUrl: r.url })
+      if (files.length) sessions.push({ session: sx.session, title: sx.title || '', date: sx.date, files })
+    }
+    if (sessions.length) out.push({ id: c.id, name: c.name, stage: c.stage, term: cmTermLabel(c.term), sessions })
+  }
+  return out
+})
+
+// ===== 讲次管理：按学期 → 课程折叠（本期默认展开，归档默认收起） =====
+const cmMgrOpen = ref({})
+const cmMgrGroups = computed(() => groupCoursesByTerm(cmMgr.value))
+const isMgrOpen = (courseId) => {
+  const v = cmMgrOpen.value[courseId]
+  if (typeof v === 'boolean') return v
+  const row = cmMgr.value.find(c => c.id === courseId)
+  return row ? row.stage !== 'archive' : true
+}
+function toggleMgrCourse(courseId) {
+  cmMgrOpen.value = { ...cmMgrOpen.value, [courseId]: !isMgrOpen(courseId) }
+}
+
+const sessionHasContent = (s) => !!((s.files && s.files.length) || (s.references && s.references.length) || s.homework)
+// 课程资料整包写回（课程信息、讲次、归档状态共用）
+async function saveCmPack(pack) {
+  const res = await fetchWithRetry(`${API_PREFIX}/api/admin/course-materials`, {
+    method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pack),
+  })
+  await throwIfNotOk(res, '保存课程资料')
+  invalidateResource('/api/course-materials-db')
+  await loadCourseFiles()
+}
+
+// ===== 课程管理：新建课程 / 保存课程信息 / 按课表补建讲次 =====
+const cmCourseFormOpen = ref(false)
+const cmCourseForm = ref({ id: '', name: '', name_en: '', teacher: '', weekday: '', time: '', location: '政立院区B403教室', term: '2026-F1B', stage: 'current' })
+async function submitNewCourse() {
+  const f = cmCourseForm.value
+  if (!f.id.trim() || !f.name.trim()) { alert('课程 id 与课程名称必填'); return }
+  submitting.value = true
+  try {
+    const pack = await getCurrentCourseMaterials()
+    if (!Array.isArray(pack.courses)) pack.courses = []
+    if (pack.courses.some(c => c.id === f.id.trim())) throw new Error('该课程 id 已存在')
+    pack.courses.push({
+      id: f.id.trim(), name: f.name.trim(), name_en: f.name_en.trim(),
+      teacher: f.teacher.trim(), weekday: f.weekday.trim(), time: f.time.trim(),
+      location: f.location.trim() || '政立院区B403教室', term: f.term, stage: f.stage, sessions: [],
+    })
+    await saveCmPack(pack)
+    cmCourseForm.value = { id: '', name: '', name_en: '', teacher: '', weekday: '', time: '', location: '政立院区B403教室', term: f.term, stage: 'current' }
+    cmCourseFormOpen.value = false
+    showToast('课程已创建')
+  } catch (e) { alert('新建课程失败：' + e.message) }
+  submitting.value = false
+}
+async function saveCourseMeta(course) {
+  if (!course.name.trim()) { alert('课程名称不能为空'); return }
+  submitting.value = true
+  try {
+    await saveCmPack(cmPack.value)
+    showToast('课程信息已保存')
+  } catch (e) { alert('保存课程信息失败：' + e.message) }
+  submitting.value = false
+}
+// 按课表（/data/schedule.json）补建缺失讲次：只补日期，不覆盖已有讲次标题与文件
+async function seedSessionsFromSchedule(course) {
+  submitting.value = true
+  try {
+    const res = await fetchWithRetry('/data/schedule.json')
+    const sched = await res.json()
+    const sc = (sched.courses || []).find(x => x.name === course.name)
+    if (!sc) throw new Error('课表里没有同名课程，请先核对课程名称')
+    const pack = await getCurrentCourseMaterials()
+    const co = pack.courses.find(c => c.id === course.id)
+    if (!co) throw new Error('课程不存在，请刷新后重试')
+    if (!Array.isArray(co.sessions)) co.sessions = []
+    let added = 0
+    sc.sessions.forEach((s, i) => {
+      if (co.sessions.some(x => x.date === s.date)) return
+      const used = new Set(co.sessions.map(x => Number(x.session)))
+      let no = i + 1
+      while (used.has(no)) no += 1
+      co.sessions.push({ session: no, date: s.date, title: '', pending: true, files: [], references: [] })
+      added += 1
+    })
+    co.sessions.sort((a, b) => Number(a.session) - Number(b.session))
+    await saveCmPack(pack)
+    showToast(added ? `按课表补建 ${added} 个讲次` : '讲次已与课表一致，无需补建')
+  } catch (e) { alert('补建讲次失败：' + e.message) }
+  submitting.value = false
+}
 
 // ===== 知识库（整包：DB 优先，失败回退静态 JSON）=====
 async function getCurrentKnowledgePack() {
@@ -2773,6 +3030,13 @@ async function loadCourseFiles() {
     cmPack.value = pack
     cmFiles.value = flattenCourseFiles(pack)
     cmMgr.value = buildCmMgrRows(pack)
+    // 课程下拉默认落在「本期第一门」：新建课程或归档后也不会停留在已不存在的课程
+    const list = pack.courses || []
+    if (!list.some(c => c.id === cmForm.value.courseId)) {
+      const cur = list.find(c => c.stage !== 'archive') || list[0]
+      if (cur) cmForm.value.courseId = cur.id
+    }
+    if (cmCourseFilter.value && !list.some(c => c.id === cmCourseFilter.value)) cmCourseFilter.value = ''
   } catch (e) { console.warn('加载课件列表失败:', e.message) }
 }
 async function deleteCourseFile(item) {
@@ -2783,7 +3047,7 @@ async function deleteCourseFile(item) {
     })
     await throwIfNotOk(res, '删除课件')
     invalidateResource('/api/course-materials-db')
-    cmFiles.value = cmFiles.value.filter(x => x.fileUrl !== item.fileUrl)
+    await loadCourseFiles()
   } catch (e) { alert('删除失败: ' + e.message) }
 }
 // ===== 讲次管理（编辑标题/日期、删除讲次；行构建见 utils/admin/utils.js buildCmMgrRows） =====
@@ -3793,6 +4057,41 @@ watch(currentType, () => loadActiveModule())
 .mgr-del { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid #ff3b30; color: #ff3b30; background: transparent; cursor: pointer; transition: all .2s; }
 .mgr-del:hover:not(:disabled) { background: #ff3b30; color: #fff; }
 .mgr-del:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ===== 课程资料：学期分组（讲次管理 / 课程管理共用） ===== */
+.mgr-term { margin-bottom: 18px; }
+.mgr-term-head { display: inline-block; font-size: 12px; font-weight: 600; color: var(--c-text-secondary); background: var(--c-bg-secondary); border: 1px solid var(--c-border); border-radius: 8px; padding: 5px 10px; margin-bottom: 10px; letter-spacing: .4px; }
+.mgr-course { border: 1px solid var(--c-border); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; background: var(--c-bg-card); }
+.mgr-course-head { display: flex; align-items: center; gap: 8px; width: 100%; background: transparent; border: none; padding: 0; margin: 0 0 4px; cursor: pointer; text-align: left; font: inherit; }
+.mgr-caret { flex-shrink: 0; width: 12px; font-size: 12px; color: var(--c-text-tertiary); }
+.mgr-course-name { font-size: 13px; font-weight: 600; color: var(--c-text-primary); margin-bottom: 0; }
+.mgr-course-tag { flex-shrink: 0; font-size: 11px; color: var(--c-text-tertiary); background: var(--c-bg-tertiary); border-radius: 8px; padding: 2px 8px; }
+.mgr-course-count { margin-left: auto; flex-shrink: 0; font-size: 11px; color: var(--c-text-tertiary); }
+.mgr-seed { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-secondary); color: var(--c-text-secondary); cursor: pointer; transition: all .2s; margin-top: 6px; }
+.mgr-seed:hover:not(:disabled) { border-color: var(--c-accent); color: var(--c-accent); }
+.mgr-seed:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ===== 当前课件与资料：课程 → 讲次两级分组 ===== */
+.cm-course-filter { flex-shrink: 0; max-width: 220px; font-size: 12px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-primary); color: var(--c-text-primary); }
+.cm-group { border: 1px solid var(--c-border); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: var(--c-bg-card); }
+.cm-group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.cm-group-name { font-size: 14px; font-weight: 700; color: var(--c-text-primary); }
+.cm-group-tag { font-size: 11px; color: var(--c-text-tertiary); background: var(--c-bg-tertiary); border-radius: 8px; padding: 2px 8px; }
+.cm-group-term { margin-left: auto; font-size: 11px; color: var(--c-text-tertiary); }
+.cm-group-session { margin-top: 10px; }
+.cm-session-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; color: var(--c-text-secondary); }
+.cm-session-no { flex-shrink: 0; font-weight: 600; color: var(--c-text-primary); }
+.cm-session-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-session-date { margin-left: auto; flex-shrink: 0; font-size: 11px; color: var(--c-text-tertiary); }
+
+/* ===== 课程管理 ===== */
+.course-add-btn { font-size: 13px; padding: 7px 14px; border-radius: 9px; margin-bottom: 12px; }
+.course-mgr-card { border: 1px solid var(--c-border); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: var(--c-bg-card); }
+.course-mgr-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.course-mgr-name { font-size: 14px; font-weight: 700; color: var(--c-text-primary); }
+.course-mgr-id { font-size: 11px; color: var(--c-text-tertiary); }
+.course-mgr-count { margin-left: auto; font-size: 11px; color: var(--c-text-tertiary); }
+.course-mgr-actions { gap: 8px; }
 .tx-income { color: #ff3b30; font-weight: 700; }
 .tx-expense { color: #248a3d; font-weight: 700; }
 

@@ -273,13 +273,16 @@ const courseShortNames = {
   'dmd': 'DMD',
   'accounting': '会计',
   'managerial-economics': '管经',
+  'macro-economics': '宏观',
+  'corporate-strategy': '战略',
+  'operations-management': '运营',
 }
 
 // 课程全名三语映射（按中文原名索引；近期课程等动态数据随语言切换）
 const courseFullNames = {
-  zh: { '数据、模型与决策': '数据、模型与决策', '管理经济学': '管理经济学', '会计学': '会计学' },
-  en: { '数据、模型与决策': 'Data, Models and Decisions', '管理经济学': 'Managerial Economics', '会计学': 'Accounting' },
-  th: { '数据、模型与决策': 'ข้อมูล โมเดล และการตัดสินใจ', '管理经济学': 'เศรษฐศาสตร์การจัดการ', '会计学': 'การบัญชี' },
+  zh: { '数据、模型与决策': '数据、模型与决策', '管理经济学': '管理经济学', '会计学': '会计学', '宏观经济学': '宏观经济学', '企业战略管理': '企业战略管理', '运营管理': '运营管理' },
+  en: { '数据、模型与决策': 'Data, Models and Decisions', '管理经济学': 'Managerial Economics', '会计学': 'Accounting', '宏观经济学': 'Macroeconomics', '企业战略管理': 'Corporate Strategy', '运营管理': 'Operations Management' },
+  th: { '数据、模型与决策': 'ข้อมูล โมเดล และการตัดสินใจ', '管理经济学': 'เศรษฐศาสตร์การจัดการ', '会计学': 'การบัญชี', '宏观经济学': 'เศรษฐศาสตร์มหภาค', '企业战略管理': 'การจัดการกลยุทธ์องค์กร', '运营管理': 'การจัดการปฏิบัติการ' },
 }
 const localizedCourseName = (name) => courseFullNames[currentLang.value]?.[name] || name
 

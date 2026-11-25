@@ -101,11 +101,11 @@ export function flattenCourseFiles(pack) {
   for (const c of pack.courses || []) {
     for (const sess of c.sessions || []) {
       for (const f of sess.files || [])
-        out.push({ courseName: c.name, kind: '课件', name: f.name, size: f.size, fileUrl: f.url })
+        out.push({ courseId: c.id, courseName: c.name, kind: '课件', name: f.name, size: f.size, fileUrl: f.url })
       if (sess.homework?.url)
-        out.push({ courseName: c.name, kind: '作业', name: sess.homework.name, size: sess.homework.size, fileUrl: sess.homework.url })
+        out.push({ courseId: c.id, courseName: c.name, kind: '作业', name: sess.homework.name, size: sess.homework.size, fileUrl: sess.homework.url })
       for (const r of sess.references || []) if (r.url)
-        out.push({ courseName: c.name, kind: '参考', name: r.name, size: r.size, fileUrl: r.url })
+        out.push({ courseId: c.id, courseName: c.name, kind: '参考', name: r.name, size: r.size, fileUrl: r.url })
     }
   }
   return out
@@ -131,13 +131,14 @@ export function sessionUrls(sess) {
  */
 export function buildCmMgrRows(pack) {
   return (pack.courses || []).map(c => ({
-    id: c.id, name: c.name,
+    id: c.id, name: c.name, term: c.term || '', stage: c.stage || 'current',
     sessions: (c.sessions || []).slice().sort((a, b) => Number(a.session) - Number(b.session)).map(sess => {
       const urls = sessionUrls(sess)
       return {
         session: sess.session, date: sess.date, title: sess.title || '',
         draftTitle: sess.title || '', draftDate: sess.date,
         fileCount: urls.length, urls,
+        pending: urls.length === 0,
       }
     }),
   }))

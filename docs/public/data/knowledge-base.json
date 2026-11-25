@@ -2,57 +2,234 @@
   "courses": [
     {
       "id": "dmd",
-      "name": { "zh": "数据模型与决策", "en": "Data Modeling & Decision", "th": "การสร้างแบบจำลองข้อมูลและการตัดสินใจ" },
-      "teacher": { "zh": "黄达", "en": "Huang Da", "th": "หวง ต้า" },
+      "icon": "📊",
+      "name": {
+        "en": "Data Modeling & Decision",
+        "th": "การสร้างแบบจำลองข้อมูลและการตัดสินใจ",
+        "zh": "数据模型与决策"
+      },
       "color": "#5EC4AC",
-      "icon": "📊"
+      "teacher": {
+        "en": "Huang Da",
+        "th": "หวง ต้า",
+        "zh": "黄达"
+      }
     },
     {
       "id": "mgmt-econ",
-      "name": { "zh": "管理经济学", "en": "Managerial Economics", "th": "เศรษฐศาสตร์การบริหาร" },
-      "teacher": { "zh": "罗云辉", "en": "Luo Yunhui", "th": "หลัว หยุนฮุย" },
+      "icon": "📈",
+      "name": {
+        "en": "Managerial Economics",
+        "th": "เศรษฐศาสตร์การบริหาร",
+        "zh": "管理经济学"
+      },
       "color": "#007AFF",
-      "icon": "📈"
+      "teacher": {
+        "en": "Luo Yunhui",
+        "th": "หลัว หยุนฮุย",
+        "zh": "罗云辉"
+      }
     },
     {
       "id": "accounting",
-      "name": { "zh": "会计学", "en": "Accounting", "th": "การบัญชี" },
-      "teacher": { "zh": "钟覃琳", "en": "Zhong Qinlin", "th": "จง ชินหลิน" },
+      "icon": "📒",
+      "name": {
+        "en": "Accounting",
+        "th": "การบัญชี",
+        "zh": "会计学"
+      },
       "color": "#FF9500",
-      "icon": "📒"
+      "teacher": {
+        "en": "Zhong Qinlin",
+        "th": "จง ชินหลิน",
+        "zh": "钟覃琳"
+      }
+    },
+    {
+      "id": "macro-econ",
+      "name": {
+        "zh": "宏观经济学",
+        "en": "Macroeconomics",
+        "th": "เศรษฐศาสตร์มหภาค"
+      }
+    },
+    {
+      "id": "corp-strategy",
+      "name": {
+        "zh": "企业战略管理",
+        "en": "Corporate Strategy",
+        "th": "การจัดการกลยุทธ์องค์กร"
+      }
+    },
+    {
+      "id": "ops-mgmt",
+      "name": {
+        "zh": "运营管理",
+        "en": "Operations Management",
+        "th": "การจัดการปฏิบัติการ"
+      }
     },
     {
       "id": "marketing",
-      "name": { "zh": "营销管理", "en": "Marketing Management", "th": "การจัดการการตลาด" },
-      "teacher": { "zh": "待定", "en": "TBD", "th": "ยังไม่ระบุ" },
+      "icon": "🎯",
+      "name": {
+        "en": "Marketing Management",
+        "th": "การจัดการการตลาด",
+        "zh": "营销管理"
+      },
       "color": "#AF52DE",
-      "icon": "🎯"
+      "teacher": {
+        "en": "TBD",
+        "th": "ยังไม่ระบุ",
+        "zh": "待定"
+      }
     },
     {
       "id": "strategy",
-      "name": { "zh": "战略管理", "en": "Strategic Management", "th": "การบริหารเชิงกลยุทธ์" },
-      "teacher": { "zh": "待定", "en": "TBD", "th": "ยังไม่ระบุ" },
+      "icon": "♟️",
+      "name": {
+        "en": "Strategic Management",
+        "th": "การบริหารเชิงกลยุทธ์",
+        "zh": "战略管理"
+      },
       "color": "#FF3B30",
-      "icon": "♟️"
+      "teacher": {
+        "en": "TBD",
+        "th": "ยังไม่ระบุ",
+        "zh": "待定"
+      }
     },
     {
       "id": "org-behavior",
-      "name": { "zh": "组织行为学", "en": "Organizational Behavior", "th": "พฤติกรรมองค์กร" },
-      "teacher": { "zh": "待定", "en": "TBD", "th": "ยังไม่ระบุ" },
+      "icon": "🏢",
+      "name": {
+        "en": "Organizational Behavior",
+        "th": "พฤติกรรมองค์กร",
+        "zh": "组织行为学"
+      },
       "color": "#5856D6",
-      "icon": "🏢"
+      "teacher": {
+        "en": "TBD",
+        "th": "ยังไม่ระบุ",
+        "zh": "待定"
+      }
     },
     {
       "id": "general",
-      "name": { "zh": "通用资料", "en": "General Resources", "th": "เอกสารทั่วไป" },
-      "teacher": { "zh": "学院", "en": "School", "th": "โรงเรียน" },
+      "icon": "📋",
+      "name": {
+        "en": "General Resources",
+        "th": "เอกสารทั่วไป",
+        "zh": "通用资料"
+      },
       "color": "#8E8E93",
-      "icon": "📋"
+      "teacher": {
+        "en": "School",
+        "th": "โรงเรียน",
+        "zh": "学院"
+      }
     }
   ],
   "documents": [
-    { "id": 7, "courseId": "general", "type": "resource", "title": { "zh": "课程考勤与请假制度", "en": "Course Attendance & Leave Policy", "th": "ระเบียบการเข้าเรียนและการลา" }, "author": "学院", "date": "2026-09-01", "size": "708 KB", "url": "https://files.mint4.cn/files/general/复旦MBA项目课程考勤规则.pdf" },
-    { "id": 9, "courseId": "general", "type": "resource", "title": { "zh": "政立院区设施使用说明", "en": "Zhengli Campus Facilities Guide", "th": "คู่มือสิ่งอำนวยความสะดวก วิทยาเขตเจิ้งหลี่" }, "author": "学院", "date": "2026-09-01", "size": "1.0 MB", "url": "https://files.mint4.cn/files/general/复旦管院政立院区设施和生活指南.pdf" },
-    { "id": 10, "courseId": "general", "type": "calendar", "title": { "zh": "复旦大学2026-2027学年校历", "en": "Fudan University Academic Calendar 2026-2027", "th": "ปฏิทินการศึกษา มหาวิทยาลัยฝูด่าน 2026-2027" }, "author": "复旦大学", "date": "2026-08-30", "size": "0.9 MB", "url": "/images/fudan-academic-calendar-2026-2027.jpg" }
-  ]
+    {
+      "id": 7,
+      "url": "https://files.mint4.cn/files/general/复旦MBA项目课程考勤规则.pdf",
+      "date": "2026-09-01",
+      "size": "708 KB",
+      "type": "resource",
+      "title": {
+        "en": "Course Attendance & Leave Policy",
+        "th": "ระเบียบการเข้าเรียนและการลา",
+        "zh": "课程考勤与请假制度"
+      },
+      "author": "学院",
+      "courseId": "general"
+    },
+    {
+      "id": 9,
+      "url": "https://files.mint4.cn/files/general/复旦管院政立院区设施和生活指南.pdf",
+      "date": "2026-09-01",
+      "size": "1.0 MB",
+      "type": "resource",
+      "title": {
+        "en": "Zhengli Campus Facilities Guide",
+        "th": "คู่มือสิ่งอำนวยความสะดวก วิทยาเขตเจิ้งหลี่",
+        "zh": "政立院区设施使用说明"
+      },
+      "author": "学院",
+      "courseId": "general"
+    },
+    {
+      "id": 10,
+      "url": "/images/fudan-academic-calendar-2026-2027.jpg",
+      "date": "2026-08-30",
+      "size": "0.9 MB",
+      "type": "calendar",
+      "title": {
+        "en": "Fudan University Academic Calendar 2026-2027",
+        "th": "ปฏิทินการศึกษา มหาวิทยาลัยฝูด่าน 2026-2027",
+        "zh": "复旦大学2026-2027学年校历"
+      },
+      "author": "复旦大学",
+      "courseId": "general"
+    },
+    {
+      "id": 12,
+      "url": "https://files.mint4.cn/files/knowledge/mgmt-econ/20260920/管理经济学第一次课学习笔记.pdf",
+      "date": "2026-09-20",
+      "size": "425.4 KB",
+      "type": "note",
+      "title": {
+        "en": "管理经济学｜第一讲 课堂笔记（人话复习版）",
+        "th": "管理经济学｜第一讲 课堂笔记（人话复习版）",
+        "zh": "管理经济学｜第一讲 课堂笔记（人话复习版）"
+      },
+      "author": "邹智宇",
+      "courseId": "mgmt-econ"
+    },
+    {
+      "id": 13,
+      "url": "https://files.mint4.cn/files/knowledge/dmd/20260920/DMD第二讲课堂笔记_数据与描述统计.pdf",
+      "date": "2026-09-20",
+      "size": "540.0 KB",
+      "type": "note",
+      "title": {
+        "en": "DMD｜第二讲 课堂笔记（人话复习版）",
+        "th": "DMD｜第二讲 课堂笔记（人话复习版）",
+        "zh": "DMD｜第二讲 课堂笔记（人话复习版）"
+      },
+      "author": "邹智宇",
+      "courseId": "dmd"
+    },
+    {
+      "id": 14,
+      "url": "https://files.mint4.cn/files/knowledge/accounting/20260920/会计第一讲课堂笔记_收入与应收项目.pdf",
+      "date": "2026-09-20",
+      "size": "703.5 KB",
+      "type": "note",
+      "title": {
+        "en": "会计｜第一讲 课堂笔记（人话复习版）",
+        "th": "会计｜第一讲 课堂笔记（人话复习版）",
+        "zh": "会计｜第一讲 课堂笔记（人话复习版）"
+      },
+      "author": "班级",
+      "courseId": "accounting"
+    },
+    {
+      "id": 15,
+      "courseId": "dmd",
+      "type": "note",
+      "title": {
+        "zh": "DMD第三讲 线性规划（人话复习版）",
+        "en": "DMD第三讲 线性规划（人话复习版）",
+        "th": "DMD第三讲 线性规划（人话复习版）"
+      },
+      "author": "班级",
+      "date": "2026-09-28",
+      "size": "789.9 KB",
+      "url": "https://files.mint4.cn/files/knowledge/dmd/20260928/DMD第三讲课堂笔记_线性规划.pdf"
+    }
+  ],
+  "updated_by": "邹智宇",
+  "updated_by_id": 7
 }

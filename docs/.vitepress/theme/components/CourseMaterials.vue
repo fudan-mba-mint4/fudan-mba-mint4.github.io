@@ -15,20 +15,40 @@ watch(materialsData, (d) => {
   })
   markRead('slides', urls)
 })
-const activeCourse = ref(0)
+// 学期分段：本期课程 / 已结课（stage='archive'），默认落在本期
+const segment = ref('current')
+const activeCourseId = ref('')
+
+const allCourses = computed(() => materialsData.value?.courses || [])
+const currentCourses = computed(() => allCourses.value.filter(c => c.stage !== 'archive'))
+const archivedCourses = computed(() => allCourses.value.filter(c => c.stage === 'archive'))
+const visibleCourses = computed(() => (segment.value === 'archive' ? archivedCourses.value : currentCourses.value))
+
+function pickFirstCourse(list) {
+  return (list.find(c => (c.sessions || []).length > 0) || list[0] || {}).id || ''
+}
 
 watch(materialsData, (data) => {
   if (!data) return
-  const courses = data.courses || []
-  const idx = courses.findIndex(c => (c.sessions || []).length > 0)
-  activeCourse.value = idx >= 0 ? idx : 0
+  activeCourseId.value = pickFirstCourse(currentCourses.value)
+})
+
+watch(segment, () => {
+  if (!visibleCourses.value.some(c => c.id === activeCourseId.value)) {
+    activeCourseId.value = pickFirstCourse(visibleCourses.value)
+  }
 })
 
 const i18n = {
   zh: {
     label: '课程资料 · 按节次',
     title: '课程资料',
-    subtitle: '按课程分类 · 含课件与作业',
+    subtitle: '按课表分组 · 含课件与作业',
+    currentTerm: '本期课程',
+    archived: '已结课',
+    archivedHint: '已结课课程的课件全部归档保留，原链接不变，可随时查看与下载',
+    pendingUpload: '课件待上传',
+    pendingHint: '讲次已按课表排好，课件上传后即显示在这里',
     loading: '加载课程资料中...',
     noMaterials: '该课程资料尚未上传，敬请期待',
     session: '第',
@@ -52,6 +72,11 @@ const i18n = {
     label: 'Course Materials · By Session',
     title: 'Course Materials',
     subtitle: 'By course · By session',
+    currentTerm: 'Current Courses',
+    archived: 'Completed',
+    archivedHint: 'Materials of completed courses are archived, links unchanged and always available',
+    pendingUpload: 'Materials pending upload',
+    pendingHint: 'Sessions are scheduled per timetable; materials appear once uploaded',
     loading: 'Loading materials...',
     noMaterials: 'Materials for this course have not been uploaded yet.',
     session: 'Session',
@@ -75,6 +100,11 @@ const i18n = {
     label: 'เอกสารรายวิชา · แยกตามคาบเรียน',
     title: 'เอกสารรายวิชา',
     subtitle: 'แยกตามรายวิชา · รวมสื่อการสอนและการบ้าน',
+    currentTerm: 'รายวิชาปัจจุบัน',
+    archived: 'เรียนจบแล้ว',
+    archivedHint: 'สื่อการสอนของรายวิชาที่เรียนจบแล้วถูกเก็บถาวร ลิงก์เดิมยังใช้ได้ เปิดดูและดาวน์โหลดได้ตลอด',
+    pendingUpload: 'รออัปโหลดสื่อการสอน',
+    pendingHint: 'คาบเรียนจัดตามตารางเรียนแล้ว สื่อจะแสดงที่นี่เมื่ออัปโหลด',
     loading: 'กำลังโหลดสื่อการสอน...',
     noMaterials: 'สื่อการสอนสำหรับรายวิชานี้ยังไม่ได้อัปโหลด',
     session: 'คาบที่',
@@ -97,14 +127,23 @@ const i18n = {
 }
 
 const { lang: currentLang, t } = useLang(i18n)
-const currentCourse = computed(() => (materialsData.value?.courses || [])[activeCourse.value] || null)
+const currentCourse = computed(() => allCourses.value.find(c => c.id === activeCourseId.value) || null)
 
-// 讲次统一按 session（讲号）降序，最新一讲始终在最上面；讲号缺失时按日期降序兜底
-const sortedSessions = computed(() =>
-  [...(currentCourse.value?.sessions || [])].sort((a, b) =>
-    (b.session ?? 0) - (a.session ?? 0)
-    || String(b.date || '').localeCompare(String(a.date || ''))),
-)
+// 讲次排序：本期课程按讲号降序（最新一讲置顶）；已结课课程按讲号升序（从第1讲往后回溯）
+const isArchiveView = computed(() => segment.value === 'archive')
+const sortedSessions = computed(() => {
+  const dir = isArchiveView.value ? 1 : -1
+  return [...(currentCourse.value?.sessions || [])].sort((a, b) =>
+    dir * ((a.session ?? 0) - (b.session ?? 0))
+    || dir * String(a.date || '').localeCompare(String(b.date || '')),
+  )
+})
+
+// 讲次是否有内容（课件 / 参考资料 / 作业任一），无内容即为「课件待上传」
+const hasContent = (s) => !!((s.files && s.files.length) || (s.references && s.references.length) || s.homework)
+const sessionTitle = (s) => s.title
+  || (currentLang.value === 'zh' ? `第${s.session}讲` : currentLang.value === 'th' ? `คาบที่ ${s.session}` : `Session ${s.session}`)
+const courseTime = (course) => (course?.time ? `${course.weekday} · ${course.time}` : course?.weekday || '')
 
 const courseName = computed(() => {
   if (!currentCourse.value) return ''
@@ -150,6 +189,9 @@ const typeLabel = (f) => {
 
     <!-- 加载骨架：占位课程标签、课程信息带与 3 张讲次卡片，形态对齐真实结构（纯展示，aria-hidden） -->
     <div v-if="loading" class="materials-skeleton" aria-hidden="true">
+      <div class="sk-switch">
+        <span class="sk-chip sk-chip--switch" v-for="i in 2" :key="i"></span>
+      </div>
       <div class="sk-tabs">
         <span class="sk-chip sk-chip--1" v-for="i in 3" :key="i"></span>
       </div>
@@ -180,14 +222,35 @@ const typeLabel = (f) => {
     </div>
 
     <template v-else-if="materialsData">
+      <!-- 学期分段：本期课程 / 已结课归档 -->
+      <div v-if="archivedCourses.length" class="term-switch fx-fade-in" role="tablist">
+        <button
+          type="button"
+          class="term-btn"
+          :class="{ active: segment === 'current' }"
+          role="tab"
+          :aria-selected="segment === 'current'"
+          @click="segment = 'current'"
+        >{{ t.currentTerm }}<span class="term-count">{{ currentCourses.length }}</span></button>
+        <button
+          type="button"
+          class="term-btn"
+          :class="{ active: segment === 'archive' }"
+          role="tab"
+          :aria-selected="segment === 'archive'"
+          @click="segment = 'archive'"
+        >{{ t.archived }}<span class="term-count">{{ archivedCourses.length }}</span></button>
+      </div>
+      <p v-if="segment === 'archive'" class="term-note">{{ t.archivedHint }}</p>
+
       <!-- 课程标签 -->
       <div class="course-tabs fx-fade-in">
         <button
-          v-for="(course, idx) in (materialsData.courses || [])"
+          v-for="course in visibleCourses"
           :key="course.id"
           class="course-tab"
-          :class="{ active: activeCourse === idx, empty: (course.sessions || []).length === 0 }"
-          @click="activeCourse = idx"
+          :class="{ active: activeCourseId === course.id, empty: (course.sessions || []).length === 0, archived: course.stage === 'archive' }"
+          @click="activeCourseId = course.id"
         >
           <span class="tab-name">{{ courseNameOf(course) }}</span>
           <span class="tab-count" v-if="(course.sessions || []).length > 0">{{ (course.sessions || []).length }} {{ t.sessionsShort }}</span>
@@ -207,7 +270,7 @@ const typeLabel = (f) => {
         </div>
         <div class="course-info-item">
           <span class="info-label">{{ t.time }}</span>
-          <span class="info-value">{{ currentCourse.weekday }}</span>
+          <span class="info-value">{{ courseTime(currentCourse) }}</span>
         </div>
       </div>
 
@@ -221,18 +284,22 @@ const typeLabel = (f) => {
 
       <!-- 节次列表 -->
       <div v-else class="sessions-list">
+        <!-- 整门课尚无课件时的说明（放在列表内，避免打断上面的 v-if/v-else 链） -->
+        <p v-if="sortedSessions.length && !sortedSessions.some(hasContent)" class="course-note">{{ t.pendingHint }}</p>
         <div
           v-for="session in sortedSessions"
           :key="session.session"
           class="session-block"
+          :class="{ 'session-block--pending': !hasContent(session) }"
         >
           <!-- 节次头 -->
           <div class="session-header">
             <div class="session-badge">{{ session.session }}</div>
             <div class="session-info">
-              <h3 class="session-title">{{ session.title }}</h3>
+              <h3 class="session-title">{{ sessionTitle(session) }}</h3>
               <span class="session-date">{{ formatDate(session.date) }}</span>
             </div>
+            <span v-if="!hasContent(session)" class="session-pending-tag">{{ t.pendingUpload }}</span>
           </div>
 
           <!-- 课件 + 参考资料 并排 -->
@@ -452,6 +519,9 @@ const typeLabel = (f) => {
 .sk-chip--1 { width: 170px; }
 .sk-chip--2 { width: 150px; }
 .sk-chip--3 { width: 120px; }
+/* 学期分段占位：对齐 .term-switch（32px 高胶囊、下间距 18） */
+.sk-switch { display: flex; gap: 6px; margin-bottom: 18px; }
+.sk-chip--switch { width: 96px; height: 34px; border-radius: 10px; }
 
 /* 课程信息带占位：对齐 .course-info（padding 16/20、下间距 28、次级灰底、圆角 12） */
 .sk-info-band {
@@ -525,6 +595,61 @@ const typeLabel = (f) => {
 @media (max-width: 768px) {
   .sk-session-block { padding: 18px; }
   .sk-session-list { min-height: 0; }
+}
+
+/* 学期分段控件：次级灰底胶囊容器，激活项白卡 + 主色文字（零阴影） */
+.term-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 18px;
+  background: var(--c-bg-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+}
+
+.term-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--c-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.term-btn:hover {
+  color: var(--c-accent);
+}
+
+.term-btn.active {
+  background: var(--c-bg-card);
+  color: var(--c-accent);
+}
+
+.term-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--c-accent-light);
+  color: var(--c-accent);
+}
+
+.term-btn.active .term-count {
+  background: var(--c-accent);
+  color: #fff;
+}
+
+.term-note {
+  margin: -6px 0 20px;
+  font-size: 13px;
+  color: var(--c-text-tertiary);
 }
 
 /* 课程标签 */
@@ -646,6 +771,37 @@ const typeLabel = (f) => {
   border-radius: 16px;
   padding: 24px;
 }
+
+/* 待上传讲次：虚线边框 + 次级底色，明确「课表已排、课件未到」 */
+.session-block--pending {
+  background: var(--c-bg-secondary);
+  border-style: dashed;
+}
+
+.session-pending-tag {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+  border-radius: 10px;
+  padding: 4px 10px;
+}
+
+.session-pending-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--c-text-tertiary);
+}
+
+/* 整门课尚无课件：一条说明放在讲次列表上方 */
+.course-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--c-text-tertiary);
+}
+
 
 .session-header {
   display: flex;

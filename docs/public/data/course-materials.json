@@ -6,7 +6,7 @@
       "name": "数据、模型与决策",
       "name_en": "Data, Models and Decisions",
       "teacher": "黄达",
-      "weekday": "周四 18:00-21:30",
+      "weekday": "周四",
       "location": "政立院区 B403",
       "sessions": [
         {
@@ -79,21 +79,154 @@
           "homework": {
             "name": "第3讲：线性规划 作业",
             "deadline": "2026-10-15",
-            "submission": "下次上课提交",
+            "submission": "待通知",
             "description": "",
-            "filename": "DMD_Homework2.pdf",
-            "url": "https://files.mint4.cn/files/courses/dmd/20260924/DMD_Homework2.pdf",
-            "size": "206 KB"
+            "filename": "DMD作业2_202604.pdf",
+            "url": "https://files.mint4.cn/files/courses/dmd/20260924/DMD作业2_202604.pdf",
+            "size": "206.4 KB",
+            "addedAt": "2026-09-28T06:34:56.786Z"
           }
+        },
+        {
+          "session": 4,
+          "date": "2026-10-15",
+          "title": "第4讲：估计与抽样调查",
+          "files": [
+            {
+              "name": "第4讲：估计与抽样调查 课件",
+              "filename": "DMD_Lecture4_2026_student.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261015/DMD_Lecture4_2026_student.pdf",
+              "size": "8.8 MB",
+              "type": "slide",
+              "addedAt": "2026-10-13T01:22:08.960Z"
+            }
+          ],
+          "references": [
+            {
+              "name": "考试公式表",
+              "filename": "考试公式表-中文_V2.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261015/考试公式表-中文_V2.pdf",
+              "size": "888.3 KB",
+              "addedAt": "2026-10-15T12:13:06.096Z"
+            },
+            {
+              "name": "估计与检验理论部分",
+              "filename": "估计与检验理论部分.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261015/估计与检验理论部分.pdf",
+              "size": "191.7 KB",
+              "addedAt": "2026-10-15T12:13:35.346Z"
+            },
+            {
+              "name": "工商总局参考案例",
+              "filename": "工商总局发布2014年下半年网络交易商品定向监测结果.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261015/工商总局发布2014年下半年网络交易商品定向监测结果.pdf",
+              "size": "591.5 KB",
+              "addedAt": "2026-10-15T12:14:08.374Z"
+            }
+          ]
+        },
+        {
+          "session": 5,
+          "date": "2026-10-22",
+          "title": "第5讲：抽样调查与假设检验",
+          "files": [
+            {
+              "name": "第5讲：抽样调查与假设检验 课件",
+              "filename": "DMD_Lecture5_2026.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261022/DMD_Lecture5_2026.pdf",
+              "size": "4.6 MB",
+              "type": "slide",
+              "addedAt": "2026-10-22T02:50:27.970Z"
+            }
+          ],
+          "references": [],
+          "homework": {
+            "name": "第5讲：抽样调查与假设检验 作业",
+            "deadline": "2026-10-29",
+            "submission": "待通知",
+            "description": "",
+            "filename": "DMD作业3_2026年.docx",
+            "url": "https://files.mint4.cn/files/courses/dmd/20261022/DMD作业3_2026年.docx",
+            "size": "22.1 KB",
+            "addedAt": "2026-10-23T03:02:44.091Z"
+          }
+        },
+        {
+          "session": 6,
+          "date": "2026-10-29",
+          "title": "第6讲：回归分析（1）",
+          "files": [
+            {
+              "name": "第6讲：回归分析（1） 课件",
+              "filename": "DMD_Lecture6.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261029/DMD_Lecture6.pdf",
+              "size": "5.8 MB",
+              "type": "slide",
+              "addedAt": "2026-10-27T09:15:41.863Z"
+            }
+          ],
+          "references": [
+            {
+              "name": "理论部分",
+              "filename": "第六课理论部分.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261029/第六课理论部分.pdf",
+              "size": "92.6 KB",
+              "addedAt": "2026-10-27T09:17:14.068Z"
+            }
+          ],
+          "homework": {
+            "name": "第6讲：回归分析（1） 作业",
+            "deadline": "",
+            "submission": "待通知",
+            "description": "不用交",
+            "filename": "DMD作业4_2026年.pdf",
+            "url": "https://files.mint4.cn/files/courses/dmd/20261029/DMD作业4_2026年.pdf",
+            "size": "321.3 KB",
+            "addedAt": "2026-11-05T10:20:09.865Z"
+          }
+        },
+        {
+          "session": 7,
+          "date": "2026-11-05",
+          "title": "第7讲：回归分析（2）",
+          "files": [
+            {
+              "name": "第7讲：回归分析（2） 课件",
+              "filename": "DMD_Lecture7_2026_student.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261105/DMD_Lecture7_2026_student.pdf",
+              "size": "4.3 MB",
+              "type": "slide",
+              "addedAt": "2026-11-05T02:35:55.065Z"
+            }
+          ],
+          "references": [
+            {
+              "name": "DMD模拟卷",
+              "filename": "DMD模拟卷-参考答案可能有错.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261105/DMD模拟卷-参考答案可能有错.pdf",
+              "size": "100.5 KB",
+              "addedAt": "2026-11-05T10:21:24.538Z"
+            },
+            {
+              "name": "模拟卷答案",
+              "filename": "模拟卷答案.pdf",
+              "url": "https://files.mint4.cn/files/courses/dmd/20261105/模拟卷答案.pdf",
+              "size": "469.9 KB",
+              "addedAt": "2026-11-05T10:21:40.908Z"
+            }
+          ]
         }
-      ]
+      ],
+      "term": "2026-F1A",
+      "stage": "archive",
+      "time": "18:00-21:30"
     },
     {
       "id": "managerial-economics",
       "name": "管理经济学",
       "name_en": "Managerial Economics",
       "teacher": "罗云辉",
-      "weekday": "周日 08:30-12:00",
+      "weekday": "周日",
       "location": "政立院区 B403",
       "sessions": [
         {
@@ -132,15 +265,112 @@
               "filename": "《管理经济学》分组表.pdf"
             }
           ]
+        },
+        {
+          "session": 2,
+          "date": "2026-09-27",
+          "title": "第2讲：垄断、反垄断管制与垄断竞争企业的决策",
+          "files": [
+            {
+              "name": "第2讲：垄断、反垄断管制与垄断竞争企业的决策 课件",
+              "filename": "资料4-2.垄断反垄断管制和垄断竞争企业的决策.pdf",
+              "url": "https://files.mint4.cn/files/courses/managerial-economics/20260927/资料4-2.垄断反垄断管制和垄断竞争企业的决策.pdf",
+              "size": "3.4 MB",
+              "type": "slide"
+            }
+          ],
+          "references": []
+        },
+        {
+          "session": 3,
+          "date": "2026-10-11",
+          "title": "第3讲：垄断、反垄断管制与垄断竞争企业的决策（下）",
+          "files": [],
+          "references": [
+            {
+              "name": "苹果公司电子书反垄断案",
+              "filename": "资料5-苹果公司电子书反垄断案.pdf",
+              "url": "https://files.mint4.cn/files/courses/managerial-economics/20261011/资料5-苹果公司电子书反垄断案.pdf",
+              "size": "494.6 KB",
+              "addedAt": "2026-10-11T01:10:20.788Z"
+            }
+          ]
+        },
+        {
+          "session": 4,
+          "date": "2026-10-18",
+          "title": "第4讲：差别定价策略（上）",
+          "files": [
+            {
+              "name": "第4讲：差别定价策略（上） 课件",
+              "filename": "资料6-3.差别定价策略.pdf",
+              "url": "https://files.mint4.cn/files/courses/managerial-economics/20261018/资料6-3.差别定价策略.pdf",
+              "size": "1.0 MB",
+              "type": "slide",
+              "addedAt": "2026-10-18T03:03:01.457Z"
+            }
+          ],
+          "references": []
+        },
+        {
+          "session": 5,
+          "date": "2026-10-25",
+          "title": "第5讲：博弈论基础",
+          "files": [
+            {
+              "name": "第5讲：博弈论基础 课件",
+              "filename": "资料7-4.博弈论基础.pdf",
+              "url": "https://files.mint4.cn/files/courses/managerial-economics/20261025/资料7-4.博弈论基础.pdf",
+              "size": "1.8 MB",
+              "type": "slide",
+              "addedAt": "2026-10-25T00:32:00.744Z"
+            }
+          ],
+          "references": []
+        },
+        {
+          "session": 6,
+          "date": "2026-11-01",
+          "title": "第6讲：寡头市场的决策",
+          "files": [
+            {
+              "name": "第6讲：寡头市场的决策 课件",
+              "filename": "资料8-5.寡头市场的决策.pdf",
+              "url": "https://files.mint4.cn/files/courses/managerial-economics/20261101/资料8-5.寡头市场的决策.pdf",
+              "size": "1.2 MB",
+              "type": "slide",
+              "addedAt": "2026-11-01T00:35:53.936Z"
+            }
+          ],
+          "references": []
+        },
+        {
+          "session": 7,
+          "date": "2026-11-08",
+          "title": "第7讲：企业的性质",
+          "files": [
+            {
+              "name": "第7讲：企业的性质 课件",
+              "filename": "资料9-6.企业的性质.pdf",
+              "url": "https://files.mint4.cn/files/courses/managerial-economics/20261108/资料9-6.企业的性质.pdf",
+              "size": "2.9 MB",
+              "type": "slide",
+              "addedAt": "2026-11-05T10:23:46.033Z"
+            }
+          ],
+          "references": []
         }
-      ]
+      ],
+      "term": "2026-F1A",
+      "stage": "archive",
+      "time": "08:30-12:00"
     },
     {
       "id": "accounting",
       "name": "会计学",
       "name_en": "Accounting",
       "teacher": "钟覃琳",
-      "weekday": "周日 13:30-17:00",
+      "weekday": "周日",
       "location": "政立院区 B403",
       "sessions": [
         {
@@ -154,14 +384,360 @@
               "filename": "第一讲 收入与应收项目.pdf"
             }
           ],
-          "title": "第1讲：收入与应收项目",
+          "title": "第1讲：收入与应收项目（上）",
           "session": 1,
+          "references": [],
+          "homework": {
+            "name": "第1讲：收入与应收项目（上） 作业",
+            "deadline": "2026-10-17",
+            "submission": "复旦LMS网站",
+            "description": "https://lms.fdsm.fudan.edu.cn/webapps/assignment/uploadAssignment?content_id=_32603_1&course_id=_7753_1&group_id=&mode=view",
+            "filename": "第一讲作业.docx",
+            "url": "https://files.mint4.cn/files/courses/accounting/20260913/第一讲作业.docx",
+            "size": "20.3 KB",
+            "addedAt": "2026-10-13T01:28:00.249Z"
+          }
+        },
+        {
+          "session": 2,
+          "date": "2026-09-27",
+          "title": "第2讲：收入与应收项目（下）",
+          "files": [
+            {
+              "name": "第2讲：收入与应收项目（下） 课件",
+              "filename": "第一讲 收入与应收项目.pdf",
+              "url": "https://files.mint4.cn/files/courses/accounting/20260927/第一讲 收入与应收项目.pdf",
+              "size": "5.4 MB",
+              "type": "slide",
+              "addedAt": "2026-09-27T07:38:22.627Z"
+            }
+          ],
+          "references": []
+        },
+        {
+          "session": 3,
+          "date": "2026-10-11",
+          "title": "第3讲：存货与营业成本（上）",
+          "files": [
+            {
+              "name": "第3讲：存货与营业成本（上） 课件",
+              "filename": "第二讲 存货与营业成本.pdf",
+              "url": "https://files.mint4.cn/files/courses/accounting/20261011/第二讲 存货与营业成本.pdf",
+              "size": "15.2 MB",
+              "type": "slide",
+              "addedAt": "2026-10-10T01:20:53.627Z"
+            }
+          ],
+          "references": [],
+          "homework": {
+            "name": "第3讲：存货与营业成本（上） 作业",
+            "deadline": "2026-10-17",
+            "submission": "复旦LMS系统",
+            "description": "https://lms.fdsm.fudan.edu.cn/webapps/assignment/uploadAssignment?content_id=_32692_1&course_id=_7753_1&group_id=&mode=view",
+            "filename": "第二讲作业.docx",
+            "url": "https://files.mint4.cn/files/courses/accounting/20261011/第二讲作业.docx",
+            "size": "20.0 KB",
+            "addedAt": "2026-10-13T01:29:56.089Z"
+          }
+        },
+        {
+          "session": 4,
+          "date": "2026-10-18",
+          "title": "第4讲：金融资产",
+          "files": [
+            {
+              "name": "第4讲：金融资产 课件",
+              "filename": "第三讲 金融资产.pdf",
+              "url": "https://files.mint4.cn/files/courses/accounting/20261018/第三讲 金融资产.pdf",
+              "size": "11.0 MB",
+              "type": "slide",
+              "addedAt": "2026-10-18T03:06:16.342Z"
+            }
+          ],
+          "references": [],
+          "homework": {
+            "name": "第4讲：金融资产 作业",
+            "deadline": "2026-10-25",
+            "submission": "LMS系统",
+            "description": "",
+            "filename": "第三讲作业.docx",
+            "url": "https://files.mint4.cn/files/courses/accounting/20261018/第三讲作业.docx",
+            "size": "18.6 KB",
+            "addedAt": "2026-10-24T14:33:30.447Z"
+          }
+        },
+        {
+          "session": 5,
+          "date": "2026-10-25",
+          "title": "第5讲：长期股权投资",
+          "files": [
+            {
+              "name": "第5讲：长期股权投资 课件",
+              "filename": "第四讲 长期股权投资.pdf",
+              "url": "https://files.mint4.cn/files/courses/accounting/20261025/第四讲 长期股权投资.pdf",
+              "size": "8.6 MB",
+              "type": "slide",
+              "addedAt": "2026-10-25T05:34:51.295Z"
+            }
+          ],
+          "references": [],
+          "homework": {
+            "name": "第5讲：长期股权投资 作业",
+            "deadline": "2026-10-31",
+            "submission": "LMS 系统提交",
+            "description": "",
+            "filename": "第四讲作业.docx",
+            "url": "https://files.mint4.cn/files/courses/accounting/20261025/第四讲作业.docx",
+            "size": "18.2 KB",
+            "addedAt": "2026-10-25T15:18:20.956Z"
+          }
+        },
+        {
+          "session": 6,
+          "date": "2026-11-01",
+          "title": "第6讲：固定资产与无形资产",
+          "files": [
+            {
+              "name": "第6讲：固定资产与无形资产 课件",
+              "filename": "第五讲 固定资产与无形资产.pdf",
+              "url": "https://files.mint4.cn/files/courses/accounting/20261101/第五讲 固定资产与无形资产.pdf",
+              "size": "15.9 MB",
+              "type": "slide",
+              "addedAt": "2026-11-01T05:40:23.679Z"
+            }
+          ],
+          "references": []
+        },
+        {
+          "session": 7,
+          "date": "2026-11-08",
+          "title": "第7讲：负债与所有者权益",
+          "files": [
+            {
+              "name": "第7讲：负债与所有者权益 课件",
+              "filename": "第六讲 负债与所有者权益.pdf",
+              "url": "https://files.mint4.cn/files/courses/accounting/20261108/第六讲 负债与所有者权益.pdf",
+              "size": "7.3 MB",
+              "type": "slide",
+              "addedAt": "2026-11-05T10:23:03.252Z"
+            }
+          ],
+          "references": []
+        }
+      ],
+      "term": "2026-F1A",
+      "stage": "archive",
+      "time": "13:30-17:00"
+    },
+    {
+      "id": "macro-economics",
+      "name": "宏观经济学",
+      "name_en": "Macroeconomics",
+      "teacher": "王安宇",
+      "weekday": "周四",
+      "time": "18:00-21:30",
+      "location": "政立院区B403教室",
+      "term": "2026-F1B",
+      "stage": "current",
+      "sessions": [
+        {
+          "session": 1,
+          "date": "2026-11-26",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 2,
+          "date": "2026-12-03",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 3,
+          "date": "2026-12-10",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 4,
+          "date": "2026-12-17",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 5,
+          "date": "2026-12-24",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 6,
+          "date": "2026-12-31",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 7,
+          "date": "2027-01-07",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "corporate-strategy",
+      "name": "企业战略管理",
+      "name_en": "Corporate Strategy",
+      "teacher": "张青",
+      "weekday": "周日",
+      "time": "08:30-12:00",
+      "location": "政立院区B403教室",
+      "term": "2026-F1B",
+      "stage": "current",
+      "sessions": [
+        {
+          "session": 1,
+          "date": "2026-11-29",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 2,
+          "date": "2026-12-06",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 3,
+          "date": "2026-12-13",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 4,
+          "date": "2026-12-20",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 5,
+          "date": "2026-12-27",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 6,
+          "date": "2027-01-03",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 7,
+          "date": "2027-01-10",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        }
+      ]
+    },
+    {
+      "id": "operations-management",
+      "name": "运营管理",
+      "name_en": "Operations Management",
+      "teacher": "李旭",
+      "weekday": "周日",
+      "time": "13:30-17:00",
+      "location": "政立院区B403教室",
+      "term": "2026-F1B",
+      "stage": "current",
+      "sessions": [
+        {
+          "session": 1,
+          "date": "2026-11-29",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 2,
+          "date": "2026-12-06",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 3,
+          "date": "2026-12-13",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 4,
+          "date": "2026-12-20",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 5,
+          "date": "2026-12-27",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 6,
+          "date": "2027-01-03",
+          "title": "",
+          "pending": true,
+          "files": [],
+          "references": []
+        },
+        {
+          "session": 7,
+          "date": "2027-01-10",
+          "title": "",
+          "pending": true,
+          "files": [],
           "references": []
         }
       ]
     }
   ],
-  "updated_by": "邹智宇",
-  "last_updated": "2026-09-24",
-  "updated_by_id": 7
+  "updated_by": "雷振宇",
+  "last_updated": "2026-11-25",
+  "updated_by_id": 1
 }
