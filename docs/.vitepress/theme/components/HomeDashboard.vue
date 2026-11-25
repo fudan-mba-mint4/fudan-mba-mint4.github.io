@@ -457,7 +457,7 @@ onMounted(() => {
   setTimeout(triggerAlerts, 1200)
 })
 
-// 获取接下来的2节课
+// 获取接下来的3节课
 const upcomingClasses = computed(() => {
   if (!scheduleData.value || !scheduleData.value.schedule) return []
   const now = new Date()
@@ -470,7 +470,7 @@ const upcomingClasses = computed(() => {
       }
     })
   })
-  return allClasses.sort((a, b) => a.datetime - b.datetime).slice(0, 2)
+  return allClasses.sort((a, b) => a.datetime - b.datetime).slice(0, 3)
 })
 
 // 下一节课的倒计时天数
@@ -978,7 +978,7 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div v-else class="schedule-list fx-fade-in">
+        <div v-else class="schedule-list fx-fade-in" :class="{ 'schedule-list--dense': upcomingClasses.length > 2 }">
           <div
             v-for="(course, i) in upcomingClasses"
             :key="i"
@@ -2163,6 +2163,59 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+/* 三条及以上：紧凑排布，保证在既有卡片高度内放下（仅在多列布局下压缩） */
+@media (min-width: 641px) {
+  .schedule-list--dense {
+    justify-content: space-between;
+    gap: 1px;
+  }
+
+  .schedule-list--dense .schedule-item {
+    padding: 3px 4px;
+    min-height: 0;
+  }
+
+  .schedule-list--dense .schedule-item-main {
+    gap: 10px;
+  }
+
+  .schedule-list--dense .schedule-info {
+    gap: 1px;
+  }
+
+  .schedule-list--dense .schedule-date {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .schedule-list--dense .schedule-day {
+    font-size: 15px;
+  }
+
+  .schedule-list--dense .schedule-month {
+    font-size: 9px;
+    margin-top: 1px;
+  }
+
+  .schedule-list--dense .schedule-course {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .schedule-list--dense .schedule-meta {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .schedule-list--dense .schedule-countdown {
+    padding: 2px 8px;
+  }
+
+  .schedule-list--dense .schedule-detail {
+    padding-left: 42px;
+  }
+}
 .schedule-countdown {
   font-size: 11px;
   font-weight: 500;

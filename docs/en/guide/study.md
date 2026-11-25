@@ -49,10 +49,12 @@ layout: page
   <GuideStepList
     :steps="[
       { title: 'Entry', desc: 'Browse course slide PDFs, homework and reference materials by course and session.', link: { text: 'Open course materials', href: '/en/slides/' } },
-      { title: 'Latest session on top', desc: 'The latest session always appears on top, arranged by session number, so you will not open the wrong page.' },
+      { title: 'Session order', desc: 'For current-semester courses the newest session is on top; completed courses run from Session 1 onwards so you can trace back easily.' },
+      { title: 'Course grouping', desc: 'The page is split into a Current-semester group and a Completed group; all materials of completed courses are kept with unchanged links.' },
+      { title: 'Sessions awaiting upload', desc: 'Sessions are already laid out by the timetable; a session without files shows Slides pending upload and fills in automatically once uploaded.' },
       { title: 'Online preview', desc: 'Click a file to view it online; you may also download and save it; download is not forced.' },
       { title: 'Unread red dot', desc: 'The homepage slides entry carries an unread red dot, cleared once you enter the slides page.' },
-      { title: 'Current semester courses', desc: 'Current semester courses include: Data, Models and Decisions (DMD), Managerial Economics, and Accounting.' },
+      { title: 'Course scope', desc: 'Current semester: Macroeconomics, Corporate Strategic Management, Operations Management; Completed: Data, Models and Decisions (DMD), Managerial Economics, Accounting.' },
       { title: 'Maintenance ownership', desc: 'Course materials are maintained and updated by the thinktank researchers.' }
     ]"
   />
